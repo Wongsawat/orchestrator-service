@@ -285,12 +285,9 @@ public class SagaApplicationService implements SagaOrchestrationService {
 
     @Override
     public List<SagaInstance> getSagasForDocument(DocumentType documentType, String documentId) {
-        return List.of(
-                sagaRepository.findByDocumentTypeAndDocumentId(documentType, documentId)
-                        .orElse(null)
-        ).stream()
-                .filter(s -> s != null)
-                .toList();
+        return sagaRepository.findByDocumentTypeAndDocumentId(documentType, documentId)
+                .map(List::of)
+                .orElse(List.of());
     }
 
     /**

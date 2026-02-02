@@ -146,8 +146,12 @@ public class SagaInstance {
 
     /**
      * Marks the saga as completed.
+     * This method is idempotent - calling it multiple times has no additional effect.
      */
     public void complete() {
+        if (this.status == SagaStatus.COMPLETED) {
+            return; // Already completed, idempotent
+        }
         if (this.status != SagaStatus.IN_PROGRESS) {
             throw new IllegalStateException("Can only complete a saga that is IN_PROGRESS");
         }

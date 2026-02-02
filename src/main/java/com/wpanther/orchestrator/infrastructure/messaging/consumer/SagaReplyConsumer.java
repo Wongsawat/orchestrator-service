@@ -44,11 +44,13 @@ public class SagaReplyConsumer {
             processReply(reply);
             if (acknowledgment != null) {
                 acknowledgment.acknowledge();
-                log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                if (reply != null) {
+                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                }
             }
         } catch (Exception e) {
             log.error("Error processing invoice reply for saga {}: {}",
-                    reply.getSagaId(), e.getMessage(), e);
+                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
             // Still acknowledge to avoid retry loop - the saga will be marked as failed
             if (acknowledgment != null) {
                 acknowledgment.acknowledge();
@@ -78,11 +80,13 @@ public class SagaReplyConsumer {
             processReply(reply);
             if (acknowledgment != null) {
                 acknowledgment.acknowledge();
-                log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                if (reply != null) {
+                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                }
             }
         } catch (Exception e) {
             log.error("Error processing tax-invoice reply for saga {}: {}",
-                    reply.getSagaId(), e.getMessage(), e);
+                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
             // Still acknowledge to avoid retry loop
             if (acknowledgment != null) {
                 acknowledgment.acknowledge();

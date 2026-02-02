@@ -1,0 +1,41 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:orchestrator_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+  flyway:
+    enabled: false
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: test-orchestrator
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+server:
+  port: 0
+
+app:
+  saga:
+    command:
+      invoice: saga.command.invoice
+      tax-invoice: saga.command.tax-invoice
+    reply:
+      invoice: saga.reply.invoice
+      tax-invoice: saga.reply.tax-invoice
+    max-retries: 3
+    retry-delay-seconds: 1
+
+logging:
+  level:
+    com.wpanther.orchestrator: DEBUG
+    org.hibernate.SQL: DEBUG
