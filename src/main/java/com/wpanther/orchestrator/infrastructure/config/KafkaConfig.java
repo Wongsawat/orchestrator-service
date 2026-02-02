@@ -1,5 +1,7 @@
 package com.wpanther.orchestrator.infrastructure.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.wpanther.orchestrator.domain.event.StartSagaCommand;
 import com.wpanther.saga.domain.model.SagaReply;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -33,6 +35,12 @@ public class KafkaConfig {
 
     @Value("${spring.kafka.consumer.auto-offset-reset:earliest}")
     private String autoOffsetReset;
+
+    private final ObjectMapper objectMapper;
+
+    public KafkaConfig(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     // ========== Producer Configuration ==========
 
@@ -91,5 +99,33 @@ public class KafkaConfig {
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         return new DefaultKafkaConsumerFactory<>(config);
+    }
+
+    // ========== StartSagaCommand Consumer Factory ==========
+
+    @Bean
+    public ConsumerFactory<String, StartSagaCommand> startSagaCommandConsumerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "orchestrator-service");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        return new DefaultKafkaConsumerFactory<>(
+            props,
+            new StringDeserializer(),
+            new JsonDeserializer<>(StartSagaCommand.class, objectMapper, false)
+        );
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, StartSagaCommand>
+            startSagaCommandKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, StartSagaCommand> factory =
+            new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(startSagaCommandConsumerFactory());
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+        factory.setConcurrency(3);
+        return factory;
     }
 }

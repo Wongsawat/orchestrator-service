@@ -11,6 +11,8 @@ import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
 import com.wpanther.orchestrator.domain.service.SagaOrchestrationService;
 import com.wpanther.orchestrator.infrastructure.messaging.producer.SagaCommandProducer;
+import com.wpanther.orchestrator.infrastructure.messaging.producer.SagaCommandPublisher;
+import com.wpanther.orchestrator.infrastructure.messaging.producer.SagaEventPublisher;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Application service for saga orchestration.
@@ -32,6 +35,8 @@ public class SagaApplicationService implements SagaOrchestrationService {
     private final SagaInstanceRepository sagaRepository;
     private final SagaCommandRecordRepository commandRepository;
     private final SagaCommandProducer commandProducer;
+    private final SagaCommandPublisher commandPublisher;
+    private final SagaEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -50,6 +55,9 @@ public class SagaApplicationService implements SagaOrchestrationService {
             }
         }
 
+        // Generate correlation ID
+        String correlationId = generateCorrelationId(documentId);
+
         // Create new saga instance
         SagaInstance instance = SagaInstance.create(documentType, documentId, metadata);
         instance.start();
@@ -57,8 +65,12 @@ public class SagaApplicationService implements SagaOrchestrationService {
         // Save saga instance
         SagaInstance saved = sagaRepository.save(instance);
 
-        // Create and send first command
-        sendCommandForStep(saved);
+        // Publish saga started event
+        String invoiceNumber = extractInvoiceNumber(metadata);
+        eventPublisher.publishSagaStarted(saved, correlationId, invoiceNumber);
+
+        // Create and send first command via outbox
+        sendCommandForStep(saved, correlationId);
 
         log.info("Started saga {} for document {}", saved.getId(), documentId);
         return saved;
@@ -69,6 +81,9 @@ public class SagaApplicationService implements SagaOrchestrationService {
      */
     @Transactional
     public SagaInstance startSaga(StartSagaRequest request) {
+        // Extract correlation ID from metadata if present
+        String correlationId = extractCorrelationIdFromMetadata(request.metadata());
+
         DocumentMetadata metadata = DocumentMetadata.builder()
                 .filePath(request.filePath())
                 .xmlContent(request.xmlContent())
@@ -78,7 +93,49 @@ public class SagaApplicationService implements SagaOrchestrationService {
                 .checksum(request.checksum())
                 .build();
 
-        return startSaga(request.documentType(), request.documentId(), metadata);
+        return startSaga(request.documentType(), request.documentId(), metadata, correlationId);
+    }
+
+    /**
+     * Starts a saga with explicit correlation ID.
+     */
+    @Transactional
+    public SagaInstance startSaga(DocumentType documentType, String documentId,
+                                  DocumentMetadata metadata, String correlationId) {
+        log.info("Starting saga for document type {} with ID {}", documentType, documentId);
+
+        // Check if saga already exists for this document
+        var existing = sagaRepository.findByDocumentTypeAndDocumentId(documentType, documentId);
+        if (existing.isPresent()) {
+            SagaInstance existingSaga = existing.get();
+            if (existingSaga.getStatus() != SagaStatus.FAILED
+                    && existingSaga.getStatus() != SagaStatus.COMPLETED) {
+                log.warn("Saga already exists for document {} with status {}", documentId, existingSaga.getStatus());
+                return existingSaga;
+            }
+        }
+
+        // Generate correlation ID if not provided
+        if (correlationId == null) {
+            correlationId = generateCorrelationId(documentId);
+        }
+
+        // Create new saga instance
+        SagaInstance instance = SagaInstance.create(documentType, documentId, metadata);
+        instance.start();
+
+        // Save saga instance
+        SagaInstance saved = sagaRepository.save(instance);
+
+        // Publish saga started event
+        String invoiceNumber = extractInvoiceNumber(metadata);
+        eventPublisher.publishSagaStarted(saved, correlationId, invoiceNumber);
+
+        // Create and send first command via outbox
+        sendCommandForStep(saved, correlationId);
+
+        log.info("Started saga {} for document {}", saved.getId(), documentId);
+        return saved;
     }
 
     @Override
@@ -90,6 +147,7 @@ public class SagaApplicationService implements SagaOrchestrationService {
                 .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
 
         SagaStep completedStep = SagaStep.fromCode(step);
+        String correlationId = generateCorrelationId(instance.getDocumentId());
 
         // Update the command record
         List<SagaCommandRecord> commands = commandRepository.findBySagaId(sagaId);
@@ -103,6 +161,9 @@ public class SagaApplicationService implements SagaOrchestrationService {
             if (success) {
                 lastCommand.markAsCompleted();
                 commandRepository.save(lastCommand);
+
+                // Publish step completed event
+                eventPublisher.publishSagaStepCompleted(instance, completedStep, correlationId);
             } else {
                 lastCommand.markAsFailed(errorMessage);
                 commandRepository.save(lastCommand);
@@ -113,7 +174,7 @@ public class SagaApplicationService implements SagaOrchestrationService {
                     log.info("Retrying step {} for saga {} (attempt {})",
                             step, sagaId, instance.getRetryCount());
                     sagaRepository.save(instance);
-                    sendCommandForStep(instance);
+                    sendCommandForStep(instance, correlationId);
                     return instance;
                 }
 
@@ -121,7 +182,13 @@ public class SagaApplicationService implements SagaOrchestrationService {
                 instance.fail(errorMessage);
                 instance.startCompensation();
                 sagaRepository.save(instance);
-                sendCompensationCommand(instance, completedStep);
+
+                // Publish saga failed event
+                String invoiceNumber = extractInvoiceNumber(instance.getDocumentMetadata());
+                eventPublisher.publishSagaFailed(instance, completedStep, errorMessage,
+                    correlationId, invoiceNumber);
+
+                sendCompensationCommand(instance, completedStep, correlationId);
                 return instance;
             }
         }
@@ -132,11 +199,16 @@ public class SagaApplicationService implements SagaOrchestrationService {
             if (nextStep != null) {
                 instance.advanceTo(nextStep);
                 sagaRepository.save(instance);
-                sendCommandForStep(instance);
+                sendCommandForStep(instance, correlationId);
             } else {
                 // Saga completed
                 instance.complete();
                 sagaRepository.save(instance);
+
+                // Publish saga completed event
+                String invoiceNumber = extractInvoiceNumber(instance.getDocumentMetadata());
+                eventPublisher.publishSagaCompleted(instance, correlationId, invoiceNumber);
+
                 log.info("Saga {} completed successfully", sagaId);
             }
         }
@@ -156,12 +228,13 @@ public class SagaApplicationService implements SagaOrchestrationService {
         SagaInstance instance = sagaRepository.findById(sagaId)
                 .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
 
+        String correlationId = generateCorrelationId(instance.getDocumentId());
         SagaStep nextStep = instance.getNextStep();
         if (nextStep == null) {
             instance.complete();
         } else {
             instance.advanceTo(nextStep);
-            sendCommandForStep(instance);
+            sendCommandForStep(instance, correlationId);
         }
 
         return sagaRepository.save(instance);
@@ -173,6 +246,7 @@ public class SagaApplicationService implements SagaOrchestrationService {
         SagaInstance instance = sagaRepository.findById(sagaId)
                 .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
 
+        String correlationId = generateCorrelationId(instance.getDocumentId());
         instance.fail(errorMessage);
         instance.startCompensation();
 
@@ -180,7 +254,7 @@ public class SagaApplicationService implements SagaOrchestrationService {
 
         // Send compensation for current step
         if (instance.getCurrentStep() != null) {
-            sendCompensationCommand(instance, instance.getCurrentStep());
+            sendCompensationCommand(instance, instance.getCurrentStep(), correlationId);
         }
 
         return saved;
@@ -197,8 +271,9 @@ public class SagaApplicationService implements SagaOrchestrationService {
         }
 
         instance.incrementRetry();
+        String correlationId = generateCorrelationId(instance.getDocumentId());
         SagaInstance saved = sagaRepository.save(instance);
-        sendCommandForStep(instance);
+        sendCommandForStep(instance, correlationId);
 
         return saved;
     }
@@ -221,7 +296,7 @@ public class SagaApplicationService implements SagaOrchestrationService {
     /**
      * Sends a command for the current step of the saga.
      */
-    private void sendCommandForStep(SagaInstance instance) {
+    private void sendCommandForStep(SagaInstance instance, String correlationId) {
         SagaStep step = instance.getCurrentStep();
         boolean isInvoice = instance.getDocumentType() == DocumentType.INVOICE;
 
@@ -238,11 +313,14 @@ public class SagaApplicationService implements SagaOrchestrationService {
         SagaCommandRecord saved = commandRepository.save(commandRecord);
         instance.addCommand(saved);
 
-        // Mark as sent and produce to Kafka
+        // Mark as sent
         saved.markAsSent();
         commandRepository.save(saved);
 
-        // Send to Kafka
+        // Publish command via outbox
+        commandPublisher.publishCommandForStep(instance, step, correlationId);
+
+        // Also send to Kafka for backward compatibility (will be removed in future)
         commandProducer.sendCommand(instance.getId(), createCommand(instance, step, saved.getCorrelationId()), isInvoice);
     }
 
@@ -282,13 +360,43 @@ public class SagaApplicationService implements SagaOrchestrationService {
     /**
      * Sends a compensation command for a failed step.
      */
-    private void sendCompensationCommand(SagaInstance instance, SagaStep failedStep) {
+    private void sendCompensationCommand(SagaInstance instance, SagaStep failedStep, String correlationId) {
         SagaStep compensationStep = instance.getCompensationStep();
         if (compensationStep != null) {
             log.info("Sending compensation command for saga {} from {} to {}",
                     instance.getId(), failedStep, compensationStep);
-            // Compensation logic would go here
+            // Future: Publish compensation command via outbox
+            // commandPublisher.publishCompensationCommand(instance, compensationStep, correlationId);
         }
+    }
+
+    /**
+     * Generates a correlation ID for tracking.
+     */
+    private String generateCorrelationId(String documentId) {
+        return java.util.UUID.randomUUID().toString();
+    }
+
+    /**
+     * Extracts correlation ID from metadata if present.
+     */
+    private String extractCorrelationIdFromMetadata(Map<String, Object> metadata) {
+        if (metadata != null && metadata.containsKey("correlationId")) {
+            Object correlationId = metadata.get("correlationId");
+            return correlationId != null ? correlationId.toString() : null;
+        }
+        return null;
+    }
+
+    /**
+     * Extracts invoice number from metadata.
+     */
+    private String extractInvoiceNumber(DocumentMetadata metadata) {
+        if (metadata != null && metadata.getMetadata() != null) {
+            Object invoiceNumber = metadata.getMetadata().get("invoiceNumber");
+            return invoiceNumber != null ? invoiceNumber.toString() : null;
+        }
+        return null;
     }
 
     /**

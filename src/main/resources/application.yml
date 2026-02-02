@@ -46,6 +46,21 @@ management:
       application: ${spring.application.name}
 
 app:
+  kafka:
+    topics:
+      # Command topic from document-intake-service
+      saga-commands-orchestrator: saga.commands.orchestrator
+      # Saga lifecycle event topics
+      saga-lifecycle-started: saga.lifecycle.started
+      saga-lifecycle-step-completed: saga.lifecycle.step-completed
+      saga-lifecycle-completed: saga.lifecycle.completed
+      saga-lifecycle-failed: saga.lifecycle.failed
+      # Command topics to processing services
+      saga-command-invoice: saga.command.invoice
+      saga-command-tax-invoice: saga.command.tax-invoice
+      # Reply topics from processing services
+      saga-reply-invoice: saga.reply.invoice
+      saga-reply-tax-invoice: saga.reply.tax-invoice
   saga:
     command:
       invoice: saga.command.invoice
