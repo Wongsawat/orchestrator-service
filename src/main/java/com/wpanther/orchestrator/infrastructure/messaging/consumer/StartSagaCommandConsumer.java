@@ -46,7 +46,7 @@ public class StartSagaCommandConsumer {
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("invoiceNumber", command.getInvoiceNumber());
             metadata.put("source", command.getSource());
-            metadata.put("commandId", command.getCommandId().toString());
+            metadata.put("eventId", command.getEventId().toString());
 
             // Create start request from command
             StartSagaRequest request = new StartSagaRequest(

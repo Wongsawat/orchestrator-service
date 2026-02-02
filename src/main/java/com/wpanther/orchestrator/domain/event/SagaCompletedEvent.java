@@ -1,11 +1,12 @@
 package com.wpanther.orchestrator.domain.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.IntegrationEvent;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.jackson.Jacksonized;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Event published when a saga completes successfully.
@@ -13,67 +14,64 @@ import java.util.UUID;
  */
 @Getter
 @Builder
-public class SagaCompletedEvent {
+@Jacksonized
+public class SagaCompletedEvent extends IntegrationEvent {
 
-    @JsonProperty("eventId")
-    @Builder.Default
-    private final UUID eventId = UUID.randomUUID();
+    private static final long serialVersionUID = 1L;
 
-    @JsonProperty("occurredAt")
-    @Builder.Default
-    private final Instant occurredAt = Instant.now();
-
-    /**
-     * ID of the saga instance.
-     */
     @JsonProperty("sagaId")
     private final String sagaId;
 
-    /**
-     * Correlation ID for tracing across services.
-     */
     @JsonProperty("correlationId")
     private final String correlationId;
 
-    /**
-     * Type of document that was processed.
-     */
     @JsonProperty("documentType")
     private final String documentType;
 
-    /**
-     * Document ID that was processed.
-     */
     @JsonProperty("documentId")
     private final String documentId;
 
-    /**
-     * Invoice/tax invoice number for reference.
-     */
     @JsonProperty("invoiceNumber")
     private final String invoiceNumber;
 
-    /**
-     * Number of steps executed in this saga.
-     */
     @JsonProperty("stepsExecuted")
     private final Integer stepsExecuted;
 
-    /**
-     * Timestamp when the saga started.
-     */
     @JsonProperty("startedAt")
     private final Instant startedAt;
 
-    /**
-     * Timestamp when the saga completed.
-     */
     @JsonProperty("completedAt")
     private final Instant completedAt;
 
-    /**
-     * Duration in milliseconds.
-     */
     @JsonProperty("durationMs")
     private final Long durationMs;
+
+    public SagaCompletedEvent() {
+        super();
+        this.sagaId = null;
+        this.correlationId = null;
+        this.documentType = null;
+        this.documentId = null;
+        this.invoiceNumber = null;
+        this.stepsExecuted = null;
+        this.startedAt = null;
+        this.completedAt = null;
+        this.durationMs = null;
+    }
+
+    @Builder
+    private SagaCompletedEvent(String sagaId, String correlationId, String documentType,
+                               String documentId, String invoiceNumber, Integer stepsExecuted,
+                               Instant startedAt, Instant completedAt, Long durationMs) {
+        super();
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.stepsExecuted = stepsExecuted;
+        this.startedAt = startedAt;
+        this.completedAt = completedAt;
+        this.durationMs = durationMs;
+    }
 }

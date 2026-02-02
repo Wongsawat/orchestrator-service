@@ -1,13 +1,15 @@
 package com.wpanther.orchestrator.infrastructure.messaging.producer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.event.SagaCompletedEvent;
 import com.wpanther.orchestrator.domain.event.SagaFailedEvent;
 import com.wpanther.orchestrator.domain.event.SagaStartedEvent;
 import com.wpanther.orchestrator.domain.event.SagaStepCompletedEvent;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
-import com.wpanther.orchestrator.infrastructure.outbox.OutboxService;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
+import com.wpanther.saga.infrastructure.outbox.OutboxService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,6 +32,7 @@ import java.util.Map;
 public class SagaEventPublisher {
 
     private final OutboxService outboxService;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.kafka.topics.saga-lifecycle-started:saga.lifecycle.started}")
     private String sagaStartedTopic;
@@ -62,13 +65,15 @@ public class SagaEventPublisher {
         headers.put("correlationId", correlationId);
         headers.put("documentType", saga.getDocumentType().name());
 
-        outboxService.writeEvent(
+        String headersJson = toJson(headers);
+
+        outboxService.saveWithRouting(
+            event,
             "SagaInstance",
             saga.getId(),
-            "SagaStartedEvent",
             sagaStartedTopic,
-            event,
-            headers
+            correlationId,  // partition key
+            headersJson
         );
 
         log.debug("Published SagaStartedEvent for saga {}", saga.getId());
@@ -95,13 +100,15 @@ public class SagaEventPublisher {
         headers.put("correlationId", correlationId);
         headers.put("documentType", saga.getDocumentType().name());
 
-        outboxService.writeEvent(
+        String headersJson = toJson(headers);
+
+        outboxService.saveWithRouting(
+            event,
             "SagaInstance",
             saga.getId(),
-            "SagaStepCompletedEvent",
             sagaStepCompletedTopic,
-            event,
-            headers
+            correlationId,  // partition key
+            headersJson
         );
 
         log.debug("Published SagaStepCompletedEvent for saga {}, step {}", saga.getId(), completedStep);
@@ -131,13 +138,15 @@ public class SagaEventPublisher {
         headers.put("correlationId", correlationId);
         headers.put("documentType", saga.getDocumentType().name());
 
-        outboxService.writeEvent(
+        String headersJson = toJson(headers);
+
+        outboxService.saveWithRouting(
+            event,
             "SagaInstance",
             saga.getId(),
-            "SagaCompletedEvent",
             sagaCompletedTopic,
-            event,
-            headers
+            correlationId,  // partition key
+            headersJson
         );
 
         log.info("Published SagaCompletedEvent for saga {} with duration {}ms", saga.getId(), durationMs);
@@ -172,16 +181,27 @@ public class SagaEventPublisher {
         headers.put("correlationId", correlationId);
         headers.put("documentType", saga.getDocumentType().name());
 
-        outboxService.writeEvent(
+        String headersJson = toJson(headers);
+
+        outboxService.saveWithRouting(
+            event,
             "SagaInstance",
             saga.getId(),
-            "SagaFailedEvent",
             sagaFailedTopic,
-            event,
-            headers
+            correlationId,  // partition key
+            headersJson
         );
 
         log.warn("Published SagaFailedEvent for saga {} at step {}, compensating: {}",
             saga.getId(), failedStep, compensating);
+    }
+
+    private String toJson(Map<String, String> map) {
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize headers to JSON", e);
+            return null;
+        }
     }
 }

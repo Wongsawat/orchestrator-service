@@ -1,11 +1,10 @@
 package com.wpanther.orchestrator.domain.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.IntegrationEvent;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.Instant;
-import java.util.UUID;
+import lombok.extern.jackson.Jacksonized;
 
 /**
  * Command sent to orchestrator-service to start a new saga.
@@ -16,21 +15,10 @@ import java.util.UUID;
  */
 @Getter
 @Builder
-public class StartSagaCommand {
+@Jacksonized  // Enable Jackson builder deserialization
+public class StartSagaCommand extends IntegrationEvent {
 
-    /**
-     * Unique identifier for this command.
-     */
-    @JsonProperty("commandId")
-    @Builder.Default
-    private final UUID commandId = UUID.randomUUID();
-
-    /**
-     * Timestamp when this command was created.
-     */
-    @JsonProperty("occurredAt")
-    @Builder.Default
-    private final Instant occurredAt = Instant.now();
+    private static final long serialVersionUID = 1L;
 
     /**
      * ID of the IncomingDocument that triggered this saga.
@@ -68,4 +56,34 @@ public class StartSagaCommand {
      */
     @JsonProperty("source")
     private final String source;
+
+    /**
+     * Constructor for creating a new StartSagaCommand.
+     * Initializes the base IntegrationEvent fields.
+     */
+    public StartSagaCommand() {
+        super();
+        this.documentId = null;
+        this.documentType = null;
+        this.invoiceNumber = null;
+        this.xmlContent = null;
+        this.correlationId = null;
+        this.source = null;
+    }
+
+    /**
+     * Full constructor for Builder.
+     * Note: eventId, occurredAt, eventType, and version are set by IntegrationEvent base class.
+     */
+    @Builder
+    private StartSagaCommand(String documentId, String documentType, String invoiceNumber,
+                             String xmlContent, String correlationId, String source) {
+        super();
+        this.documentId = documentId;
+        this.documentType = documentType;
+        this.invoiceNumber = invoiceNumber;
+        this.xmlContent = xmlContent;
+        this.correlationId = correlationId;
+        this.source = source;
+    }
 }

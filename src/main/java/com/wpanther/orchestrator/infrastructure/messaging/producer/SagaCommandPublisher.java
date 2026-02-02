@@ -1,8 +1,14 @@
 package com.wpanther.orchestrator.infrastructure.messaging.producer;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
-import com.wpanther.orchestrator.infrastructure.outbox.OutboxService;
 import com.wpanther.saga.domain.enums.SagaStep;
+import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.infrastructure.outbox.OutboxService;
+import lombok.Getter;
+import lombok.extern.jackson.Jacksonized;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +32,7 @@ import java.util.Map;
 public class SagaCommandPublisher {
 
     private final OutboxService outboxService;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.kafka.topics.saga-command-invoice:saga.command.invoice}")
     private String invoiceCommandTopic;
@@ -44,28 +51,16 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishProcessInvoiceCommand(SagaInstance saga, String correlationId) {
-        ProcessInvoiceCommand command = ProcessInvoiceCommand.builder()
-            .sagaId(saga.getId())
-            .documentId(saga.getDocumentId())
-            .xmlContent(saga.getDocumentMetadata().getXmlContent())
-            .correlationId(correlationId)
-            .invoiceNumber(getInvoiceNumber(saga))
-            .build();
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put("sagaId", saga.getId());
-        headers.put("correlationId", correlationId);
-        headers.put("documentType", saga.getDocumentType().name());
-        headers.put("commandType", "ProcessInvoiceCommand");
-
-        outboxService.writeEvent(
-            "SagaInstance",
+        ProcessInvoiceCommand command = new ProcessInvoiceCommand(
             saga.getId(),
-            "ProcessInvoiceCommand",
-            invoiceCommandTopic,
-            command,
-            headers
+            SagaStep.PROCESS_INVOICE.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            saga.getDocumentMetadata().getXmlContent(),
+            getInvoiceNumber(saga)
         );
+
+        publishCommand(command, invoiceCommandTopic, saga, correlationId, "ProcessInvoiceCommand");
 
         log.debug("Published ProcessInvoiceCommand for saga {} to topic {}",
             saga.getId(), invoiceCommandTopic);
@@ -76,28 +71,16 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishProcessTaxInvoiceCommand(SagaInstance saga, String correlationId) {
-        ProcessTaxInvoiceCommand command = ProcessTaxInvoiceCommand.builder()
-            .sagaId(saga.getId())
-            .documentId(saga.getDocumentId())
-            .xmlContent(saga.getDocumentMetadata().getXmlContent())
-            .correlationId(correlationId)
-            .invoiceNumber(getInvoiceNumber(saga))
-            .build();
-
-        Map<String, String> headers = new HashMap<>();
-        headers.put("sagaId", saga.getId());
-        headers.put("correlationId", correlationId);
-        headers.put("documentType", saga.getDocumentType().name());
-        headers.put("commandType", "ProcessTaxInvoiceCommand");
-
-        outboxService.writeEvent(
-            "SagaInstance",
+        ProcessTaxInvoiceCommand command = new ProcessTaxInvoiceCommand(
             saga.getId(),
-            "ProcessTaxInvoiceCommand",
-            taxInvoiceCommandTopic,
-            command,
-            headers
+            SagaStep.PROCESS_TAX_INVOICE.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            saga.getDocumentMetadata().getXmlContent(),
+            getInvoiceNumber(saga)
         );
+
+        publishCommand(command, taxInvoiceCommandTopic, saga, correlationId, "ProcessTaxInvoiceCommand");
 
         log.debug("Published ProcessTaxInvoiceCommand for saga {} to topic {}",
             saga.getId(), taxInvoiceCommandTopic);
@@ -109,8 +92,6 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishCommandForStep(SagaInstance saga, SagaStep step, String correlationId) {
-        boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
-
         switch (step) {
             case PROCESS_INVOICE:
                 publishProcessInvoiceCommand(saga, correlationId);
@@ -118,10 +99,6 @@ public class SagaCommandPublisher {
             case PROCESS_TAX_INVOICE:
                 publishProcessTaxInvoiceCommand(saga, correlationId);
                 break;
-            // Future steps will be added here:
-            // case SIGN_XML -> publishSignXmlCommand
-            // case GENERATE_INVOICE_PDF -> publishGenerateInvoicePdfCommand
-            // etc.
             default:
                 log.warn("No command publisher configured for step {}", step);
         }
@@ -129,20 +106,20 @@ public class SagaCommandPublisher {
 
     /**
      * Publishes a compensation command to rollback a completed step.
-     * The compensation command includes the saga ID and the step to compensate.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishCompensationCommand(SagaInstance saga, SagaStep stepToCompensate, String correlationId) {
         boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
         String compensationTopic = isInvoice ? invoiceCompensationTopic : taxInvoiceCompensationTopic;
 
-        CompensationCommand command = CompensationCommand.builder()
-            .sagaId(saga.getId())
-            .stepToCompensate(stepToCompensate.getCode())
-            .documentId(saga.getDocumentId())
-            .correlationId(correlationId)
-            .documentType(saga.getDocumentType().getCode())
-            .build();
+        CompensationCommand command = new CompensationCommand(
+            saga.getId(),
+            "COMPENSATE_" + stepToCompensate.getCode(),
+            correlationId,
+            stepToCompensate.getCode(),
+            saga.getDocumentId(),
+            saga.getDocumentType().getCode()
+        );
 
         Map<String, String> headers = new HashMap<>();
         headers.put("sagaId", saga.getId());
@@ -151,22 +128,41 @@ public class SagaCommandPublisher {
         headers.put("commandType", "CompensationCommand");
         headers.put("compensation", "true");
 
-        outboxService.writeEvent(
+        String headersJson = toJson(headers);
+
+        outboxService.saveWithRouting(
+            command,
             "SagaInstance",
             saga.getId(),
-            "CompensationCommand",
             compensationTopic,
-            command,
-            headers
+            correlationId,
+            headersJson
         );
 
         log.info("Published CompensationCommand for saga {} to compensate step {} on topic {}",
             saga.getId(), stepToCompensate, compensationTopic);
     }
 
-    /**
-     * Extracts invoice number from saga metadata.
-     */
+    private void publishCommand(IntegrationEvent command, String topic, SagaInstance saga,
+                                String correlationId, String commandType) {
+        Map<String, String> headers = new HashMap<>();
+        headers.put("sagaId", saga.getId());
+        headers.put("correlationId", correlationId);
+        headers.put("documentType", saga.getDocumentType().name());
+        headers.put("commandType", commandType);
+
+        String headersJson = toJson(headers);
+
+        outboxService.saveWithRouting(
+            command,
+            "SagaInstance",
+            saga.getId(),
+            topic,
+            correlationId,
+            headersJson
+        );
+    }
+
     private String getInvoiceNumber(SagaInstance saga) {
         if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
             Object invoiceNumber = saga.getDocumentMetadata().getMetadata().get("invoiceNumber");
@@ -177,48 +173,126 @@ public class SagaCommandPublisher {
         return null;
     }
 
+    private String toJson(Map<String, String> map) {
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize headers to JSON", e);
+            return null;
+        }
+    }
+
     /**
      * Command for invoice processing service.
      */
-    @lombok.Builder
-    @lombok.Getter
-    @lombok.AllArgsConstructor
-    @lombok.NoArgsConstructor
-    public static class ProcessInvoiceCommand {
-        private String sagaId;
-        private String documentId;
-        private String xmlContent;
-        private String correlationId;
-        private String invoiceNumber;
+    @Getter
+    @Jacksonized
+    public static class ProcessInvoiceCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("xmlContent")
+        private final String xmlContent;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        public ProcessInvoiceCommand(String sagaId, String sagaStep, String correlationId,
+                                     String documentId, String xmlContent, String invoiceNumber) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.invoiceNumber = invoiceNumber;
+        }
     }
 
     /**
      * Command for tax invoice processing service.
      */
-    @lombok.Builder
-    @lombok.Getter
-    @lombok.AllArgsConstructor
-    @lombok.NoArgsConstructor
-    public static class ProcessTaxInvoiceCommand {
-        private String sagaId;
-        private String documentId;
-        private String xmlContent;
-        private String correlationId;
-        private String invoiceNumber;
+    @Getter
+    @Jacksonized
+    public static class ProcessTaxInvoiceCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("xmlContent")
+        private final String xmlContent;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        public ProcessTaxInvoiceCommand(String sagaId, String sagaStep, String correlationId,
+                                         String documentId, String xmlContent, String invoiceNumber) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.invoiceNumber = invoiceNumber;
+        }
     }
 
     /**
      * Command for compensating (rolling back) a completed step.
      */
-    @lombok.Builder
-    @lombok.Getter
-    @lombok.AllArgsConstructor
-    @lombok.NoArgsConstructor
-    public static class CompensationCommand {
-        private String sagaId;
-        private String stepToCompensate;
-        private String documentId;
-        private String correlationId;
-        private String documentType;
+    @Getter
+    @Jacksonized
+    public static class CompensationCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("stepToCompensate")
+        private final String stepToCompensate;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("documentType")
+        private final String documentType;
+
+        public CompensationCommand(String sagaId, String sagaStep, String correlationId,
+                                   String stepToCompensate, String documentId, String documentType) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.stepToCompensate = stepToCompensate;
+            this.documentId = documentId;
+            this.documentType = documentType;
+        }
     }
 }

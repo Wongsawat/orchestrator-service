@@ -1,11 +1,12 @@
 package com.wpanther.orchestrator.domain.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.IntegrationEvent;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.jackson.Jacksonized;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Event published when a saga is started.
@@ -13,15 +14,10 @@ import java.util.UUID;
  */
 @Getter
 @Builder
-public class SagaStartedEvent {
+@Jacksonized  // Enable Jackson builder deserialization
+public class SagaStartedEvent extends IntegrationEvent {
 
-    @JsonProperty("eventId")
-    @Builder.Default
-    private final UUID eventId = UUID.randomUUID();
-
-    @JsonProperty("occurredAt")
-    @Builder.Default
-    private final Instant occurredAt = Instant.now();
+    private static final long serialVersionUID = 1L;
 
     /**
      * ID of the saga instance.
@@ -58,4 +54,32 @@ public class SagaStartedEvent {
      */
     @JsonProperty("invoiceNumber")
     private final String invoiceNumber;
+
+    /**
+     * Constructor for creating a new SagaStartedEvent.
+     */
+    public SagaStartedEvent() {
+        super();
+        this.sagaId = null;
+        this.correlationId = null;
+        this.documentType = null;
+        this.documentId = null;
+        this.currentStep = null;
+        this.invoiceNumber = null;
+    }
+
+    /**
+     * Full constructor for Builder.
+     */
+    @Builder
+    private SagaStartedEvent(String sagaId, String correlationId, String documentType,
+                             String documentId, String currentStep, String invoiceNumber) {
+        super();
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.currentStep = currentStep;
+        this.invoiceNumber = invoiceNumber;
+    }
 }

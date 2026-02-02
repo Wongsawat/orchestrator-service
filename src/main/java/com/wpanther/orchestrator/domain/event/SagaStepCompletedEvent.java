@@ -1,11 +1,10 @@
 package com.wpanther.orchestrator.domain.event;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.wpanther.saga.domain.model.IntegrationEvent;
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.Instant;
-import java.util.UUID;
+import lombok.extern.jackson.Jacksonized;
 
 /**
  * Event published when a saga step completes successfully.
@@ -13,43 +12,43 @@ import java.util.UUID;
  */
 @Getter
 @Builder
-public class SagaStepCompletedEvent {
+@Jacksonized
+public class SagaStepCompletedEvent extends IntegrationEvent {
 
-    @JsonProperty("eventId")
-    @Builder.Default
-    private final UUID eventId = UUID.randomUUID();
+    private static final long serialVersionUID = 1L;
 
-    @JsonProperty("occurredAt")
-    @Builder.Default
-    private final Instant occurredAt = Instant.now();
-
-    /**
-     * ID of the saga instance.
-     */
     @JsonProperty("sagaId")
     private final String sagaId;
 
-    /**
-     * Correlation ID for tracing across services.
-     */
     @JsonProperty("correlationId")
     private final String correlationId;
 
-    /**
-     * Type of document being processed.
-     */
     @JsonProperty("documentType")
     private final String documentType;
 
-    /**
-     * The step that was completed.
-     */
     @JsonProperty("completedStep")
     private final String completedStep;
 
-    /**
-     * The next step to be executed, if any.
-     */
     @JsonProperty("nextStep")
     private final String nextStep;
+
+    public SagaStepCompletedEvent() {
+        super();
+        this.sagaId = null;
+        this.correlationId = null;
+        this.documentType = null;
+        this.completedStep = null;
+        this.nextStep = null;
+    }
+
+    @Builder
+    private SagaStepCompletedEvent(String sagaId, String correlationId, String documentType,
+                                   String completedStep, String nextStep) {
+        super();
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.completedStep = completedStep;
+        this.nextStep = nextStep;
+    }
 }
