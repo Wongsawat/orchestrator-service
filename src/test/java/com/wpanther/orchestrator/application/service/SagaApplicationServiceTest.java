@@ -410,6 +410,35 @@ class SagaApplicationServiceTest {
             assertThat(saga.getStatus()).isEqualTo(SagaStatus.COMPENSATING);
             assertThat(saga.getErrorMessage()).isEqualTo("Test error");
         }
+
+        @Test
+        void sendsCompensationCommand_whenStepHasCompensation() {
+            SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-001");
+            saga.advanceTo(SagaStep.SIGN_XML);
+            when(sagaRepository.findById("saga-001")).thenReturn(Optional.of(saga));
+            when(sagaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(commandRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            service.initiateCompensation("saga-001", "Test error");
+
+            assertThat(saga.getStatus()).isEqualTo(SagaStatus.COMPENSATING);
+            assertThat(saga.getErrorMessage()).isEqualTo("Test error");
+            verify(commandPublisher).publishCompensationCommand(eq(saga), eq(SagaStep.PROCESS_INVOICE), any());
+        }
+
+        @Test
+        void doesNotSendCompensation_whenNoCompensationStep() {
+            SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-001");
+            // At PROCESS_INVOICE, there's no compensation step (it's the first step)
+            when(sagaRepository.findById("saga-001")).thenReturn(Optional.of(saga));
+            when(sagaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            service.initiateCompensation("saga-001", "Test error");
+
+            assertThat(saga.getStatus()).isEqualTo(SagaStatus.COMPENSATING);
+            // Should not call publishCompensationCommand since there's no compensation step
+            verify(commandPublisher, never()).publishCompensationCommand(any(), any(), any());
+        }
     }
 
     @Nested
@@ -483,6 +512,94 @@ class SagaApplicationServiceTest {
             List<SagaInstance> result = service.getSagasForDocument(DocumentType.INVOICE, "doc-001");
 
             assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Compensation flow")
+    class CompensationFlowTests {
+        @Test
+        void handleReply_sendsCompensationAfterMaxRetries() {
+            SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-001");
+            saga.advanceTo(SagaStep.SIGN_XML);
+            // Exhaust retries
+            saga.incrementRetry();
+            saga.incrementRetry();
+            saga.incrementRetry();
+
+            // Create a command record for SIGN_XML that will be marked as failed
+            SagaCommandRecord signXmlCommand = SagaCommandRecord.create(
+                "saga-001", "Command", SagaStep.SIGN_XML, "payload");
+            signXmlCommand.markAsSent();
+
+            when(sagaRepository.findById("saga-001")).thenReturn(Optional.of(saga));
+            when(sagaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(commandRepository.findBySagaId("saga-001")).thenReturn(List.of(signXmlCommand));
+            when(commandRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            service.handleReply("saga-001", SagaStep.SIGN_XML.getCode(), false, "Max retries");
+
+            // Verify compensation command was sent
+            verify(commandPublisher).publishCompensationCommand(any(), eq(SagaStep.PROCESS_INVOICE), any());
+        }
+
+        @Test
+        void compensation_traversesStepsInReverseOrder() {
+            // Test that compensation steps are correctly identified
+            SagaInstance saga1 = SagaInstance.create(DocumentType.INVOICE, "doc-001", createMetadata());
+            saga1.start();
+            saga1.advanceTo(SagaStep.SIGN_XML);
+            saga1.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+
+            // Compensation from GENERATE_INVOICE_PDF should go to SIGN_XML
+            assertThat(saga1.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
+
+            SagaInstance saga2 = SagaInstance.create(DocumentType.INVOICE, "doc-002", createMetadata());
+            saga2.start();
+            saga2.advanceTo(SagaStep.SIGN_XML);
+            saga2.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga2.advanceTo(SagaStep.SIGN_PDF);
+
+            // Compensation from SIGN_PDF should go to GENERATE_INVOICE_PDF
+            assertThat(saga2.getCompensationStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
+
+            SagaInstance saga3 = SagaInstance.create(DocumentType.INVOICE, "doc-003", createMetadata());
+            saga3.start();
+            saga3.advanceTo(SagaStep.SIGN_XML);
+            saga3.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga3.advanceTo(SagaStep.SIGN_PDF);
+            saga3.advanceTo(SagaStep.STORE_DOCUMENT);
+
+            // Compensation from STORE_DOCUMENT should go to SIGN_PDF
+            assertThat(saga3.getCompensationStep()).isEqualTo(SagaStep.SIGN_PDF);
+
+            SagaInstance saga4 = SagaInstance.create(DocumentType.INVOICE, "doc-004", createMetadata());
+            saga4.start();
+            saga4.advanceTo(SagaStep.SIGN_XML);
+            saga4.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga4.advanceTo(SagaStep.SIGN_PDF);
+            saga4.advanceTo(SagaStep.STORE_DOCUMENT);
+            saga4.advanceTo(SagaStep.SEND_EBMS);
+
+            // Compensation from SEND_EBMS should go to STORE_DOCUMENT
+            assertThat(saga4.getCompensationStep()).isEqualTo(SagaStep.STORE_DOCUMENT);
+        }
+
+        @Test
+        void compensationForTaxInvoice_usesCorrectSteps() {
+            SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-001", createMetadata());
+            saga.start();
+            saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
+
+            // Compensation from GENERATE_TAX_INVOICE_PDF should go to SIGN_XML
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
+
+            // Create a new saga at SIGN_XML to verify compensation step
+            SagaInstance sagaAtSignXml = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-002", createMetadata());
+            sagaAtSignXml.start();
+            sagaAtSignXml.advanceTo(SagaStep.SIGN_XML);
+            assertThat(sagaAtSignXml.getCompensationStep()).isEqualTo(SagaStep.PROCESS_TAX_INVOICE);
         }
     }
 

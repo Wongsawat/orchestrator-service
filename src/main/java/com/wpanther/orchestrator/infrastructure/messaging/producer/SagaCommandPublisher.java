@@ -33,6 +33,12 @@ public class SagaCommandPublisher {
     @Value("${app.kafka.topics.saga-command-tax-invoice:saga.command.tax-invoice}")
     private String taxInvoiceCommandTopic;
 
+    @Value("${app.saga.compensation.invoice:saga.compensation.invoice}")
+    private String invoiceCompensationTopic;
+
+    @Value("${app.saga.compensation.tax-invoice:saga.compensation.tax-invoice}")
+    private String taxInvoiceCompensationTopic;
+
     /**
      * Publishes a ProcessInvoiceCommand to the invoice processing service.
      */
@@ -122,6 +128,43 @@ public class SagaCommandPublisher {
     }
 
     /**
+     * Publishes a compensation command to rollback a completed step.
+     * The compensation command includes the saga ID and the step to compensate.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishCompensationCommand(SagaInstance saga, SagaStep stepToCompensate, String correlationId) {
+        boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
+        String compensationTopic = isInvoice ? invoiceCompensationTopic : taxInvoiceCompensationTopic;
+
+        CompensationCommand command = CompensationCommand.builder()
+            .sagaId(saga.getId())
+            .stepToCompensate(stepToCompensate.getCode())
+            .documentId(saga.getDocumentId())
+            .correlationId(correlationId)
+            .documentType(saga.getDocumentType().getCode())
+            .build();
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("sagaId", saga.getId());
+        headers.put("correlationId", correlationId);
+        headers.put("documentType", saga.getDocumentType().name());
+        headers.put("commandType", "CompensationCommand");
+        headers.put("compensation", "true");
+
+        outboxService.writeEvent(
+            "SagaInstance",
+            saga.getId(),
+            "CompensationCommand",
+            compensationTopic,
+            command,
+            headers
+        );
+
+        log.info("Published CompensationCommand for saga {} to compensate step {} on topic {}",
+            saga.getId(), stepToCompensate, compensationTopic);
+    }
+
+    /**
      * Extracts invoice number from saga metadata.
      */
     private String getInvoiceNumber(SagaInstance saga) {
@@ -162,5 +205,20 @@ public class SagaCommandPublisher {
         private String xmlContent;
         private String correlationId;
         private String invoiceNumber;
+    }
+
+    /**
+     * Command for compensating (rolling back) a completed step.
+     */
+    @lombok.Builder
+    @lombok.Getter
+    @lombok.AllArgsConstructor
+    @lombok.NoArgsConstructor
+    public static class CompensationCommand {
+        private String sagaId;
+        private String stepToCompensate;
+        private String documentId;
+        private String correlationId;
+        private String documentType;
     }
 }

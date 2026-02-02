@@ -362,8 +362,41 @@ public class SagaApplicationService implements SagaOrchestrationService {
         if (compensationStep != null) {
             log.info("Sending compensation command for saga {} from {} to {}",
                     instance.getId(), failedStep, compensationStep);
-            // Future: Publish compensation command via outbox
-            // commandPublisher.publishCompensationCommand(instance, compensationStep, correlationId);
+
+            // Create compensation command record
+            String commandPayload = createCompensationPayload(instance, compensationStep);
+            SagaCommandRecord commandRecord = SagaCommandRecord.create(
+                    instance.getId(),
+                    "CompensationCommand",
+                    compensationStep,
+                    commandPayload
+            );
+            commandRecord.markAsSent();
+            commandRepository.save(commandRecord);
+            instance.addCommand(commandRecord);
+
+            // Publish compensation command via outbox
+            commandPublisher.publishCompensationCommand(instance, compensationStep, correlationId);
+        } else {
+            log.warn("No compensation step available for saga {} at step {}",
+                    instance.getId(), failedStep);
+        }
+    }
+
+    /**
+     * Creates a compensation command payload as JSON.
+     */
+    private String createCompensationPayload(SagaInstance instance, SagaStep compensationStep) {
+        try {
+            return objectMapper.writeValueAsString(new CompensationPayload(
+                    instance.getId(),
+                    compensationStep.getCode(),
+                    instance.getDocumentId(),
+                    instance.getDocumentType().getCode()
+            ));
+        } catch (JsonProcessingException e) {
+            log.error("Failed to create compensation payload", e);
+            return "{}";
         }
     }
 
@@ -404,5 +437,15 @@ public class SagaApplicationService implements SagaOrchestrationService {
             String step,
             String documentId,
             DocumentMetadata metadata
+    ) {}
+
+    /**
+     * Internal record for compensation payloads.
+     */
+    private record CompensationPayload(
+            String sagaId,
+            String stepToCompensate,
+            String documentId,
+            String documentType
     ) {}
 }

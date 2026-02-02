@@ -68,6 +68,9 @@ app:
     reply:
       invoice: saga.reply.invoice
       tax-invoice: saga.reply.tax-invoice
+    compensation:
+      invoice: saga.compensation.invoice
+      tax-invoice: saga.compensation.tax-invoice
     max-retries: 3
     retry-delay-seconds: 5
     compensation-timeout-seconds: 300
