@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: orchestrator-service
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    consumer:
+      group-id: orchestrator-service-test
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+
+app:
+  saga:
+    command:
+      invoice: saga.command.invoice.test
+      tax-invoice: saga.command.tax-invoice.test
+    reply:
+      invoice: saga.reply.invoice.test
+      tax-invoice: saga.reply.tax-invoice.test
+    max-retries: 3
+
+logging:
+  level:
+    com.wpanther.orchestrator: DEBUG
+    org.springframework.kafka: WARN
