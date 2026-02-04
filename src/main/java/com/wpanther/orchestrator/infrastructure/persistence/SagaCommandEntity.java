@@ -40,7 +40,7 @@ public class SagaCommandEntity {
     private SagaStep targetStep;
 
     @Lob
-    @Column(name = "payload", nullable = false, columnDefinition = "JSONB")
+    @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 
     @Enumerated(EnumType.STRING)

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS saga_instances (
     error_message TEXT,
     file_path VARCHAR(500),
     xml_content TEXT,
-    metadata JSONB,
+    metadata TEXT,
     file_size BIGINT,
     mime_type VARCHAR(100),
     checksum VARCHAR(255),
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS saga_commands (
     saga_id VARCHAR(36) NOT NULL REFERENCES saga_instances(id) ON DELETE CASCADE,
     command_type VARCHAR(100) NOT NULL,
     target_step VARCHAR(50) NOT NULL,
-    payload JSONB NOT NULL,
+    payload TEXT NOT NULL,
     status VARCHAR(20) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sent_at TIMESTAMP WITH TIME ZONE,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS saga_data (
     saga_id VARCHAR(36) PRIMARY KEY REFERENCES saga_instances(id) ON DELETE CASCADE,
     file_path VARCHAR(500),
     xml_content TEXT,
-    metadata JSONB,
+    metadata TEXT,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -70,11 +70,38 @@ CREATE TABLE IF NOT EXISTS saga_data (
 CREATE INDEX IF NOT EXISTS idx_saga_data_created_at ON saga_data(created_at);
 
 -- =====================================================
+-- Outbox pattern table for transactional event publishing
+-- Enables Debezium CDC to capture events and publish to Kafka
+-- =====================================================
+CREATE TABLE IF NOT EXISTS outbox_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    aggregate_type VARCHAR(100) NOT NULL,
+    aggregate_id VARCHAR(100) NOT NULL,
+    event_type VARCHAR(100) NOT NULL,
+    topic VARCHAR(255) NOT NULL,
+    partition_key VARCHAR(255),
+    payload TEXT NOT NULL,
+    headers TEXT,
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PUBLISHED')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    published_at TIMESTAMP,
+    retry_count INTEGER DEFAULT 0,
+    error_message VARCHAR(1000)
+);
+
+-- Indexes for outbox_events
+CREATE INDEX IF NOT EXISTS idx_outbox_debezium ON outbox_events(created_at) WHERE status = 'PENDING';
+CREATE INDEX IF NOT EXISTS idx_outbox_aggregate ON outbox_events(aggregate_type, aggregate_id);
+CREATE INDEX IF NOT EXISTS idx_outbox_topic ON outbox_events(topic);
+CREATE INDEX IF NOT EXISTS idx_outbox_status ON outbox_events(status);
+
+-- =====================================================
 -- Add comments for documentation
 -- =====================================================
 COMMENT ON TABLE saga_instances IS 'Stores saga instances for orchestrating document processing workflows';
 COMMENT ON TABLE saga_commands IS 'Stores command history for saga instances for audit and compensation';
 COMMENT ON TABLE saga_data IS 'Stores document metadata and content for saga instances';
+COMMENT ON TABLE outbox_events IS 'Outbox pattern table for transactional event publishing. Events are written within the same transaction as domain state changes, then published to Kafka by Debezium CDC.';
 
 COMMENT ON COLUMN saga_instances.id IS 'Unique identifier for the saga instance (UUID)';
 COMMENT ON COLUMN saga_instances.document_type IS 'Type of document (INVOICE, TAX_INVOICE, etc.)';
@@ -87,3 +114,17 @@ COMMENT ON COLUMN saga_instances.version IS 'Optimistic locking version';
 
 COMMENT ON COLUMN saga_commands.correlation_id IS 'Correlation ID for tracking request-response pairs';
 COMMENT ON COLUMN saga_commands.status IS 'Command status (PENDING, SENT, COMPLETED, FAILED, COMPENSATED)';
+
+COMMENT ON COLUMN outbox_events.id IS 'Unique identifier for the outbox event';
+COMMENT ON COLUMN outbox_events.aggregate_type IS 'Type of the aggregate that generated the event (e.g., SagaInstance)';
+COMMENT ON COLUMN outbox_events.aggregate_id IS 'ID of the aggregate that generated the event';
+COMMENT ON COLUMN outbox_events.event_type IS 'Type of event (e.g., SagaStartedEvent)';
+COMMENT ON COLUMN outbox_events.topic IS 'Kafka topic to publish the event to';
+COMMENT ON COLUMN outbox_events.partition_key IS 'Kafka partition key for the event';
+COMMENT ON COLUMN outbox_events.payload IS 'Event payload as TEXT (JSON format)';
+COMMENT ON COLUMN outbox_events.headers IS 'Kafka headers as TEXT (JSON format)';
+COMMENT ON COLUMN outbox_events.status IS 'Publication status: PENDING (not yet published) or PUBLISHED (sent to Kafka)';
+COMMENT ON COLUMN outbox_events.created_at IS 'Timestamp when the event was created';
+COMMENT ON COLUMN outbox_events.published_at IS 'Timestamp when the event was published to Kafka';
+COMMENT ON COLUMN outbox_events.retry_count IS 'Number of retry attempts for publishing';
+COMMENT ON COLUMN outbox_events.error_message IS 'Error message if publishing failed';

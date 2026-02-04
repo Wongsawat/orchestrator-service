@@ -63,7 +63,7 @@ public class SagaInstanceEntity {
     @Column(name = "xml_content", columnDefinition = "TEXT")
     private String xmlContent;
 
-    @Column(name = "metadata", columnDefinition = "JSONB")
+    @Column(name = "metadata", columnDefinition = "TEXT")
     private String metadata;
 
     @Column(name = "file_size")
