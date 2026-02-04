@@ -1,0 +1,76 @@
+server:
+  port: 0  # Random port for tests
+
+spring:
+  application:
+    name: orchestrator-service-cdc-test
+
+  main:
+    allow-bean-definition-overriding: true
+
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5433}/${DB_NAME:orchestrator_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+# Override Kafka settings for test containers (port 9093)
+spring.kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9093}
+  consumer:
+    auto-offset-reset: earliest
+    enable-auto-commit: false
+
+# Application config
+app:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9093}
+    topics:
+      command-invoice: saga.command.invoice
+      command-tax-invoice: saga.command.tax-invoice
+      reply-invoice: saga.reply.invoice
+      reply-tax-invoice: saga.reply.tax-invoice
+      lifecycle-started: saga.lifecycle.started
+      lifecycle-step-completed: saga.lifecycle.step-completed
+      lifecycle-completed: saga.lifecycle.completed
+      lifecycle-failed: saga.lifecycle.failed
+
+  saga:
+    max-retries: 3
+    retry-delay-seconds: 1
+    outbox:
+      cleanup:
+        enabled: false
+
+# Disable Eureka
+eureka:
+  client:
+    enabled: false
+
+# Actuator endpoints
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include: health
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.wpanther.orchestrator: DEBUG
+    org.apache.kafka: WARN

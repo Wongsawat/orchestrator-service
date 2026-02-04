@@ -72,7 +72,7 @@ public class SagaEventPublisher {
             "SagaInstance",
             saga.getId(),
             sagaStartedTopic,
-            correlationId,  // partition key
+            saga.getId(),  // partition key - use sagaId for consistent ordering
             headersJson
         );
 
@@ -107,7 +107,7 @@ public class SagaEventPublisher {
             "SagaInstance",
             saga.getId(),
             sagaStepCompletedTopic,
-            correlationId,  // partition key
+            saga.getId(),  // partition key - use sagaId for consistent ordering
             headersJson
         );
 
@@ -145,7 +145,7 @@ public class SagaEventPublisher {
             "SagaInstance",
             saga.getId(),
             sagaCompletedTopic,
-            correlationId,  // partition key
+            saga.getId(),  // partition key - use sagaId for consistent ordering
             headersJson
         );
 
@@ -188,7 +188,7 @@ public class SagaEventPublisher {
             "SagaInstance",
             saga.getId(),
             sagaFailedTopic,
-            correlationId,  // partition key
+            saga.getId(),  // partition key - use sagaId for consistent ordering
             headersJson
         );
 
