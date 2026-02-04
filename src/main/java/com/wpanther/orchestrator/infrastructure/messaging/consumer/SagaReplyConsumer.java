@@ -4,7 +4,6 @@ import com.wpanther.orchestrator.application.service.SagaApplicationService;
 import com.wpanther.saga.domain.model.SagaReply;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -92,30 +91,6 @@ public class SagaReplyConsumer {
                 acknowledgment.acknowledge();
             }
         }
-    }
-
-    /**
-     * Legacy method for ConsumerRecord-based handling.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.invoice:saga.reply.invoice}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}"
-    )
-    public void handleInvoiceReplyRecord(ConsumerRecord<String, SagaReply> record) {
-        log.debug("Received invoice reply: {}", record.value());
-        processReply(record.value());
-    }
-
-    /**
-     * Legacy method for ConsumerRecord-based handling for tax invoice.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.tax-invoice:saga.reply.tax-invoice}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}"
-    )
-    public void handleTaxInvoiceReplyRecord(ConsumerRecord<String, SagaReply> record) {
-        log.debug("Received tax-invoice reply: {}", record.value());
-        processReply(record.value());
     }
 
     /**

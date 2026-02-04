@@ -1,10 +1,15 @@
 package com.wpanther.orchestrator.domain.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wpanther.saga.domain.model.IntegrationEvent;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.jackson.Jacksonized;
+
+import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Command sent to orchestrator-service to start a new saga.
@@ -15,7 +20,8 @@ import lombok.extern.jackson.Jacksonized;
  */
 @Getter
 @Builder
-@Jacksonized  // Enable Jackson builder deserialization
+@Jacksonized
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class StartSagaCommand extends IntegrationEvent {
 
     private static final long serialVersionUID = 1L;
@@ -58,27 +64,38 @@ public class StartSagaCommand extends IntegrationEvent {
     private final String source;
 
     /**
-     * Constructor for creating a new StartSagaCommand.
-     * Initializes the base IntegrationEvent fields.
-     */
-    public StartSagaCommand() {
-        super();
-        this.documentId = null;
-        this.documentType = null;
-        this.invoiceNumber = null;
-        this.xmlContent = null;
-        this.correlationId = null;
-        this.source = null;
-    }
-
-    /**
-     * Full constructor for Builder.
-     * Note: eventId, occurredAt, eventType, and version are set by IntegrationEvent base class.
+     * Constructor for Builder pattern - used when creating new instances.
+     * Calls super() to auto-generate eventId, occurredAt, eventType, version.
      */
     @Builder
     private StartSagaCommand(String documentId, String documentType, String invoiceNumber,
                              String xmlContent, String correlationId, String source) {
         super();
+        this.documentId = documentId;
+        this.documentType = documentType;
+        this.invoiceNumber = invoiceNumber;
+        this.xmlContent = xmlContent;
+        this.correlationId = correlationId;
+        this.source = source;
+    }
+
+    /**
+     * Constructor for Jackson deserialization - includes all fields from parent class.
+     * Used when consuming from Kafka.
+     */
+    @JsonCreator
+    private StartSagaCommand(
+            @JsonProperty("eventId") UUID eventId,
+            @JsonProperty("occurredAt") Instant occurredAt,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("version") int version,
+            @JsonProperty("documentId") String documentId,
+            @JsonProperty("documentType") String documentType,
+            @JsonProperty("invoiceNumber") String invoiceNumber,
+            @JsonProperty("xmlContent") String xmlContent,
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("source") String source) {
+        super(eventId, occurredAt, eventType, version);
         this.documentId = documentId;
         this.documentType = documentType;
         this.invoiceNumber = invoiceNumber;
