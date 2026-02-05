@@ -1,0 +1,70 @@
+# Test profile for Kafka consumer integration tests
+# This profile enables real Kafka consumers and provides test infrastructure
+
+spring:
+  application:
+    name: orchestrator-service
+
+  # Database configuration for test containers
+  datasource:
+    url: jdbc:postgresql://localhost:5433/orchestrator_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Kafka configuration for test containers
+  kafka:
+    bootstrap-servers: localhost:9093
+    consumer:
+      # Start from earliest for tests
+      auto-offset-reset: earliest
+      # Manual acknowledgment
+      enable-auto-commit: false
+    producer:
+      # Producer settings (for test Kafka template)
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+# Application-specific configuration
+app:
+  kafka:
+    bootstrap-servers: localhost:9093
+    topics:
+      # Topics for StartSagaCommand consumption
+      saga-commands-orchestrator: saga.commands.orchestrator
+      # Topics for CDC (lifecycle events)
+      saga-lifecycle-started: saga.lifecycle.started
+      saga-lifecycle-step-completed: saga.lifecycle.step-completed
+      saga-lifecycle-completed: saga.lifecycle.completed
+      saga-lifecycle-failed: saga.lifecycle.failed
+
+  # Saga configuration (includes reply topics)
+  saga:
+    command:
+      invoice: saga.command.invoice
+      tax-invoice: saga.command.tax-invoice
+    # IMPORTANT: Reply topics are under app.saga.reply, not app.kafka.topics
+    reply:
+      invoice: saga.reply.invoice
+      tax-invoice: saga.reply.tax-invoice
+    compensation:
+      invoice: saga.compensation.invoice
+      tax-invoice: saga.compensation.tax-invoice
+    max-retries: 3
+    retry-delay-seconds: 5
+    compensation-timeout-seconds: 300
+
+# Logging configuration (minimal for tests)
+logging:
+  level:
+    com.wpanther.orchestrator: INFO
+    org.springframework.kafka: WARN
+    org.hibernate: WARN

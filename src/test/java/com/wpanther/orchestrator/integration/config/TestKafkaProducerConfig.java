@@ -20,7 +20,7 @@ import java.util.Map;
  * Only active when profile 'cdc-consumption-test' is enabled.
  */
 @Configuration
-@Profile("cdc-consumption-test")
+@Profile({ "cdc-consumption-test", "consumer-test" })
 public class TestKafkaProducerConfig {
 
     @Value("${app.kafka.bootstrap-servers:localhost:9093}")
@@ -45,10 +45,11 @@ public class TestKafkaProducerConfig {
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
             ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class,
             ProducerConfig.ACKS_CONFIG, "all",
-            ProducerConfig.RETRIES_CONFIG, 3,
+            ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 10000,
             ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, 30000,
             ProducerConfig.LINGER_MS_CONFIG, 10,
-            ProducerConfig.BATCH_SIZE_CONFIG, 16384
+            ProducerConfig.BATCH_SIZE_CONFIG, 16384,
+            ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, false
         );
         return new DefaultKafkaProducerFactory<>(configProps);
     }

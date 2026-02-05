@@ -186,6 +186,8 @@
                         <exclude>com/wpanther/orchestrator/integration/OrchestratorCdcIntegrationTest.java</exclude>
                         <exclude>com/wpanther/orchestrator/integration/SagaDatabaseIntegrationTest.java</exclude>
                         <exclude>com/wpanther/orchestrator/integration/AbstractCdcIntegrationTest.java</exclude>
+                        <exclude>com/wpanther/orchestrator/integration/KafkaConsumerIntegrationTest.java</exclude>
+                        <exclude>com/wpanther/orchestrator/integration/AbstractKafkaConsumerTest.java</exclude>
                     </excludes>
                     <!-- JUnit 5 configuration -->
                     <properties>

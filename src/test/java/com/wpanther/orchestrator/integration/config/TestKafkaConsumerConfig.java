@@ -18,7 +18,7 @@ import java.util.Properties;
  * Provides consumers to verify messages published via Debezium CDC.
  */
 @Configuration
-@Profile("cdc-test")
+@Profile({ "cdc-test", "consumer-test" })
 public class TestKafkaConsumerConfig {
 
     @Value("${app.kafka.bootstrap-servers:localhost:9093}")
@@ -54,6 +54,7 @@ public class TestKafkaConsumerConfig {
                 new NewTopic("saga.lifecycle.step-completed", 1, (short) 1),
                 new NewTopic("saga.lifecycle.completed", 1, (short) 1),
                 new NewTopic("saga.lifecycle.failed", 1, (short) 1),
+                new NewTopic("saga.commands.orchestrator", 1, (short) 1),
                 new NewTopic("saga.reply.invoice", 1, (short) 1),
                 new NewTopic("saga.reply.tax-invoice", 1, (short) 1)
             );

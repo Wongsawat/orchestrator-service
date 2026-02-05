@@ -1,17 +1,18 @@
 # Orchestrator Service Integration Tests
 
-This document describes the integration test suite for the orchestrator-service, which verifies the complete CDC (Change Data Capture) pipeline using Debezium and Kafka.
+This document describes the integration test suite for the orchestrator-service, which verifies the complete CDC (Change Data Capture) pipeline using Debezium and Kafka, as well as Kafka consumer behavior.
 
 ## Overview
 
-The orchestrator-service has two integration test classes that verify different aspects of the system:
+The orchestrator-service has three integration test classes that verify different aspects of the system:
 
 | Test Class | Purpose | Tests | External Dependencies |
 |------------|---------|-------|----------------------|
 | `OrchestratorCdcIntegrationTest` | Full CDC flow verification | 14 tests (4 nested classes) | PostgreSQL, Kafka, Debezium |
 | `SagaDatabaseIntegrationTest` | Database schema verification | 20 tests | PostgreSQL only |
+| `KafkaConsumerIntegrationTest` | Kafka consumer integration | 23 tests (4 nested classes) | PostgreSQL, Kafka |
 
-Both test classes are **disabled by default** and only run when the system property `integration.tests.enabled=true` is set or when the Maven `integration` profile is active.
+All test classes are **disabled by default** and only run when the system property `integration.tests.enabled=true` is set or when the Maven `integration` profile is active.
 
 ## Architecture
 
@@ -94,7 +95,7 @@ cd services/orchestrator-service
 mvn test
 ```
 
-**Result:** 87 unit tests run, 24 CDC integration tests skipped
+**Result:** 87 unit tests run, 47 integration tests skipped (24 CDC + 23 consumer)
 
 ### Integration Tests Only (Requires Containers)
 
@@ -108,6 +109,7 @@ mvn test -Dintegration.tests.enabled=true -Dspring.profiles.active=cdc-test
 # Option 3: Run specific test class
 mvn test -Pintegration -Dtest=OrchestratorCdcIntegrationTest -Dspring.profiles.active=cdc-test
 mvn test -Pintegration -Dtest=SagaDatabaseIntegrationTest -Dspring.profiles.active=cdc-test
+mvn test -Pintegration -Dtest=KafkaConsumerIntegrationTest -Dspring.profiles.active=consumer-test
 
 # Option 4: Run specific test method
 mvn test -Pintegration \
@@ -115,7 +117,7 @@ mvn test -Pintegration \
         -Dspring.profiles.active=cdc-test
 ```
 
-**Result:** 121 tests total (87 unit + 24 CDC integration)
+**Result:** 144 tests total (87 unit + 34 CDC integration + 23 consumer integration)
 
 ### Stopping Containers
 
@@ -234,6 +236,99 @@ These tests verify handling of different document types (Invoice vs TaxInvoice).
 | `shouldHaveCompositeDocumentIndex` | Document composite index exists | saga_instances |
 | `shouldHaveSagaIdIndexOnCommands` | saga_id index exists | saga_commands |
 
+### KafkaConsumerIntegrationTest
+
+**Location:** `src/test/java/com/wpanther/orchestrator/integration/KafkaConsumerIntegrationTest.java`
+
+**Purpose:** Verifies Kafka consumer behavior for StartSagaCommandConsumer and SagaReplyConsumer. Tests verify that messages are consumed correctly, saga state transitions occur, and outbox events are created.
+
+**Test Structure:**
+```
+KafkaConsumerIntegrationTest
+├── StartSagaCommandConsumerTests (7 tests)
+├── InvoiceReplyConsumerTests (7 tests)
+├── TaxInvoiceReplyConsumerTests (6 tests)
+└── EndToEndFlowTests (3 tests)
+```
+
+**Test Profile:** Uses `consumer-test` profile with PostgreSQL (5433), Kafka (9093)
+
+#### StartSagaCommandConsumerTests (7 tests)
+
+These tests verify that StartSagaCommandConsumer correctly processes commands from the `saga.commands.orchestrator` topic.
+
+| Test | Description | Verification |
+|------|-------------|--------------|
+| `shouldConsumeStartSagaCommandAndCreateSaga` | Consuming command creates saga in database | • Saga created with IN_PROGRESS status<br>• Correct document_type, document_id, current_step |
+| `shouldRouteInvoiceToProcessInvoiceStep` | Invoice documents routed to PROCESS_INVOICE | • current_step = PROCESS_INVOICE |
+| `shouldRouteTaxInvoiceToProcessTaxInvoiceStep` | TaxInvoice documents routed to PROCESS_TAX_INVOICE | • current_step = PROCESS_TAX_INVOICE |
+| `shouldCreateOutboxEvents` | Outbox events created atomically with saga | • SagaStartedEvent exists with correct topic |
+| `shouldCreateCommandRecord` | Command records created in saga_commands | • target_step matches document type<br>• status = SENT |
+| `shouldReuseExistingActiveSaga` | Idempotency - duplicate commands reuse existing saga | • Only one saga exists per documentId |
+| `shouldSkipInvalidDocumentType` | Invalid document types are skipped | • IllegalArgumentException logged, no saga created |
+
+#### InvoiceReplyConsumerTests (7 tests)
+
+These tests verify that SagaReplyConsumer correctly processes replies from `saga.reply.invoice`.
+
+| Test | Description | Verification |
+|------|-------------|--------------|
+| `shouldConsumeSuccessReplyAndAdvanceSaga` | Success reply advances to next step | • PROCESS_INVOICE → SIGN_XML<br>• Command marked COMPLETED |
+| `shouldPublishStepCompletedEvent` | Step completion creates outbox event | • SagaStepCompletedEvent published |
+| `shouldCompleteSagaOnFinalStep` | Completing all steps marks saga COMPLETED | • status = COMPLETED<br>• completed_at set<br>• All 6 commands COMPLETED |
+| `shouldPublishSagaCompletedEventOnCompletion` | Completion publishes event | • SagaCompletedEvent with durationMs |
+| `shouldIncrementRetryCountOnFailure` | Failure increments retry count | • retry_count incremented<br>• Command marked FAILED |
+| `shouldRetryFailedStep` | Transient failure triggers retry | • Multiple command records for same step<br>• Saga advances after success |
+| `shouldFailSagaAfterMaxRetries` | Max retries exceeded marks saga FAILED | • status = FAILED<br>• error_message set |
+
+#### TaxInvoiceReplyConsumerTests (6 tests)
+
+These tests verify SagaReplyConsumer behavior for `saga.reply.tax-invoice` topic. Similar to InvoiceReplyConsumerTests but with TAX_INVOICE document type.
+
+| Test | Description | Verification |
+|------|-------------|--------------|
+| `shouldConsumeSuccessReplyAndAdvanceTaxInvoiceSaga` | Tax invoice reply advances saga | • PROCESS_TAX_INVOICE → SIGN_XML |
+| `shouldRouteToGenerateTaxInvoicePdfStep` | Correct PDF generation step | • GENERATE_TAX_INVOICE_PDF reached |
+| `shouldCompleteFullTaxInvoiceWorkflow` | All 6 tax invoice steps complete | • status = COMPLETED |
+| `shouldPublishStepCompletedEventForTaxInvoice` | Step events published | • SagaStepCompletedEvent |
+| `shouldIncrementRetryCountOnTaxInvoiceFailure` | Retry logic works for tax invoices | • retry_count incremented |
+| `shouldFailTaxInvoiceSagaAfterMaxRetries` | Max retries fails saga | • status = FAILED |
+
+#### EndToEndFlowTests (3 tests)
+
+These tests verify complete workflows from command consumption to saga completion.
+
+| Test | Description | Verification |
+|------|-------------|--------------|
+| `shouldCompleteFullInvoiceWorkflow` | Full invoice workflow completes | • All 6 commands sent and completed<br>• All events published (started, 6 steps, completed) |
+| `shouldRecoverFromTransientFailure` | Transient failure recovery | • Saga continues after retry success<br>• Status remains IN_PROGRESS |
+| `shouldMaintainStateConsistency` | State consistency across all steps | • Each step transition verified<br>• Final state COMPLETED with completed_at |
+
+**Important Test Configuration Notes:**
+
+1. **SagaReply JSON Format**: Tests use the full `ConcreteSagaReply` format with IntegrationEvent fields:
+   ```json
+   {
+     "eventId": "...",
+     "occurredAt": "...",
+     "eventType": "SagaReplySuccess/SagaReplyFailure",
+     "version": 1,
+     "sagaId": "...",
+     "sagaStep": "...",
+     "correlationId": "...",
+     "status": "SUCCESS/FAILURE",
+     "errorMessage": "..."
+   }
+   ```
+
+2. **YAML Properties**: Reply topics use `app.saga.reply.{invoice,tax-invoice}` path, NOT `app.kafka.topics`.
+
+3. **Test Infrastructure**: Extends `AbstractKafkaConsumerTest` which provides:
+   - Message creation helpers (`createStartSagaCommand()`, `createSagaReplyJson()`)
+   - Message sending helpers (`sendStartSagaCommand()`, `sendInvoiceReply()`, `sendTaxInvoiceReply()`)
+   - Database verification helpers (`getSagaInstance()`, `getCommandHistory()`, `getOutboxEvents()`)
+   - Async polling helpers (`awaitSagaStatus()`, `awaitCurrentStep()`, `awaitOutboxEvent()`)
+
 ## Test Helper Methods
 
 ### OrchestratorCdcIntegrationTest Helper Methods
@@ -255,6 +350,28 @@ These tests verify handling of different document types (Invoice vs TaxInvoice).
 | `parseJson(String json)` | Parses JSON string into JsonNode |
 | `createSuccessReply(String sagaId, String step)` | Creates a success SagaReply message |
 | `sendInvoiceReply(String sagaId, String step)` | Sends invoice reply to Kafka |
+
+### AbstractKafkaConsumerTest Helper Methods
+
+| Method | Purpose |
+|--------|---------|
+| `createStartSagaCommand(DocumentType, String documentId)` | Creates StartSagaCommand for testing |
+| `createSagaReplyJson(String sagaId, String step, boolean success, String errorMessage)` | Creates SagaReply JSON with full ConcreteSagaReply format |
+| `sendStartSagaCommand(StartSagaCommand command)` | Sends StartSagaCommand to saga.commands.orchestrator |
+| `sendInvoiceReply(String sagaId, String step, boolean success, String errorMessage)` | Sends SagaReply to saga.reply.invoice |
+| `sendTaxInvoiceReply(String sagaId, String step, boolean success, String errorMessage)` | Sends SagaReply to saga.reply.tax-invoice |
+| `getSagaInstance(String sagaId)` | Gets saga instance from database by ID |
+| `getSagaInstanceByDocumentId(DocumentType, String documentId)` | Gets saga instance by document type and ID |
+| `getCommandHistory(String sagaId)` | Gets command records for a saga |
+| `getOutboxEvents(String sagaId)` | Gets outbox events for a saga |
+| `awaitSagaStatus(String sagaId, String expectedStatus)` | Waits for saga to reach expected status |
+| `awaitCurrentStep(String sagaId, SagaStep expectedStep)` | Waits for saga to reach expected step |
+| `awaitOutboxEvent(String sagaId, String eventType)` | Waits for outbox event of specific type |
+| `awaitSagaByDocumentId(DocumentType, String documentId)` | Waits for saga to exist by document ID |
+| `createTestMetadata(String documentId)` | Creates test DocumentMetadata |
+| `startTestSaga(DocumentType, String documentId)` | Starts a saga with mocked command publisher |
+| `completeAllInvoiceSteps(String sagaId)` | Completes all 6 invoice workflow steps |
+| `completeAllTaxInvoiceSteps(String sagaId)` | Completes all 6 tax invoice workflow steps |
 
 ## Saga Workflows
 
