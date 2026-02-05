@@ -8,7 +8,6 @@ import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.domain.model.IntegrationEvent;
 import com.wpanther.saga.infrastructure.outbox.OutboxService;
 import lombok.Getter;
-import lombok.extern.jackson.Jacksonized;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -186,7 +185,6 @@ public class SagaCommandPublisher {
      * Command for invoice processing service.
      */
     @Getter
-    @Jacksonized
     public static class ProcessInvoiceCommand extends IntegrationEvent {
         private static final long serialVersionUID = 1L;
 
@@ -224,7 +222,6 @@ public class SagaCommandPublisher {
      * Command for tax invoice processing service.
      */
     @Getter
-    @Jacksonized
     public static class ProcessTaxInvoiceCommand extends IntegrationEvent {
         private static final long serialVersionUID = 1L;
 
@@ -262,7 +259,6 @@ public class SagaCommandPublisher {
      * Command for compensating (rolling back) a completed step.
      */
     @Getter
-    @Jacksonized
     public static class CompensationCommand extends IntegrationEvent {
         private static final long serialVersionUID = 1L;
 
