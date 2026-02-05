@@ -1,7 +1,9 @@
 package com.wpanther.orchestrator.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.wpanther.orchestrator.domain.event.StartSagaCommand;
+import com.wpanther.orchestrator.infrastructure.messaging.ConcreteSagaReply;
 import com.wpanther.saga.domain.model.SagaReply;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -73,9 +75,16 @@ public class KafkaConfig {
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+
+        // SagaReply is abstract; map it to ConcreteSagaReply for deserialization
+        ObjectMapper replyMapper = objectMapper.copy();
+        SimpleModule module = new SimpleModule();
+        module.addAbstractTypeMapping(SagaReply.class, ConcreteSagaReply.class);
+        replyMapper.registerModule(module);
+
         return new DefaultKafkaConsumerFactory<>(config,
                 new StringDeserializer(),
-                new JsonDeserializer<>(SagaReply.class, false));
+                new JsonDeserializer<>(SagaReply.class, replyMapper, false));
     }
 
     @Bean
