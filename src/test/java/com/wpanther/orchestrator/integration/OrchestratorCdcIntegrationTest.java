@@ -11,7 +11,9 @@ import com.wpanther.saga.domain.enums.SagaStep;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 
@@ -26,8 +28,16 @@ import static org.mockito.Mockito.doAnswer;
 /**
  * Full CDC integration tests for orchestrator service.
  * Verifies the complete flow: Saga -> Database -> Outbox -> Debezium CDC -> Kafka.
+ * <p>
+ * These tests require external infrastructure (PostgreSQL on port 5433, Kafka on port 9093, Debezium on port 8083).
+ * They are only enabled when the system property "integration.tests.enabled" is set to "true".
+ * <p>
+ * To run: mvn test -Dintegration.tests.enabled=true -Dtest=OrchestratorCdcIntegrationTest -Dspring.profiles.active=cdc-test
+ * Or: mvn test -Pintegration -Dspring.profiles.active=cdc-test
  */
 @DisplayName("Orchestrator CDC Integration Tests")
+@Tag("integration")
+@EnabledIfSystemProperty(named = "integration.tests.enabled", matches = "true")
 class OrchestratorCdcIntegrationTest extends AbstractCdcIntegrationTest {
 
     @Autowired

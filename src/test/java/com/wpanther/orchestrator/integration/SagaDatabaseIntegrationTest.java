@@ -1,7 +1,9 @@
 package com.wpanther.orchestrator.integration;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  *   2. Flyway migrations must have been run
  */
 @DisplayName("Orchestrator Database Schema Tests")
+@Tag("integration")
+@EnabledIfSystemProperty(named = "integration.tests.enabled", matches = "true")
 class SagaDatabaseIntegrationTest extends AbstractCdcIntegrationTest {
 
     @Test

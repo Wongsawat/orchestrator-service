@@ -177,6 +177,53 @@
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- By default, exclude integration tests (require external containers) -->
+                    <excludes>
+                        <exclude>com/wpanther/orchestrator/integration/OrchestratorCdcIntegrationTest.java</exclude>
+                        <exclude>com/wpanther/orchestrator/integration/SagaDatabaseIntegrationTest.java</exclude>
+                        <exclude>com/wpanther/orchestrator/integration/AbstractCdcIntegrationTest.java</exclude>
+                    </excludes>
+                    <!-- JUnit 5 configuration -->
+                    <properties>
+                        <excludeTags>integration</excludeTags>
+                    </properties>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
+    <!-- Profile for running integration tests (requires external containers) -->
+    <profiles>
+        <profile>
+            <id>integration</id>
+            <properties>
+                <integration.tests.enabled>true</integration.tests.enabled>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <!-- Include all tests when integration profile is active -->
+                            <excludes>
+                                <exclude>none</exclude>
+                            </excludes>
+                            <!-- Include integration tests -->
+                            <properties>
+                                <excludeTags>none</excludeTags>
+                            </properties>
+                            <systemPropertyVariables>
+                                <integration.tests.enabled>true</integration.tests.enabled>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
