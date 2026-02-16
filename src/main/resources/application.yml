@@ -72,6 +72,10 @@ app:
       invoice: saga.reply.invoice
       tax-invoice: saga.reply.tax-invoice
       document-storage: saga.reply.document-storage
+      xml-signing: saga.reply.xml-signing
+      invoice-pdf: saga.reply.invoice-pdf
+      tax-invoice-pdf: saga.reply.tax-invoice-pdf
+      pdf-signing: saga.reply.pdf-signing
     compensation:
       invoice: saga.compensation.invoice
       tax-invoice: saga.compensation.tax-invoice

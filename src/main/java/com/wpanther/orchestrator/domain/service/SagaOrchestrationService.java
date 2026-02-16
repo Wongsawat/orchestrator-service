@@ -32,6 +32,21 @@ public interface SagaOrchestrationService {
     SagaInstance handleReply(String sagaId, String step, boolean success, String errorMessage);
 
     /**
+     * Handles a reply from a service with additional result data.
+     * Result data is merged into the saga's DocumentMetadata.metadata map,
+     * making it available to subsequent steps.
+     *
+     * @param sagaId       The saga instance ID
+     * @param step         The step that is replying
+     * @param success      Whether the operation was successful
+     * @param errorMessage Error message if not successful
+     * @param resultData   Additional data from the step result (e.g., signedPdfUrl)
+     * @return The updated saga instance
+     */
+    SagaInstance handleReply(String sagaId, String step, boolean success,
+                             String errorMessage, java.util.Map<String, Object> resultData);
+
+    /**
      * Retrieves a saga instance by its ID.
      *
      * @param sagaId The saga instance ID

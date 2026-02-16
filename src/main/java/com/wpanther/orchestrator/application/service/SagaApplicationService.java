@@ -141,10 +141,27 @@ public class SagaApplicationService implements SagaOrchestrationService {
     @Override
     @Transactional
     public SagaInstance handleReply(String sagaId, String step, boolean success, String errorMessage) {
+        return handleReply(sagaId, step, success, errorMessage, null);
+    }
+
+    @Override
+    @Transactional
+    public SagaInstance handleReply(String sagaId, String step, boolean success,
+                                     String errorMessage, Map<String, Object> resultData) {
         log.debug("Handling reply for saga {}, step {}, success: {}", sagaId, step, success);
 
         SagaInstance instance = sagaRepository.findById(sagaId)
                 .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
+
+        // Merge result data into saga metadata for subsequent steps to use
+        if (resultData != null && !resultData.isEmpty() && success) {
+            DocumentMetadata metadata = instance.getDocumentMetadata();
+            if (metadata != null) {
+                resultData.forEach(metadata::addMetadataValue);
+                log.debug("Merged {} result data fields into saga {} metadata: {}",
+                        resultData.size(), sagaId, resultData.keySet());
+            }
+        }
 
         SagaStep completedStep = SagaStep.fromCode(step);
         String correlationId = generateCorrelationId(instance.getDocumentId());
