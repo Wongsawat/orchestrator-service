@@ -94,6 +94,41 @@ public class SagaReplyConsumer {
     }
 
     /**
+     * Handles replies from document storage service.
+     */
+    @KafkaListener(
+            topics = "${app.saga.reply.document-storage:saga.reply.document-storage}",
+            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
+            containerFactory = "sagaReplyKafkaListenerContainerFactory"
+    )
+    public void handleDocumentStorageReply(
+            @Payload SagaReply reply,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.debug("Received document-storage reply from topic {} (partition: {}, offset: {}): {}",
+                topic, partition, offset, reply);
+
+        try {
+            processReply(reply);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+                if (reply != null) {
+                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing document-storage reply for saga {}: {}",
+                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+            }
+        }
+    }
+
+    /**
      * Processes a saga reply by delegating to the application service.
      */
     private void processReply(SagaReply reply) {

@@ -58,19 +58,24 @@ app:
       # Command topics to processing services
       saga-command-invoice: saga.command.invoice
       saga-command-tax-invoice: saga.command.tax-invoice
+      saga-command-document-storage: saga.command.document-storage
       # Reply topics from processing services
       saga-reply-invoice: saga.reply.invoice
       saga-reply-tax-invoice: saga.reply.tax-invoice
+      saga-reply-document-storage: saga.reply.document-storage
   saga:
     command:
       invoice: saga.command.invoice
       tax-invoice: saga.command.tax-invoice
+      document-storage: saga.command.document-storage
     reply:
       invoice: saga.reply.invoice
       tax-invoice: saga.reply.tax-invoice
+      document-storage: saga.reply.document-storage
     compensation:
       invoice: saga.compensation.invoice
       tax-invoice: saga.compensation.tax-invoice
+      document-storage: saga.compensation.document-storage
     max-retries: 3
     retry-delay-seconds: 5
     compensation-timeout-seconds: 300

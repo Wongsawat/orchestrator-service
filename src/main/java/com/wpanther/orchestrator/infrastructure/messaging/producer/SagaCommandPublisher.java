@@ -39,11 +39,17 @@ public class SagaCommandPublisher {
     @Value("${app.kafka.topics.saga-command-tax-invoice:saga.command.tax-invoice}")
     private String taxInvoiceCommandTopic;
 
+    @Value("${app.kafka.topics.saga-command-document-storage:saga.command.document-storage}")
+    private String documentStorageCommandTopic;
+
     @Value("${app.saga.compensation.invoice:saga.compensation.invoice}")
     private String invoiceCompensationTopic;
 
     @Value("${app.saga.compensation.tax-invoice:saga.compensation.tax-invoice}")
     private String taxInvoiceCompensationTopic;
+
+    @Value("${app.saga.compensation.document-storage:saga.compensation.document-storage}")
+    private String documentStorageCompensationTopic;
 
     /**
      * Publishes a ProcessInvoiceCommand to the invoice processing service.
@@ -86,6 +92,40 @@ public class SagaCommandPublisher {
     }
 
     /**
+     * Publishes a StoreDocumentCommand to the document storage service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishStoreDocumentCommand(SagaInstance saga, String correlationId) {
+        Map<String, Object> metadata = saga.getDocumentMetadata() != null
+                ? saga.getDocumentMetadata().getMetadata()
+                : Map.of();
+
+        String signedPdfUrl = metadata.get("signedPdfUrl") != null
+                ? metadata.get("signedPdfUrl").toString() : null;
+        String signedDocumentId = metadata.get("signedDocumentId") != null
+                ? metadata.get("signedDocumentId").toString() : null;
+        String signatureLevel = metadata.get("signatureLevel") != null
+                ? metadata.get("signatureLevel").toString() : null;
+
+        StoreDocumentCommand command = new StoreDocumentCommand(
+            saga.getId(),
+            SagaStep.STORE_DOCUMENT.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            getInvoiceNumber(saga),
+            saga.getDocumentType().getCode(),
+            signedPdfUrl,
+            signedDocumentId,
+            signatureLevel
+        );
+
+        publishCommand(command, documentStorageCommandTopic, saga, correlationId, "StoreDocumentCommand");
+
+        log.debug("Published StoreDocumentCommand for saga {} to topic {}",
+            saga.getId(), documentStorageCommandTopic);
+    }
+
+    /**
      * Publishes a command for the current saga step.
      * Routes to the appropriate topic based on document type and step.
      */
@@ -98,6 +138,9 @@ public class SagaCommandPublisher {
             case PROCESS_TAX_INVOICE:
                 publishProcessTaxInvoiceCommand(saga, correlationId);
                 break;
+            case STORE_DOCUMENT:
+                publishStoreDocumentCommand(saga, correlationId);
+                break;
             default:
                 log.warn("No command publisher configured for step {}", step);
         }
@@ -108,8 +151,15 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishCompensationCommand(SagaInstance saga, SagaStep stepToCompensate, String correlationId) {
-        boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
-        String compensationTopic = isInvoice ? invoiceCompensationTopic : taxInvoiceCompensationTopic;
+        String compensationTopic = switch (stepToCompensate) {
+            case STORE_DOCUMENT -> documentStorageCompensationTopic;
+            case PROCESS_INVOICE -> invoiceCompensationTopic;
+            case PROCESS_TAX_INVOICE -> taxInvoiceCompensationTopic;
+            default -> {
+                boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
+                yield isInvoice ? invoiceCompensationTopic : taxInvoiceCompensationTopic;
+            }
+        };
 
         CompensationCommand command = new CompensationCommand(
             saga.getId(),
@@ -289,6 +339,56 @@ public class SagaCommandPublisher {
             this.stepToCompensate = stepToCompensate;
             this.documentId = documentId;
             this.documentType = documentType;
+        }
+    }
+
+    /**
+     * Command for document storage service.
+     */
+    @Getter
+    public static class StoreDocumentCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        @JsonProperty("documentType")
+        private final String documentType;
+
+        @JsonProperty("signedPdfUrl")
+        private final String signedPdfUrl;
+
+        @JsonProperty("signedDocumentId")
+        private final String signedDocumentId;
+
+        @JsonProperty("signatureLevel")
+        private final String signatureLevel;
+
+        public StoreDocumentCommand(String sagaId, String sagaStep, String correlationId,
+                                     String documentId, String invoiceNumber, String documentType,
+                                     String signedPdfUrl, String signedDocumentId, String signatureLevel) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.signedPdfUrl = signedPdfUrl;
+            this.signedDocumentId = signedDocumentId;
+            this.signatureLevel = signatureLevel;
         }
     }
 }
