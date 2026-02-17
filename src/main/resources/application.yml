@@ -91,6 +91,7 @@ app:
       tax-invoice: saga.reply.tax-invoice
       document-storage: saga.reply.document-storage
       xml-signing: saga.reply.xml-signing
+      signedxml-storage: saga.reply.signedxml-storage
       invoice-pdf: saga.reply.invoice-pdf
       tax-invoice-pdf: saga.reply.tax-invoice-pdf
       pdf-signing: saga.reply.pdf-signing

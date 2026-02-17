@@ -167,6 +167,41 @@ public class SagaReplyConsumer {
     }
 
     /**
+     * Handles replies from signed XML storage service.
+     */
+    @KafkaListener(
+            topics = "${app.saga.reply.signedxml-storage:saga.reply.signedxml-storage}",
+            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
+            containerFactory = "sagaReplyKafkaListenerContainerFactory"
+    )
+    public void handleSignedXmlStorageReply(
+            @Payload SagaReply reply,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.debug("Received signedxml-storage reply from topic {} (partition: {}, offset: {}): {}",
+                topic, partition, offset, reply);
+
+        try {
+            processReply(reply);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+                if (reply != null) {
+                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing signedxml-storage reply for saga {}: {}",
+                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+            }
+        }
+    }
+
+    /**
      * Handles replies from invoice PDF generation service.
      */
     @KafkaListener(
