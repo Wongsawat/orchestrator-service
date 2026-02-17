@@ -51,6 +51,12 @@ public class SagaCommandPublisher {
     @Value("${app.saga.compensation.document-storage:saga.compensation.document-storage}")
     private String documentStorageCompensationTopic;
 
+    @Value("${app.kafka.topics.saga-command-ebms-sending:saga.command.ebms-sending}")
+    private String ebmsSendingCommandTopic;
+
+    @Value("${app.saga.compensation.ebms-sending:saga.compensation.ebms-sending}")
+    private String ebmsSendingCompensationTopic;
+
     /**
      * Publishes a ProcessInvoiceCommand to the invoice processing service.
      */
@@ -126,6 +132,34 @@ public class SagaCommandPublisher {
     }
 
     /**
+     * Publishes a SendEbmsCommand to the ebMS sending service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishSendEbmsCommand(SagaInstance saga, String correlationId) {
+        Map<String, Object> metadata = saga.getDocumentMetadata() != null
+                ? saga.getDocumentMetadata().getMetadata()
+                : Map.of();
+
+        String signedXmlContent = metadata.get("signedXmlContent") != null
+                ? metadata.get("signedXmlContent").toString() : null;
+
+        SendEbmsCommand command = new SendEbmsCommand(
+            saga.getId(),
+            SagaStep.SEND_EBMS.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            getInvoiceNumber(saga),
+            saga.getDocumentType().getCode(),
+            signedXmlContent
+        );
+
+        publishCommand(command, ebmsSendingCommandTopic, saga, correlationId, "SendEbmsCommand");
+
+        log.debug("Published SendEbmsCommand for saga {} to topic {}",
+            saga.getId(), ebmsSendingCommandTopic);
+    }
+
+    /**
      * Publishes a command for the current saga step.
      * Routes to the appropriate topic based on document type and step.
      */
@@ -141,6 +175,9 @@ public class SagaCommandPublisher {
             case STORE_DOCUMENT:
                 publishStoreDocumentCommand(saga, correlationId);
                 break;
+            case SEND_EBMS:
+                publishSendEbmsCommand(saga, correlationId);
+                break;
             default:
                 log.warn("No command publisher configured for step {}", step);
         }
@@ -155,6 +192,7 @@ public class SagaCommandPublisher {
             case STORE_DOCUMENT -> documentStorageCompensationTopic;
             case PROCESS_INVOICE -> invoiceCompensationTopic;
             case PROCESS_TAX_INVOICE -> taxInvoiceCompensationTopic;
+            case SEND_EBMS -> ebmsSendingCompensationTopic;
             default -> {
                 boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
                 yield isInvoice ? invoiceCompensationTopic : taxInvoiceCompensationTopic;
@@ -389,6 +427,48 @@ public class SagaCommandPublisher {
             this.signedPdfUrl = signedPdfUrl;
             this.signedDocumentId = signedDocumentId;
             this.signatureLevel = signatureLevel;
+        }
+    }
+
+    /**
+     * Command for ebMS sending service.
+     */
+    @Getter
+    public static class SendEbmsCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        @JsonProperty("documentType")
+        private final String documentType;
+
+        @JsonProperty("signedXmlContent")
+        private final String signedXmlContent;
+
+        public SendEbmsCommand(String sagaId, String sagaStep, String correlationId,
+                               String documentId, String invoiceNumber, String documentType,
+                               String signedXmlContent) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.signedXmlContent = signedXmlContent;
         }
     }
 }

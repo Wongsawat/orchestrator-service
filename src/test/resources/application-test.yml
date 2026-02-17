@@ -32,6 +32,9 @@ app:
     reply:
       invoice: saga.reply.invoice
       tax-invoice: saga.reply.tax-invoice
+      ebms-sending: saga.reply.ebms-sending
+    compensation:
+      ebms-sending: saga.compensation.ebms-sending
     max-retries: 3
     retry-delay-seconds: 1
 

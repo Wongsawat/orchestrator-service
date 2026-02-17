@@ -274,6 +274,42 @@ public class SagaReplyConsumer {
     }
 
     /**
+     * Handles replies from ebMS sending service.
+     * This is the final step in the saga - after SEND_EBMS succeeds, the saga completes.
+     */
+    @KafkaListener(
+            topics = "${app.saga.reply.ebms-sending:saga.reply.ebms-sending}",
+            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
+            containerFactory = "sagaReplyKafkaListenerContainerFactory"
+    )
+    public void handleEbmsSendingReply(
+            @Payload SagaReply reply,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.debug("Received ebms-sending reply from topic {} (partition: {}, offset: {}): {}",
+                topic, partition, offset, reply);
+
+        try {
+            processReply(reply);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+                if (reply != null) {
+                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing ebms-sending reply for saga {}: {}",
+                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+            }
+        }
+    }
+
+    /**
      * Processes a saga reply by delegating to the application service.
      * Extracts additional data from ConcreteSagaReply (e.g., signedPdfUrl from
      * PdfSigningReplyEvent) and passes it to handleReply for metadata propagation.
