@@ -58,17 +58,32 @@ app:
       # Command topics to processing services
       saga-command-invoice: saga.command.invoice
       saga-command-tax-invoice: saga.command.tax-invoice
+      saga-command-xml-signing: saga.command.xml-signing
+      saga-command-signedxml-storage: saga.command.signedxml-storage
+      saga-command-invoice-pdf: saga.command.invoice-pdf
+      saga-command-tax-invoice-pdf: saga.command.tax-invoice-pdf
+      saga-command-pdf-signing: saga.command.pdf-signing
       saga-command-document-storage: saga.command.document-storage
       saga-command-ebms-sending: saga.command.ebms-sending
       # Reply topics from processing services
       saga-reply-invoice: saga.reply.invoice
       saga-reply-tax-invoice: saga.reply.tax-invoice
+      saga-reply-xml-signing: saga.reply.xml-signing
+      saga-reply-signedxml-storage: saga.reply.signedxml-storage
+      saga-reply-invoice-pdf: saga.reply.invoice-pdf
+      saga-reply-taxinvoice-pdf: saga.reply.tax-invoice-pdf
+      saga-reply-pdf-signing: saga.reply.pdf-signing
       saga-reply-document-storage: saga.reply.document-storage
       saga-reply-ebms-sending: saga.reply.ebms-sending
   saga:
     command:
       invoice: saga.command.invoice
       tax-invoice: saga.command.tax-invoice
+      xml-signing: saga.command.xml-signing
+      signedxml-storage: saga.command.signedxml-storage
+      invoice-pdf: saga.command.invoice-pdf
+      taxinvoice-pdf: saga.command.tax-invoice-pdf
+      pdf-signing: saga.command.pdf-signing
       document-storage: saga.command.document-storage
       ebms-sending: saga.command.ebms-sending
     reply:
@@ -83,6 +98,11 @@ app:
     compensation:
       invoice: saga.compensation.invoice
       tax-invoice: saga.compensation.tax-invoice
+      xml-signing: saga.compensation.xml-signing
+      signedxml-storage: saga.compensation.signedxml-storage
+      invoice-pdf: saga.compensation.invoice-pdf
+      taxinvoice-pdf: saga.compensation.tax-invoice-pdf
+      pdf-signing: saga.compensation.pdf-signing
       document-storage: saga.compensation.document-storage
       ebms-sending: saga.compensation.ebms-sending
     max-retries: 3

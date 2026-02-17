@@ -36,10 +36,25 @@ public class SagaCommandPublisher {
     @Value("${app.kafka.topics.saga-command-invoice:saga.command.invoice}")
     private String invoiceCommandTopic;
 
-    @Value("${app.kafka.topics.saga-command-tax-invoice:saga.command.tax-invoice}")
+    @Value("${app.kafka.topics.saga.command-tax-invoice:saga.command.tax-invoice}")
     private String taxInvoiceCommandTopic;
 
-    @Value("${app.kafka.topics.saga-command-document-storage:saga.command.document-storage}")
+    @Value("${app.kafka.topics.saga.command-xml-signing:saga.command.xml-signing}")
+    private String xmlSigningCommandTopic;
+
+    @Value("${app.kafka.topics.saga.command-signedxml-storage:saga.command.signedxml-storage}")
+    private String signedXmlStorageCommandTopic;
+
+    @Value("${app.kafka.topics.saga.command-invoice-pdf:saga.command.invoice-pdf}")
+    private String invoicePdfCommandTopic;
+
+    @Value("${app.kafka.topics.saga.command-tax-invoice-pdf:saga.command.tax-invoice-pdf}")
+    private String taxInvoicePdfCommandTopic;
+
+    @Value("${app.kafka.topics.saga.command-pdf-signing:saga.command.pdf-signing}")
+    private String pdfSigningCommandTopic;
+
+    @Value("${app.kafka.topics.saga.command-document-storage:saga.command.document-storage}")
     private String documentStorageCommandTopic;
 
     @Value("${app.saga.compensation.invoice:saga.compensation.invoice}")
@@ -47,6 +62,21 @@ public class SagaCommandPublisher {
 
     @Value("${app.saga.compensation.tax-invoice:saga.compensation.tax-invoice}")
     private String taxInvoiceCompensationTopic;
+
+    @Value("${app.saga.compensation.xml-signing:saga.compensation.xml-signing}")
+    private String xmlSigningCompensationTopic;
+
+    @Value("${app.saga.compensation.signedxml-storage:saga.compensation.signedxml-storage}")
+    private String signedXmlStorageCompensationTopic;
+
+    @Value("${app.saga.compensation.invoice-pdf:saga.compensation.invoice-pdf}")
+    private String invoicePdfCompensationTopic;
+
+    @Value("${app.saga.compensation.taxinvoice-pdf:saga.compensation.tax-invoice-pdf}")
+    private String taxInvoicePdfCompensationTopic;
+
+    @Value("${app.saga.compensation.pdf-signing:saga.compensation.pdf-signing}")
+    private String pdfSigningCompensationTopic;
 
     @Value("${app.saga.compensation.document-storage:saga.compensation.document-storage}")
     private String documentStorageCompensationTopic;
@@ -160,6 +190,155 @@ public class SagaCommandPublisher {
     }
 
     /**
+     * Publishes a ProcessXmlSigningCommand to the xml-signing-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishSignXmlCommand(SagaInstance saga, String correlationId) {
+        ProcessXmlSigningCommand command = new ProcessXmlSigningCommand(
+            saga.getId(),
+            SagaStep.SIGN_XML.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            saga.getDocumentMetadata().getXmlContent(),
+            getInvoiceNumber(saga),
+            saga.getDocumentType().getCode()
+        );
+
+        publishCommand(command, xmlSigningCommandTopic, saga, correlationId, "ProcessXmlSigningCommand");
+
+        log.debug("Published ProcessXmlSigningCommand for saga {} to topic {}",
+            saga.getId(), xmlSigningCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessSignedXmlStorageCommand to the document-storage-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishSignedXmlStorageCommand(SagaInstance saga, String correlationId) {
+        String signedXmlContent = null;
+        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
+            Object signedXml = saga.getDocumentMetadata().getMetadata().get("signedXmlContent");
+            if (signedXml != null) {
+                signedXmlContent = signedXml.toString();
+            }
+        }
+
+        ProcessSignedXmlStorageCommand command = new ProcessSignedXmlStorageCommand(
+            saga.getId(),
+            SagaStep.SIGNEDXML_STORAGE.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            signedXmlContent,
+            getInvoiceNumber(saga),
+            saga.getDocumentType().getCode()
+        );
+
+        publishCommand(command, signedXmlStorageCommandTopic, saga, correlationId, "ProcessSignedXmlStorageCommand");
+
+        log.debug("Published ProcessSignedXmlStorageCommand for saga {} to topic {}",
+            saga.getId(), signedXmlStorageCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessInvoicePdfCommand to the invoice-pdf-generation-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishGenerateInvoicePdfCommand(SagaInstance saga, String correlationId) {
+        String signedXmlContent = null;
+        String invoiceDataJson = null;
+        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
+            Object signedXml = saga.getDocumentMetadata().getMetadata().get("signedXmlContent");
+            if (signedXml != null) {
+                signedXmlContent = signedXml.toString();
+            }
+            Object invoiceData = saga.getDocumentMetadata().getMetadata().get("invoiceDataJson");
+            if (invoiceData != null) {
+                invoiceDataJson = invoiceData.toString();
+            }
+        }
+
+        ProcessInvoicePdfCommand command = new ProcessInvoicePdfCommand(
+            saga.getId(),
+            SagaStep.GENERATE_INVOICE_PDF.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            getInvoiceId(saga),
+            getInvoiceNumber(saga),
+            signedXmlContent,
+            invoiceDataJson
+        );
+
+        publishCommand(command, invoicePdfCommandTopic, saga, correlationId, "ProcessInvoicePdfCommand");
+
+        log.debug("Published ProcessInvoicePdfCommand for saga {} to topic {}",
+            saga.getId(), invoicePdfCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessTaxInvoicePdfCommand to the taxinvoice-pdf-generation-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishGenerateTaxInvoicePdfCommand(SagaInstance saga, String correlationId) {
+        String signedXmlContent = null;
+        String taxInvoiceDataJson = null;
+        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
+            Object signedXml = saga.getDocumentMetadata().getMetadata().get("signedXmlContent");
+            if (signedXml != null) {
+                signedXmlContent = signedXml.toString();
+            }
+            Object invoiceData = saga.getDocumentMetadata().getMetadata().get("taxInvoiceDataJson");
+            if (invoiceData != null) {
+                taxInvoiceDataJson = invoiceData.toString();
+            }
+        }
+
+        ProcessTaxInvoicePdfCommand command = new ProcessTaxInvoicePdfCommand(
+            saga.getId(),
+            SagaStep.GENERATE_TAX_INVOICE_PDF.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            getTaxInvoiceId(saga),
+            getInvoiceNumber(saga),
+            signedXmlContent,
+            taxInvoiceDataJson
+        );
+
+        publishCommand(command, taxInvoicePdfCommandTopic, saga, correlationId, "ProcessTaxInvoicePdfCommand");
+
+        log.debug("Published ProcessTaxInvoicePdfCommand for saga {} to topic {}",
+            saga.getId(), taxInvoicePdfCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessPdfSigningCommand to the pdf-signing-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishSignPdfCommand(SagaInstance saga, String correlationId) {
+        String signedPdfUrl = null;
+        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
+            Object pdfUrl = saga.getDocumentMetadata().getMetadata().get("signedPdfUrl");
+            if (pdfUrl != null) {
+                signedPdfUrl = pdfUrl.toString();
+            }
+        }
+
+        ProcessPdfSigningCommand command = new ProcessPdfSigningCommand(
+            saga.getId(),
+            SagaStep.SIGN_PDF.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            getInvoiceNumber(saga),
+            saga.getDocumentType().getCode(),
+            signedPdfUrl
+        );
+
+        publishCommand(command, pdfSigningCommandTopic, saga, correlationId, "ProcessPdfSigningCommand");
+
+        log.debug("Published ProcessPdfSigningCommand for saga {} to topic {}",
+            saga.getId(), pdfSigningCommandTopic);
+    }
+
+    /**
      * Publishes a command for the current saga step.
      * Routes to the appropriate topic based on document type and step.
      */
@@ -171,6 +350,21 @@ public class SagaCommandPublisher {
                 break;
             case PROCESS_TAX_INVOICE:
                 publishProcessTaxInvoiceCommand(saga, correlationId);
+                break;
+            case SIGN_XML:
+                publishSignXmlCommand(saga, correlationId);
+                break;
+            case SIGNEDXML_STORAGE:
+                publishSignedXmlStorageCommand(saga, correlationId);
+                break;
+            case GENERATE_INVOICE_PDF:
+                publishGenerateInvoicePdfCommand(saga, correlationId);
+                break;
+            case GENERATE_TAX_INVOICE_PDF:
+                publishGenerateTaxInvoicePdfCommand(saga, correlationId);
+                break;
+            case SIGN_PDF:
+                publishSignPdfCommand(saga, correlationId);
                 break;
             case STORE_DOCUMENT:
                 publishStoreDocumentCommand(saga, correlationId);
@@ -192,6 +386,11 @@ public class SagaCommandPublisher {
             case STORE_DOCUMENT -> documentStorageCompensationTopic;
             case PROCESS_INVOICE -> invoiceCompensationTopic;
             case PROCESS_TAX_INVOICE -> taxInvoiceCompensationTopic;
+            case SIGN_XML -> xmlSigningCompensationTopic;
+            case SIGNEDXML_STORAGE -> signedXmlStorageCompensationTopic;
+            case GENERATE_INVOICE_PDF -> invoicePdfCompensationTopic;
+            case GENERATE_TAX_INVOICE_PDF -> taxInvoicePdfCompensationTopic;
+            case SIGN_PDF -> pdfSigningCompensationTopic;
             case SEND_EBMS -> ebmsSendingCompensationTopic;
             default -> {
                 boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
@@ -255,6 +454,26 @@ public class SagaCommandPublisher {
             Object invoiceNumber = saga.getDocumentMetadata().getMetadata().get("invoiceNumber");
             if (invoiceNumber != null) {
                 return invoiceNumber.toString();
+            }
+        }
+        return null;
+    }
+
+    private String getInvoiceId(SagaInstance saga) {
+        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
+            Object invoiceId = saga.getDocumentMetadata().getMetadata().get("invoiceId");
+            if (invoiceId != null) {
+                return invoiceId.toString();
+            }
+        }
+        return null;
+    }
+
+    private String getTaxInvoiceId(SagaInstance saga) {
+        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
+            Object taxInvoiceId = saga.getDocumentMetadata().getMetadata().get("taxInvoiceId");
+            if (taxInvoiceId != null) {
+                return taxInvoiceId.toString();
             }
         }
         return null;
@@ -469,6 +688,224 @@ public class SagaCommandPublisher {
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
             this.signedXmlContent = signedXmlContent;
+        }
+    }
+
+    /**
+     * Command for xml-signing-service.
+     */
+    @Getter
+    public static class ProcessXmlSigningCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("xmlContent")
+        private final String xmlContent;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        @JsonProperty("documentType")
+        private final String documentType;
+
+        public ProcessXmlSigningCommand(String sagaId, String sagaStep, String correlationId,
+                                           String documentId, String xmlContent, String invoiceNumber,
+                                           String documentType) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+        }
+    }
+
+    /**
+     * Command for document-storage-service (signed XML).
+     */
+    @Getter
+    public static class ProcessSignedXmlStorageCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("signedXmlContent")
+        private final String signedXmlContent;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        @JsonProperty("documentType")
+        private final String documentType;
+
+        public ProcessSignedXmlStorageCommand(String sagaId, String sagaStep, String correlationId,
+                                              String documentId, String signedXmlContent, String invoiceNumber,
+                                              String documentType) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.signedXmlContent = signedXmlContent;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+        }
+    }
+
+    /**
+     * Command for invoice-pdf-generation-service.
+     */
+    @Getter
+    public static class ProcessInvoicePdfCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("invoiceId")
+        private final String invoiceId;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        @JsonProperty("signedXmlContent")
+        private final String signedXmlContent;
+
+        @JsonProperty("invoiceDataJson")
+        private final String invoiceDataJson;
+
+        public ProcessInvoicePdfCommand(String sagaId, String sagaStep, String correlationId,
+                                         String documentId, String invoiceId, String invoiceNumber,
+                                         String signedXmlContent, String invoiceDataJson) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.invoiceId = invoiceId;
+            this.invoiceNumber = invoiceNumber;
+            this.signedXmlContent = signedXmlContent;
+            this.invoiceDataJson = invoiceDataJson;
+        }
+    }
+
+    /**
+     * Command for taxinvoice-pdf-generation-service.
+     */
+    @Getter
+    public static class ProcessTaxInvoicePdfCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("taxInvoiceId")
+        private final String taxInvoiceId;
+
+        @JsonProperty("taxInvoiceNumber")
+        private final String taxInvoiceNumber;
+
+        @JsonProperty("signedXmlContent")
+        private final String signedXmlContent;
+
+        @JsonProperty("taxInvoiceDataJson")
+        private final String taxInvoiceDataJson;
+
+        public ProcessTaxInvoicePdfCommand(String sagaId, String sagaStep, String correlationId,
+                                            String documentId, String taxInvoiceId, String taxInvoiceNumber,
+                                            String signedXmlContent, String taxInvoiceDataJson) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.taxInvoiceId = taxInvoiceId;
+            this.taxInvoiceNumber = taxInvoiceNumber;
+            this.signedXmlContent = signedXmlContent;
+            this.taxInvoiceDataJson = taxInvoiceDataJson;
+        }
+    }
+
+    /**
+     * Command for pdf-signing-service.
+     */
+    @Getter
+    public static class ProcessPdfSigningCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        @JsonProperty("documentType")
+        private final String documentType;
+
+        @JsonProperty("signedPdfUrl")
+        private final String signedPdfUrl;
+
+        public ProcessPdfSigningCommand(String sagaId, String sagaStep, String correlationId,
+                                        String documentId, String invoiceNumber, String documentType,
+                                        String signedPdfUrl) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.signedPdfUrl = signedPdfUrl;
         }
     }
 }

@@ -272,7 +272,11 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_XML);
 
             saga.advanceTo(SagaStep.SIGN_XML);
-            // SIGN_XML -> GENERATE_INVOICE_PDF
+            // SIGN_XML -> SIGNEDXML_STORAGE
+            assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
+
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
+            // SIGNEDXML_STORAGE -> GENERATE_INVOICE_PDF
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
@@ -301,7 +305,11 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_XML);
 
             saga.advanceTo(SagaStep.SIGN_XML);
-            // SIGN_XML -> GENERATE_TAX_INVOICE_PDF (different from invoice)
+            // SIGN_XML -> SIGNEDXML_STORAGE
+            assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
+
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
+            // SIGNEDXML_STORAGE -> GENERATE_TAX_INVOICE_PDF (different from invoice)
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
@@ -346,13 +354,24 @@ class SagaInstanceTest {
         }
 
         @Test
-        void fromGenerateInvoicePdf_returnsSignXml() {
+        void fromSignedXmlStorage_returnsSignXml() {
             SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
 
             assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
+        }
+
+        @Test
+        void fromGenerateInvoicePdf_returnsSignedXmlStorage() {
+            SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
+            saga.start();
+            saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
+            saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
         }
 
         @Test
@@ -360,6 +379,7 @@ class SagaInstanceTest {
             SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
             saga.advanceTo(SagaStep.SIGN_PDF);
             saga.advanceTo(SagaStep.STORE_DOCUMENT);
@@ -372,6 +392,7 @@ class SagaInstanceTest {
             SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
             saga.advanceTo(SagaStep.SIGN_PDF);
             saga.advanceTo(SagaStep.STORE_DOCUMENT);

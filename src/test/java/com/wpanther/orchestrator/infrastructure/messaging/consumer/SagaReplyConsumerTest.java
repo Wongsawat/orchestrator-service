@@ -12,6 +12,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.support.Acknowledgment;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -43,7 +45,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", true, null);
+            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -58,7 +60,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", false, "Processing failed");
+            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", false, "Processing failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -103,7 +105,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any());
+                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
@@ -120,7 +122,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, null);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", true, null);
+            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", true, null, null);
         }
 
         @Test
@@ -133,7 +135,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "SIGN_XML", true, null);
+            verify(sagaApplicationService).handleReply("saga-001", "SIGN_XML", true, null, null);
         }
     }
 
@@ -150,7 +152,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_TAX_INVOICE", true, null);
+            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_TAX_INVOICE", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -165,7 +167,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_TAX_INVOICE", false, "Tax invoice processing failed");
+            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_TAX_INVOICE", false, "Tax invoice processing failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -186,7 +188,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any());
+                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 

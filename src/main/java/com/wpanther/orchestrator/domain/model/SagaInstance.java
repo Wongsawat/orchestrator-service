@@ -199,7 +199,8 @@ public class SagaInstance {
         return switch (currentStep) {
             case PROCESS_INVOICE -> SagaStep.SIGN_XML;
             case PROCESS_TAX_INVOICE -> SagaStep.SIGN_XML;
-            case SIGN_XML -> documentType == DocumentType.INVOICE
+            case SIGN_XML -> SagaStep.SIGNEDXML_STORAGE;
+            case SIGNEDXML_STORAGE -> documentType == DocumentType.INVOICE
                     ? SagaStep.GENERATE_INVOICE_PDF
                     : SagaStep.GENERATE_TAX_INVOICE_PDF;
             case GENERATE_INVOICE_PDF, GENERATE_TAX_INVOICE_PDF -> SagaStep.SIGN_PDF;
@@ -220,7 +221,8 @@ public class SagaInstance {
             case SIGN_PDF -> documentType == DocumentType.INVOICE
                     ? SagaStep.GENERATE_INVOICE_PDF
                     : SagaStep.GENERATE_TAX_INVOICE_PDF;
-            case GENERATE_INVOICE_PDF, GENERATE_TAX_INVOICE_PDF -> SagaStep.SIGN_XML;
+            case GENERATE_INVOICE_PDF, GENERATE_TAX_INVOICE_PDF -> SagaStep.SIGNEDXML_STORAGE;
+            case SIGNEDXML_STORAGE -> SagaStep.SIGN_XML;
             case SIGN_XML -> documentType == DocumentType.INVOICE
                     ? SagaStep.PROCESS_INVOICE
                     : SagaStep.PROCESS_TAX_INVOICE;
