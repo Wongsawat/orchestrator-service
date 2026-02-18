@@ -176,8 +176,8 @@ public class SagaCommandPublisher {
                 ? saga.getDocumentMetadata().getMetadata()
                 : Map.of();
 
-        String signedXmlContent = metadata.get("signedXmlContent") != null
-                ? metadata.get("signedXmlContent").toString() : null;
+        String signedXmlUrl = metadata.get("signedXmlUrl") != null
+                ? metadata.get("signedXmlUrl").toString() : null;
 
         SendEbmsCommand command = new SendEbmsCommand(
             saga.getId(),
@@ -186,7 +186,7 @@ public class SagaCommandPublisher {
             saga.getDocumentId(),
             getInvoiceNumber(saga),
             saga.getDocumentType().getCode(),
-            signedXmlContent
+            signedXmlUrl
         );
 
         publishCommand(command, ebmsSendingCommandTopic, saga, correlationId, "SendEbmsCommand");
@@ -221,11 +221,11 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSignedXmlStorageCommand(SagaInstance saga, String correlationId) {
-        String signedXmlContent = null;
+        String signedXmlUrl = null;
         if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object signedXml = saga.getDocumentMetadata().getMetadata().get("signedXmlContent");
-            if (signedXml != null) {
-                signedXmlContent = signedXml.toString();
+            Object url = saga.getDocumentMetadata().getMetadata().get("signedXmlUrl");
+            if (url != null) {
+                signedXmlUrl = url.toString();
             }
         }
 
@@ -234,7 +234,7 @@ public class SagaCommandPublisher {
             SagaStep.SIGNEDXML_STORAGE.getCode(),
             correlationId,
             saga.getDocumentId(),
-            signedXmlContent,
+            signedXmlUrl,
             getInvoiceNumber(saga),
             saga.getDocumentType().getCode()
         );
@@ -250,12 +250,12 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishGenerateInvoicePdfCommand(SagaInstance saga, String correlationId) {
-        String signedXmlContent = null;
+        String signedXmlUrl = null;
         String invoiceDataJson = null;
         if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object signedXml = saga.getDocumentMetadata().getMetadata().get("signedXmlContent");
-            if (signedXml != null) {
-                signedXmlContent = signedXml.toString();
+            Object url = saga.getDocumentMetadata().getMetadata().get("signedXmlUrl");
+            if (url != null) {
+                signedXmlUrl = url.toString();
             }
             Object invoiceData = saga.getDocumentMetadata().getMetadata().get("invoiceDataJson");
             if (invoiceData != null) {
@@ -270,7 +270,7 @@ public class SagaCommandPublisher {
             saga.getDocumentId(),
             getInvoiceId(saga),
             getInvoiceNumber(saga),
-            signedXmlContent,
+            signedXmlUrl,
             invoiceDataJson
         );
 
@@ -285,12 +285,12 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishGenerateTaxInvoicePdfCommand(SagaInstance saga, String correlationId) {
-        String signedXmlContent = null;
+        String signedXmlUrl = null;
         String taxInvoiceDataJson = null;
         if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object signedXml = saga.getDocumentMetadata().getMetadata().get("signedXmlContent");
-            if (signedXml != null) {
-                signedXmlContent = signedXml.toString();
+            Object url = saga.getDocumentMetadata().getMetadata().get("signedXmlUrl");
+            if (url != null) {
+                signedXmlUrl = url.toString();
             }
             Object invoiceData = saga.getDocumentMetadata().getMetadata().get("taxInvoiceDataJson");
             if (invoiceData != null) {
@@ -305,7 +305,7 @@ public class SagaCommandPublisher {
             saga.getDocumentId(),
             getTaxInvoiceId(saga),
             getInvoiceNumber(saga),
-            signedXmlContent,
+            signedXmlUrl,
             taxInvoiceDataJson
         );
 
@@ -723,12 +723,12 @@ public class SagaCommandPublisher {
         @JsonProperty("documentType")
         private final String documentType;
 
-        @JsonProperty("signedXmlContent")
-        private final String signedXmlContent;
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
 
         public SendEbmsCommand(String sagaId, String sagaStep, String correlationId,
                                String documentId, String invoiceNumber, String documentType,
-                               String signedXmlContent) {
+                               String signedXmlUrl) {
             super();
             this.sagaId = sagaId;
             this.sagaStep = sagaStep;
@@ -736,7 +736,7 @@ public class SagaCommandPublisher {
             this.documentId = documentId;
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
-            this.signedXmlContent = signedXmlContent;
+            this.signedXmlUrl = signedXmlUrl;
         }
     }
 
@@ -801,8 +801,8 @@ public class SagaCommandPublisher {
         @JsonProperty("documentId")
         private final String documentId;
 
-        @JsonProperty("signedXmlContent")
-        private final String signedXmlContent;
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
 
         @JsonProperty("invoiceNumber")
         private final String invoiceNumber;
@@ -811,14 +811,14 @@ public class SagaCommandPublisher {
         private final String documentType;
 
         public ProcessSignedXmlStorageCommand(String sagaId, String sagaStep, String correlationId,
-                                              String documentId, String signedXmlContent, String invoiceNumber,
+                                              String documentId, String signedXmlUrl, String invoiceNumber,
                                               String documentType) {
             super();
             this.sagaId = sagaId;
             this.sagaStep = sagaStep;
             this.correlationId = correlationId;
             this.documentId = documentId;
-            this.signedXmlContent = signedXmlContent;
+            this.signedXmlUrl = signedXmlUrl;
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
         }
@@ -849,15 +849,15 @@ public class SagaCommandPublisher {
         @JsonProperty("invoiceNumber")
         private final String invoiceNumber;
 
-        @JsonProperty("signedXmlContent")
-        private final String signedXmlContent;
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
 
         @JsonProperty("invoiceDataJson")
         private final String invoiceDataJson;
 
         public ProcessInvoicePdfCommand(String sagaId, String sagaStep, String correlationId,
                                          String documentId, String invoiceId, String invoiceNumber,
-                                         String signedXmlContent, String invoiceDataJson) {
+                                         String signedXmlUrl, String invoiceDataJson) {
             super();
             this.sagaId = sagaId;
             this.sagaStep = sagaStep;
@@ -865,7 +865,7 @@ public class SagaCommandPublisher {
             this.documentId = documentId;
             this.invoiceId = invoiceId;
             this.invoiceNumber = invoiceNumber;
-            this.signedXmlContent = signedXmlContent;
+            this.signedXmlUrl = signedXmlUrl;
             this.invoiceDataJson = invoiceDataJson;
         }
     }
@@ -895,15 +895,15 @@ public class SagaCommandPublisher {
         @JsonProperty("taxInvoiceNumber")
         private final String taxInvoiceNumber;
 
-        @JsonProperty("signedXmlContent")
-        private final String signedXmlContent;
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
 
         @JsonProperty("taxInvoiceDataJson")
         private final String taxInvoiceDataJson;
 
         public ProcessTaxInvoicePdfCommand(String sagaId, String sagaStep, String correlationId,
                                             String documentId, String taxInvoiceId, String taxInvoiceNumber,
-                                            String signedXmlContent, String taxInvoiceDataJson) {
+                                            String signedXmlUrl, String taxInvoiceDataJson) {
             super();
             this.sagaId = sagaId;
             this.sagaStep = sagaStep;
@@ -911,7 +911,7 @@ public class SagaCommandPublisher {
             this.documentId = documentId;
             this.taxInvoiceId = taxInvoiceId;
             this.taxInvoiceNumber = taxInvoiceNumber;
-            this.signedXmlContent = signedXmlContent;
+            this.signedXmlUrl = signedXmlUrl;
             this.taxInvoiceDataJson = taxInvoiceDataJson;
         }
     }
