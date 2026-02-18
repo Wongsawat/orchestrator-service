@@ -272,6 +272,42 @@ public class SagaReplyConsumer {
     }
 
     /**
+     * Handles replies from PDF storage service (PDF_STORAGE step).
+     * This reply contains storedDocumentUrl which is passed to the SIGN_PDF step.
+     */
+    @KafkaListener(
+            topics = "${app.saga.reply.pdf-storage:saga.reply.pdf-storage}",
+            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
+            containerFactory = "sagaReplyKafkaListenerContainerFactory"
+    )
+    public void handlePdfStorageReply(
+            @Payload SagaReply reply,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset,
+            Acknowledgment acknowledgment) {
+
+        log.debug("Received pdf-storage reply from topic {} (partition: {}, offset: {}): {}",
+                topic, partition, offset, reply);
+
+        try {
+            processReply(reply);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+                if (reply != null) {
+                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing pdf-storage reply for saga {}: {}",
+                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
+            if (acknowledgment != null) {
+                acknowledgment.acknowledge();
+            }
+        }
+    }
+
+    /**
      * Handles replies from PDF signing service.
      * This reply may contain additional data (signedPdfUrl, signedDocumentId, etc.)
      * that is propagated to subsequent steps via DocumentMetadata.

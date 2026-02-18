@@ -65,6 +65,7 @@ app:
       saga-command-pdf-signing: saga.command.pdf-signing
       saga-command-document-storage: saga.command.document-storage
       saga-command-ebms-sending: saga.command.ebms-sending
+      saga-command-pdf-storage: saga.command.pdf-storage
       # Reply topics from processing services
       saga-reply-invoice: saga.reply.invoice
       saga-reply-tax-invoice: saga.reply.tax-invoice
@@ -75,6 +76,7 @@ app:
       saga-reply-pdf-signing: saga.reply.pdf-signing
       saga-reply-document-storage: saga.reply.document-storage
       saga-reply-ebms-sending: saga.reply.ebms-sending
+      saga-reply-pdf-storage: saga.reply.pdf-storage
   saga:
     command:
       invoice: saga.command.invoice
@@ -96,6 +98,7 @@ app:
       tax-invoice-pdf: saga.reply.tax-invoice-pdf
       pdf-signing: saga.reply.pdf-signing
       ebms-sending: saga.reply.ebms-sending
+      pdf-storage: saga.reply.pdf-storage
     compensation:
       invoice: saga.compensation.invoice
       tax-invoice: saga.compensation.tax-invoice
@@ -106,6 +109,7 @@ app:
       pdf-signing: saga.compensation.pdf-signing
       document-storage: saga.compensation.document-storage
       ebms-sending: saga.compensation.ebms-sending
+      pdf-storage: saga.compensation.pdf-storage
     max-retries: 3
     retry-delay-seconds: 5
     compensation-timeout-seconds: 300

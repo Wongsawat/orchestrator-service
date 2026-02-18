@@ -313,7 +313,11 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
-            // GENERATE_TAX_INVOICE_PDF -> SIGN_PDF
+            // GENERATE_TAX_INVOICE_PDF -> PDF_STORAGE (tax invoice has extra storage step)
+            assertThat(saga.getNextStep()).isEqualTo(SagaStep.PDF_STORAGE);
+
+            saga.advanceTo(SagaStep.PDF_STORAGE);
+            // PDF_STORAGE -> SIGN_PDF
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_PDF);
 
             saga.advanceTo(SagaStep.SIGN_PDF);
@@ -372,6 +376,31 @@ class SagaInstanceTest {
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
 
             assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
+        }
+
+        @Test
+        void fromPdfStorage_returnsGenerateTaxInvoicePdf() {
+            SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-456", createTestMetadata());
+            saga.start();
+            saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
+            saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
+            saga.advanceTo(SagaStep.PDF_STORAGE);
+
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
+        }
+
+        @Test
+        void fromSignPdf_returnsPdfStorageForTaxInvoice() {
+            SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-456", createTestMetadata());
+            saga.start();
+            saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
+            saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
+            saga.advanceTo(SagaStep.PDF_STORAGE);
+            saga.advanceTo(SagaStep.SIGN_PDF);
+
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.PDF_STORAGE);
         }
 
         @Test

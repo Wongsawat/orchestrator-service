@@ -87,6 +87,12 @@ public class SagaCommandPublisher {
     @Value("${app.saga.compensation.ebms-sending:saga.compensation.ebms-sending}")
     private String ebmsSendingCompensationTopic;
 
+    @Value("${app.kafka.topics.saga-command-pdf-storage:saga.command.pdf-storage}")
+    private String pdfStorageCommandTopic;
+
+    @Value("${app.saga.compensation.pdf-storage:saga.compensation.pdf-storage}")
+    private String pdfStorageCompensationTopic;
+
     /**
      * Publishes a ProcessInvoiceCommand to the invoice processing service.
      */
@@ -311,14 +317,21 @@ public class SagaCommandPublisher {
 
     /**
      * Publishes a ProcessPdfSigningCommand to the pdf-signing-service.
+     * For tax invoice, the PDF URL comes from the PDF_STORAGE step reply (storedDocumentUrl).
+     * For invoice, the PDF URL comes from the GENERATE_INVOICE_PDF step reply (pdfUrl).
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSignPdfCommand(SagaInstance saga, String correlationId) {
-        String signedPdfUrl = null;
+        String pdfUrl = null;
         if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object pdfUrl = saga.getDocumentMetadata().getMetadata().get("signedPdfUrl");
-            if (pdfUrl != null) {
-                signedPdfUrl = pdfUrl.toString();
+            // Tax invoice: URL from PDF_STORAGE step (storedDocumentUrl)
+            // Invoice: URL from GENERATE_INVOICE_PDF step (pdfUrl)
+            Object storedUrl = saga.getDocumentMetadata().getMetadata().get("storedDocumentUrl");
+            Object directUrl = saga.getDocumentMetadata().getMetadata().get("pdfUrl");
+            if (storedUrl != null) {
+                pdfUrl = storedUrl.toString();
+            } else if (directUrl != null) {
+                pdfUrl = directUrl.toString();
             }
         }
 
@@ -329,13 +342,45 @@ public class SagaCommandPublisher {
             saga.getDocumentId(),
             getInvoiceNumber(saga),
             saga.getDocumentType().getCode(),
-            signedPdfUrl
+            pdfUrl
         );
 
         publishCommand(command, pdfSigningCommandTopic, saga, correlationId, "ProcessPdfSigningCommand");
 
         log.debug("Published ProcessPdfSigningCommand for saga {} to topic {}",
             saga.getId(), pdfSigningCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessPdfStorageCommand to the document-storage-service (PDF_STORAGE step).
+     * This step stores the unsigned tax invoice PDF from MinIO into document-storage-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishPdfStorageCommand(SagaInstance saga, String correlationId) {
+        Map<String, Object> metadata = saga.getDocumentMetadata() != null
+                ? saga.getDocumentMetadata().getMetadata()
+                : Map.of();
+
+        String pdfUrl = metadata.get("pdfUrl") != null
+                ? metadata.get("pdfUrl").toString() : null;
+        Long pdfSize = metadata.get("pdfSize") != null
+                ? Long.parseLong(metadata.get("pdfSize").toString()) : null;
+
+        ProcessPdfStorageCommand command = new ProcessPdfStorageCommand(
+            saga.getId(),
+            SagaStep.PDF_STORAGE.getCode(),
+            correlationId,
+            saga.getDocumentId(),
+            getInvoiceNumber(saga),
+            saga.getDocumentType().getCode(),
+            pdfUrl,
+            pdfSize
+        );
+
+        publishCommand(command, pdfStorageCommandTopic, saga, correlationId, "ProcessPdfStorageCommand");
+
+        log.debug("Published ProcessPdfStorageCommand for saga {} to topic {}",
+            saga.getId(), pdfStorageCommandTopic);
     }
 
     /**
@@ -362,6 +407,9 @@ public class SagaCommandPublisher {
                 break;
             case GENERATE_TAX_INVOICE_PDF:
                 publishGenerateTaxInvoicePdfCommand(saga, correlationId);
+                break;
+            case PDF_STORAGE:
+                publishPdfStorageCommand(saga, correlationId);
                 break;
             case SIGN_PDF:
                 publishSignPdfCommand(saga, correlationId);
@@ -390,6 +438,7 @@ public class SagaCommandPublisher {
             case SIGNEDXML_STORAGE -> signedXmlStorageCompensationTopic;
             case GENERATE_INVOICE_PDF -> invoicePdfCompensationTopic;
             case GENERATE_TAX_INVOICE_PDF -> taxInvoicePdfCompensationTopic;
+            case PDF_STORAGE -> pdfStorageCompensationTopic;
             case SIGN_PDF -> pdfSigningCompensationTopic;
             case SEND_EBMS -> ebmsSendingCompensationTopic;
             default -> {
@@ -869,6 +918,7 @@ public class SagaCommandPublisher {
 
     /**
      * Command for pdf-signing-service.
+     * Uses @JsonProperty("pdfUrl") to match pdf-signing-service's ProcessPdfSigningCommand.
      */
     @Getter
     public static class ProcessPdfSigningCommand extends IntegrationEvent {
@@ -892,12 +942,12 @@ public class SagaCommandPublisher {
         @JsonProperty("documentType")
         private final String documentType;
 
-        @JsonProperty("signedPdfUrl")
-        private final String signedPdfUrl;
+        @JsonProperty("pdfUrl")
+        private final String pdfUrl;
 
         public ProcessPdfSigningCommand(String sagaId, String sagaStep, String correlationId,
                                         String documentId, String invoiceNumber, String documentType,
-                                        String signedPdfUrl) {
+                                        String pdfUrl) {
             super();
             this.sagaId = sagaId;
             this.sagaStep = sagaStep;
@@ -905,7 +955,54 @@ public class SagaCommandPublisher {
             this.documentId = documentId;
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
-            this.signedPdfUrl = signedPdfUrl;
+            this.pdfUrl = pdfUrl;
+        }
+    }
+
+    /**
+     * Command for document-storage-service (PDF_STORAGE step).
+     * Requests storage of an unsigned tax invoice PDF from MinIO.
+     */
+    @Getter
+    public static class ProcessPdfStorageCommand extends IntegrationEvent {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("sagaId")
+        private final String sagaId;
+
+        @JsonProperty("sagaStep")
+        private final String sagaStep;
+
+        @JsonProperty("correlationId")
+        private final String correlationId;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("invoiceNumber")
+        private final String invoiceNumber;
+
+        @JsonProperty("documentType")
+        private final String documentType;
+
+        @JsonProperty("pdfUrl")
+        private final String pdfUrl;
+
+        @JsonProperty("pdfSize")
+        private final Long pdfSize;
+
+        public ProcessPdfStorageCommand(String sagaId, String sagaStep, String correlationId,
+                                        String documentId, String invoiceNumber, String documentType,
+                                        String pdfUrl, Long pdfSize) {
+            super();
+            this.sagaId = sagaId;
+            this.sagaStep = sagaStep;
+            this.correlationId = correlationId;
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.pdfUrl = pdfUrl;
+            this.pdfSize = pdfSize;
         }
     }
 }
