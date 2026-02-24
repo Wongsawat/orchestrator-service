@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,9 @@ import java.util.List;
 /**
  * REST controller for the orchestrator service.
  * Provides endpoints for managing saga instances.
+ * <p>
+ * All endpoints require JWT authentication with ROLE_API_USER authority.
+ * </p>
  */
 @RestController
 @RequestMapping("/api/saga")
@@ -29,11 +33,13 @@ public class OrchestratorController {
 
     /**
      * Starts a new saga instance.
+     * Requires ROLE_API_USER authority.
      *
      * @param request The start saga request
      * @return The created saga response
      */
     @PostMapping("/start")
+    @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<SagaResponse> startSaga(@Valid @RequestBody StartSagaRequest request) {
         log.info("Received request to start saga for document type {} with ID {}",
                 request.documentType(), request.documentId());
@@ -51,6 +57,7 @@ public class OrchestratorController {
      * @return The saga response
      */
     @GetMapping("/{sagaId}")
+    @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<SagaResponse> getSaga(@PathVariable String sagaId) {
         log.debug("Fetching saga {}", sagaId);
 
@@ -64,6 +71,7 @@ public class OrchestratorController {
      * @return List of active saga responses
      */
     @GetMapping("/active")
+    @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<List<SagaResponse>> getActiveSagas() {
         log.debug("Fetching active sagas");
 
@@ -83,6 +91,7 @@ public class OrchestratorController {
      * @return List of saga responses for the document
      */
     @GetMapping("/document")
+    @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<List<SagaResponse>> getSagasForDocument(
             @RequestParam DocumentType documentType,
             @RequestParam String documentId) {
@@ -104,6 +113,7 @@ public class OrchestratorController {
      * @return The updated saga response
      */
     @PostMapping("/{sagaId}/advance")
+    @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<SagaResponse> advanceSaga(@PathVariable String sagaId) {
         log.info("Manually advancing saga {}", sagaId);
 
@@ -118,6 +128,7 @@ public class OrchestratorController {
      * @return The updated saga response
      */
     @PostMapping("/{sagaId}/retry")
+    @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<SagaResponse> retrySaga(@PathVariable String sagaId) {
         log.info("Retrying saga {}", sagaId);
 
@@ -132,6 +143,7 @@ public class OrchestratorController {
      * @return List of saga responses
      */
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<List<SagaResponse>> getSagasByStatus(@PathVariable SagaStatus status) {
         log.debug("Fetching sagas with status {}", status);
 

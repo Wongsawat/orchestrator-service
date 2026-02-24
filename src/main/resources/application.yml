@@ -114,6 +114,19 @@ app:
     retry-delay-seconds: 5
     compensation-timeout-seconds: 300
 
+  # Security configuration
+  security:
+    jwt:
+      # Secret key for JWT token signing (CHANGE IN PRODUCTION!)
+      secret: orchestrator-service-secret-key-for-jwt-token-generation-change-in-production
+      # Token validity in seconds (1 hour)
+      token-validity-in-seconds: 3600
+      # JWT issuer
+      issuer: orchestrator-service
+    cors:
+      # Allowed CORS origins (comma-separated)
+      allowed-origins: http://localhost:3000,http://localhost:8080,http://localhost:4200
+
 logging:
   level:
     com.wpanther.orchestrator: INFO
