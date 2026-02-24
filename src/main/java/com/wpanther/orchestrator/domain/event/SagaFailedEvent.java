@@ -1,21 +1,17 @@
 package com.wpanther.orchestrator.domain.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.extern.jackson.Jacksonized;
+import com.wpanther.saga.domain.model.TraceEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Event published when a saga fails.
  * Consumed by notification-service and monitoring services.
  */
-@Getter
-@Builder
-@Jacksonized
-public class SagaFailedEvent extends IntegrationEvent {
+public class SagaFailedEvent extends TraceEvent {
 
     private static final long serialVersionUID = 1L;
 
@@ -55,28 +51,14 @@ public class SagaFailedEvent extends IntegrationEvent {
     @JsonProperty("durationMs")
     private final Long durationMs;
 
-    public SagaFailedEvent() {
-        super();
-        this.sagaId = null;
-        this.correlationId = null;
-        this.documentType = null;
-        this.documentId = null;
-        this.invoiceNumber = null;
-        this.failedStep = null;
-        this.errorMessage = null;
-        this.retryCount = null;
-        this.compensationInitiated = null;
-        this.startedAt = null;
-        this.failedAt = null;
-        this.durationMs = null;
-    }
-
-    @Builder
-    private SagaFailedEvent(String sagaId, String correlationId, String documentType,
-                            String documentId, String invoiceNumber, String failedStep,
-                            String errorMessage, Integer retryCount, Boolean compensationInitiated,
-                            Instant startedAt, Instant failedAt, Long durationMs) {
-        super();
+    /**
+     * Convenience constructor for creating a new SagaFailedEvent.
+     */
+    public SagaFailedEvent(String sagaId, String correlationId, String documentType,
+                           String documentId, String invoiceNumber, String failedStep,
+                           String errorMessage, Integer retryCount, Boolean compensationInitiated,
+                           Instant startedAt, Instant failedAt, Long durationMs) {
+        super(sagaId, "orchestrator", "SAGA_FAILED");
         this.sagaId = sagaId;
         this.correlationId = correlationId;
         this.documentType = documentType;
@@ -89,5 +71,93 @@ public class SagaFailedEvent extends IntegrationEvent {
         this.startedAt = startedAt;
         this.failedAt = failedAt;
         this.durationMs = durationMs;
+    }
+
+    /**
+     * Full constructor for Jackson deserialization.
+     */
+    @JsonCreator
+    public SagaFailedEvent(
+            @JsonProperty("eventId") UUID eventId,
+            @JsonProperty("occurredAt") Instant occurredAt,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("version") int version,
+            @JsonProperty("sagaId") String sagaId,
+            @JsonProperty("source") String source,
+            @JsonProperty("traceType") String traceType,
+            @JsonProperty("context") String context,
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("documentType") String documentType,
+            @JsonProperty("documentId") String documentId,
+            @JsonProperty("invoiceNumber") String invoiceNumber,
+            @JsonProperty("failedStep") String failedStep,
+            @JsonProperty("errorMessage") String errorMessage,
+            @JsonProperty("retryCount") Integer retryCount,
+            @JsonProperty("compensationInitiated") Boolean compensationInitiated,
+            @JsonProperty("startedAt") Instant startedAt,
+            @JsonProperty("failedAt") Instant failedAt,
+            @JsonProperty("durationMs") Long durationMs) {
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.failedStep = failedStep;
+        this.errorMessage = errorMessage;
+        this.retryCount = retryCount;
+        this.compensationInitiated = compensationInitiated;
+        this.startedAt = startedAt;
+        this.failedAt = failedAt;
+        this.durationMs = durationMs;
+    }
+
+    // Getters for additional fields
+    public String getSagaId() {
+        return sagaId;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public String getDocumentType() {
+        return documentType;
+    }
+
+    public String getDocumentId() {
+        return documentId;
+    }
+
+    public String getInvoiceNumber() {
+        return invoiceNumber;
+    }
+
+    public String getFailedStep() {
+        return failedStep;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public Integer getRetryCount() {
+        return retryCount;
+    }
+
+    public Boolean getCompensationInitiated() {
+        return compensationInitiated;
+    }
+
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public Instant getFailedAt() {
+        return failedAt;
+    }
+
+    public Long getDurationMs() {
+        return durationMs;
     }
 }

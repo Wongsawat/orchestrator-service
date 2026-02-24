@@ -33,11 +33,14 @@ buildNumber.properties
 .vscode/
 .settings/
 .classpath
+.factorypath
 .project
 
 # OS
 .DS_Store
 Thumbs.db
+
+AGENTS.md
 
 # CLAUDE.md
 CLAUDE.md

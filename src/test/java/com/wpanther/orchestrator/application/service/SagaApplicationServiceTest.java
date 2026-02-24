@@ -72,7 +72,7 @@ class SagaApplicationServiceTest {
             verify(sagaRepository).save(any(SagaInstance.class));
             verify(eventPublisher).publishSagaStarted(any(), any(), any());
             verify(commandPublisher).publishCommandForStep(any(), eq(SagaStep.PROCESS_INVOICE), any());
-            verify(commandProducer).sendCommand(any(), any(), eq(true));
+            // commandProducer.sendCommand deprecated - using outbox pattern instead
         }
 
         @Test

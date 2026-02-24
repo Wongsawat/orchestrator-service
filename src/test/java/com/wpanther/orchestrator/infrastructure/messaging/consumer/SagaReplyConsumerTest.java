@@ -2,6 +2,7 @@ package com.wpanther.orchestrator.infrastructure.messaging.consumer;
 
 import com.wpanther.orchestrator.application.service.SagaApplicationService;
 import com.wpanther.saga.domain.enums.ReplyStatus;
+import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.domain.model.SagaReply;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -39,13 +40,13 @@ class SagaReplyConsumerTest {
         @DisplayName("delegates to application service with success status")
         void success_delegatesToApplicationService() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("PROCESS_INVOICE");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.PROCESS_INVOICE);
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", true, null, null);
+            verify(sagaApplicationService).handleReply("saga-001", "process-invoice", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -53,14 +54,14 @@ class SagaReplyConsumerTest {
         @DisplayName("delegates to application service with failure status")
         void failure_delegatesToApplicationService() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("PROCESS_INVOICE");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.PROCESS_INVOICE);
             when(mockReply.isSuccess()).thenReturn(false);
             when(mockReply.isFailure()).thenReturn(true);
             when(mockReply.getErrorMessage()).thenReturn("Processing failed");
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", false, "Processing failed", null);
+            verify(sagaApplicationService).handleReply("saga-001", "process-invoice", false, "Processing failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -101,7 +102,7 @@ class SagaReplyConsumerTest {
         @DisplayName("with exception still acknowledges to avoid retry loop")
         void withException_stillAcknowledges() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("PROCESS_INVOICE");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.PROCESS_INVOICE);
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))
@@ -116,26 +117,26 @@ class SagaReplyConsumerTest {
         @DisplayName("with null acknowledgment still processes reply")
         void withNullAcknowledgment_stillProcesses() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("PROCESS_INVOICE");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.PROCESS_INVOICE);
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, null);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_INVOICE", true, null, null);
+            verify(sagaApplicationService).handleReply("saga-001", "process-invoice", true, null, null);
         }
 
         @Test
         @DisplayName("handles different saga steps")
         void handlesDifferentSteps() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("SIGN_XML");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.SIGN_XML);
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "SIGN_XML", true, null, null);
+            verify(sagaApplicationService).handleReply("saga-001", "sign-xml", true, null, null);
         }
     }
 
@@ -146,13 +147,13 @@ class SagaReplyConsumerTest {
         @DisplayName("delegates to application service with success status")
         void success_delegatesToApplicationService() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("PROCESS_TAX_INVOICE");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.PROCESS_TAX_INVOICE);
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_TAX_INVOICE", true, null, null);
+            verify(sagaApplicationService).handleReply("saga-001", "process-tax-invoice", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -160,14 +161,14 @@ class SagaReplyConsumerTest {
         @DisplayName("delegates to application service with failure status")
         void failure_delegatesToApplicationService() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("PROCESS_TAX_INVOICE");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.PROCESS_TAX_INVOICE);
             when(mockReply.isSuccess()).thenReturn(false);
             when(mockReply.isFailure()).thenReturn(true);
             when(mockReply.getErrorMessage()).thenReturn("Tax invoice processing failed");
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "PROCESS_TAX_INVOICE", false, "Tax invoice processing failed", null);
+            verify(sagaApplicationService).handleReply("saga-001", "process-tax-invoice", false, "Tax invoice processing failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -184,7 +185,7 @@ class SagaReplyConsumerTest {
         @DisplayName("with exception still acknowledges to avoid retry loop")
         void withException_stillAcknowledges() {
             when(mockReply.getSagaId()).thenReturn("saga-001");
-            when(mockReply.getSagaStep()).thenReturn("PROCESS_TAX_INVOICE");
+            when(mockReply.getSagaStep()).thenReturn(SagaStep.PROCESS_TAX_INVOICE);
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))

@@ -101,14 +101,14 @@ public abstract class AbstractKafkaConsumerTest {
      * @return StartSagaCommand ready to send
      */
     protected StartSagaCommand createStartSagaCommand(DocumentType type, String documentId) {
-        return StartSagaCommand.builder()
-            .documentId(documentId)
-            .documentType(type.name())
-            .invoiceNumber("INV-" + documentId)
-            .xmlContent("<test>content</test>")
-            .correlationId(UUID.randomUUID().toString())
-            .source("TEST")
-            .build();
+        return new StartSagaCommand(
+            documentId,
+            type.name(),
+            "INV-" + documentId,
+            "<test>content</test>",
+            UUID.randomUUID().toString(),
+            "TEST"
+        );
     }
 
     /**

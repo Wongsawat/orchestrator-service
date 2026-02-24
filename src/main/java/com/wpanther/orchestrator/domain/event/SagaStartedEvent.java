@@ -1,21 +1,17 @@
 package com.wpanther.orchestrator.domain.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.extern.jackson.Jacksonized;
+import com.wpanther.saga.domain.model.TraceEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Event published when a saga is started.
  * Consumed by notification-service and other monitoring services.
  */
-@Getter
-@Builder
-@Jacksonized  // Enable Jackson builder deserialization
-public class SagaStartedEvent extends IntegrationEvent {
+public class SagaStartedEvent extends TraceEvent {
 
     private static final long serialVersionUID = 1L;
 
@@ -56,30 +52,68 @@ public class SagaStartedEvent extends IntegrationEvent {
     private final String invoiceNumber;
 
     /**
-     * Constructor for creating a new SagaStartedEvent.
+     * Convenience constructor for creating a new SagaStartedEvent.
      */
-    public SagaStartedEvent() {
-        super();
-        this.sagaId = null;
-        this.correlationId = null;
-        this.documentType = null;
-        this.documentId = null;
-        this.currentStep = null;
-        this.invoiceNumber = null;
-    }
-
-    /**
-     * Full constructor for Builder.
-     */
-    @Builder
-    private SagaStartedEvent(String sagaId, String correlationId, String documentType,
-                             String documentId, String currentStep, String invoiceNumber) {
-        super();
+    public SagaStartedEvent(String sagaId, String correlationId, String documentType,
+                            String documentId, String currentStep, String invoiceNumber) {
+        super(sagaId, "orchestrator", "SAGA_STARTED");
         this.sagaId = sagaId;
         this.correlationId = correlationId;
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
         this.invoiceNumber = invoiceNumber;
+    }
+
+    /**
+     * Full constructor for Jackson deserialization.
+     */
+    @JsonCreator
+    public SagaStartedEvent(
+            @JsonProperty("eventId") UUID eventId,
+            @JsonProperty("occurredAt") Instant occurredAt,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("version") int version,
+            @JsonProperty("sagaId") String sagaId,
+            @JsonProperty("source") String source,
+            @JsonProperty("traceType") String traceType,
+            @JsonProperty("context") String context,
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("documentType") String documentType,
+            @JsonProperty("documentId") String documentId,
+            @JsonProperty("currentStep") String currentStep,
+            @JsonProperty("invoiceNumber") String invoiceNumber) {
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.currentStep = currentStep;
+        this.invoiceNumber = invoiceNumber;
+    }
+
+    // Getters for additional fields
+    public String getSagaId() {
+        return sagaId;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public String getDocumentType() {
+        return documentType;
+    }
+
+    public String getDocumentId() {
+        return documentId;
+    }
+
+    public String getCurrentStep() {
+        return currentStep;
+    }
+
+    public String getInvoiceNumber() {
+        return invoiceNumber;
     }
 }

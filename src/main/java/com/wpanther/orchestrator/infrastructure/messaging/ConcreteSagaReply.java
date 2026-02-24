@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.wpanther.saga.domain.enums.ReplyStatus;
+import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.domain.model.SagaReply;
 
 import java.time.Instant;
@@ -35,7 +36,7 @@ public class ConcreteSagaReply extends SagaReply {
             @JsonProperty("eventType") String eventType,
             @JsonProperty("version") int version,
             @JsonProperty("sagaId") String sagaId,
-            @JsonProperty("sagaStep") String sagaStep,
+            @JsonProperty("sagaStep") SagaStep sagaStep,
             @JsonProperty("correlationId") String correlationId,
             @JsonProperty("status") ReplyStatus status,
             @JsonProperty("errorMessage") String errorMessage) {

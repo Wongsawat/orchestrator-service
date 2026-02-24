@@ -1,21 +1,17 @@
 package com.wpanther.orchestrator.domain.event;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.extern.jackson.Jacksonized;
+import com.wpanther.saga.domain.model.TraceEvent;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Event published when a saga completes successfully.
  * Consumed by notification-service and monitoring services.
  */
-@Getter
-@Builder
-@Jacksonized
-public class SagaCompletedEvent extends IntegrationEvent {
+public class SagaCompletedEvent extends TraceEvent {
 
     private static final long serialVersionUID = 1L;
 
@@ -46,24 +42,13 @@ public class SagaCompletedEvent extends IntegrationEvent {
     @JsonProperty("durationMs")
     private final Long durationMs;
 
-    public SagaCompletedEvent() {
-        super();
-        this.sagaId = null;
-        this.correlationId = null;
-        this.documentType = null;
-        this.documentId = null;
-        this.invoiceNumber = null;
-        this.stepsExecuted = null;
-        this.startedAt = null;
-        this.completedAt = null;
-        this.durationMs = null;
-    }
-
-    @Builder
-    private SagaCompletedEvent(String sagaId, String correlationId, String documentType,
-                               String documentId, String invoiceNumber, Integer stepsExecuted,
-                               Instant startedAt, Instant completedAt, Long durationMs) {
-        super();
+    /**
+     * Convenience constructor for creating a new SagaCompletedEvent.
+     */
+    public SagaCompletedEvent(String sagaId, String correlationId, String documentType,
+                              String documentId, String invoiceNumber, Integer stepsExecuted,
+                              Instant startedAt, Instant completedAt, Long durationMs) {
+        super(sagaId, "orchestrator", "SAGA_COMPLETED");
         this.sagaId = sagaId;
         this.correlationId = correlationId;
         this.documentType = documentType;
@@ -73,5 +58,75 @@ public class SagaCompletedEvent extends IntegrationEvent {
         this.startedAt = startedAt;
         this.completedAt = completedAt;
         this.durationMs = durationMs;
+    }
+
+    /**
+     * Full constructor for Jackson deserialization.
+     */
+    @JsonCreator
+    public SagaCompletedEvent(
+            @JsonProperty("eventId") UUID eventId,
+            @JsonProperty("occurredAt") Instant occurredAt,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("version") int version,
+            @JsonProperty("sagaId") String sagaId,
+            @JsonProperty("source") String source,
+            @JsonProperty("traceType") String traceType,
+            @JsonProperty("context") String context,
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("documentType") String documentType,
+            @JsonProperty("documentId") String documentId,
+            @JsonProperty("invoiceNumber") String invoiceNumber,
+            @JsonProperty("stepsExecuted") Integer stepsExecuted,
+            @JsonProperty("startedAt") Instant startedAt,
+            @JsonProperty("completedAt") Instant completedAt,
+            @JsonProperty("durationMs") Long durationMs) {
+        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
+        this.sagaId = sagaId;
+        this.correlationId = correlationId;
+        this.documentType = documentType;
+        this.documentId = documentId;
+        this.invoiceNumber = invoiceNumber;
+        this.stepsExecuted = stepsExecuted;
+        this.startedAt = startedAt;
+        this.completedAt = completedAt;
+        this.durationMs = durationMs;
+    }
+
+    // Getters for additional fields
+    public String getSagaId() {
+        return sagaId;
+    }
+
+    public String getCorrelationId() {
+        return correlationId;
+    }
+
+    public String getDocumentType() {
+        return documentType;
+    }
+
+    public String getDocumentId() {
+        return documentId;
+    }
+
+    public String getInvoiceNumber() {
+        return invoiceNumber;
+    }
+
+    public Integer getStepsExecuted() {
+        return stepsExecuted;
+    }
+
+    public Instant getStartedAt() {
+        return startedAt;
+    }
+
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+
+    public Long getDurationMs() {
+        return durationMs;
     }
 }

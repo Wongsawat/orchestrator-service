@@ -3,10 +3,7 @@ package com.wpanther.orchestrator.domain.event;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.wpanther.saga.domain.model.IntegrationEvent;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.extern.jackson.Jacksonized;
+import com.wpanther.saga.domain.model.InboundCommand;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -17,26 +14,14 @@ import java.util.UUID;
  * <p>
  * This command contains all the information the orchestrator needs to begin
  * orchestrating the multi-step invoice processing pipeline.
+ * <p>
+ * Extends {@link InboundCommand} which provides the common fields for commands
+ * sent TO the orchestrator (documentId, source, correlationId, documentType).
  */
-@Getter
-@Builder
-@Jacksonized
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class StartSagaCommand extends IntegrationEvent {
+public class StartSagaCommand extends InboundCommand {
 
     private static final long serialVersionUID = 1L;
-
-    /**
-     * ID of the IncomingDocument that triggered this saga.
-     */
-    @JsonProperty("documentId")
-    private final String documentId;
-
-    /**
-     * Type of document (TAX_INVOICE, INVOICE, RECEIPT, etc.)
-     */
-    @JsonProperty("documentType")
-    private final String documentType;
 
     /**
      * The invoice/tax invoice number from the document.
@@ -52,55 +37,48 @@ public class StartSagaCommand extends IntegrationEvent {
     private final String xmlContent;
 
     /**
-     * Correlation ID for tracing the request across all services.
+     * Convenience constructor for creating a new StartSagaCommand.
+     *
+     * @param documentId    ID of the IncomingDocument that triggered this saga
+     * @param documentType  Type of document (TAX_INVOICE, INVOICE, RECEIPT, etc.)
+     * @param invoiceNumber The invoice/tax invoice number from the document
+     * @param xmlContent    The full XML content of the document
+     * @param correlationId Correlation ID for tracing the request across all services
+     * @param source        Source of the document (API, KAFKA, etc.)
      */
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
-    /**
-     * Source of the document (API, KAFKA, etc.)
-     */
-    @JsonProperty("source")
-    private final String source;
-
-    /**
-     * Constructor for Builder pattern - used when creating new instances.
-     * Calls super() to auto-generate eventId, occurredAt, eventType, version.
-     */
-    @Builder
-    private StartSagaCommand(String documentId, String documentType, String invoiceNumber,
-                             String xmlContent, String correlationId, String source) {
-        super();
-        this.documentId = documentId;
-        this.documentType = documentType;
+    public StartSagaCommand(String documentId, String documentType, String invoiceNumber,
+                            String xmlContent, String correlationId, String source) {
+        super(documentId, source, correlationId, documentType);
         this.invoiceNumber = invoiceNumber;
         this.xmlContent = xmlContent;
-        this.correlationId = correlationId;
-        this.source = source;
     }
 
     /**
-     * Constructor for Jackson deserialization - includes all fields from parent class.
-     * Used when consuming from Kafka.
+     * Full constructor for Jackson deserialization.
      */
     @JsonCreator
-    private StartSagaCommand(
+    public StartSagaCommand(
             @JsonProperty("eventId") UUID eventId,
             @JsonProperty("occurredAt") Instant occurredAt,
             @JsonProperty("eventType") String eventType,
             @JsonProperty("version") int version,
             @JsonProperty("documentId") String documentId,
+            @JsonProperty("source") String source,
+            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("documentType") String documentType,
             @JsonProperty("invoiceNumber") String invoiceNumber,
-            @JsonProperty("xmlContent") String xmlContent,
-            @JsonProperty("correlationId") String correlationId,
-            @JsonProperty("source") String source) {
-        super(eventId, occurredAt, eventType, version);
-        this.documentId = documentId;
-        this.documentType = documentType;
+            @JsonProperty("xmlContent") String xmlContent) {
+        super(eventId, occurredAt, eventType, version, documentId, source, correlationId, documentType);
         this.invoiceNumber = invoiceNumber;
         this.xmlContent = xmlContent;
-        this.correlationId = correlationId;
-        this.source = source;
+    }
+
+    // Getters for additional fields
+    public String getInvoiceNumber() {
+        return invoiceNumber;
+    }
+
+    public String getXmlContent() {
+        return xmlContent;
     }
 }

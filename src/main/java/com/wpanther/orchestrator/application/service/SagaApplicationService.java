@@ -334,8 +334,8 @@ public class SagaApplicationService implements SagaOrchestrationService {
         // Publish command via outbox
         commandPublisher.publishCommandForStep(instance, step, correlationId);
 
-        // Also send to Kafka for backward compatibility (will be removed in future)
-        commandProducer.sendCommand(instance.getId(), createCommand(instance, step, saved.getCorrelationId()), isInvoice);
+        // Direct Kafka producer deprecated - using outbox pattern instead
+        // commandProducer.sendCommand(instance.getId(), createCommand(instance, step, saved.getCorrelationId()), isInvoice);
     }
 
     /**
@@ -353,22 +353,6 @@ public class SagaApplicationService implements SagaOrchestrationService {
             log.error("Failed to create command payload", e);
             return "{}";
         }
-    }
-
-    /**
-     * Creates a saga command object.
-     */
-    private com.wpanther.saga.domain.model.SagaCommand createCommand(
-            SagaInstance instance,
-            SagaStep step,
-            String correlationId) {
-        // For now, return a generic command
-        // In a full implementation, you'd have specific command classes
-        return new com.wpanther.saga.domain.model.SagaCommand(
-                instance.getId(),
-                step.getCode(),
-                correlationId
-        ) {};
     }
 
     /**

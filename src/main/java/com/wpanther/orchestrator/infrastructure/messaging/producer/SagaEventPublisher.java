@@ -51,14 +51,14 @@ public class SagaEventPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSagaStarted(SagaInstance saga, String correlationId, String invoiceNumber) {
-        SagaStartedEvent event = SagaStartedEvent.builder()
-            .sagaId(saga.getId())
-            .correlationId(correlationId)
-            .documentType(saga.getDocumentType().name())
-            .documentId(saga.getDocumentId())
-            .currentStep(saga.getCurrentStep() != null ? saga.getCurrentStep().getCode() : null)
-            .invoiceNumber(invoiceNumber)
-            .build();
+        SagaStartedEvent event = new SagaStartedEvent(
+            saga.getId(),
+            correlationId,
+            saga.getDocumentType().name(),
+            saga.getDocumentId(),
+            saga.getCurrentStep() != null ? saga.getCurrentStep().getCode() : null,
+            invoiceNumber
+        );
 
         Map<String, String> headers = new HashMap<>();
         headers.put("sagaId", saga.getId());
@@ -87,13 +87,13 @@ public class SagaEventPublisher {
                                          String correlationId) {
         SagaStep nextStep = saga.getNextStep();
 
-        SagaStepCompletedEvent event = SagaStepCompletedEvent.builder()
-            .sagaId(saga.getId())
-            .correlationId(correlationId)
-            .documentType(saga.getDocumentType().name())
-            .completedStep(completedStep.getCode())
-            .nextStep(nextStep != null ? nextStep.getCode() : null)
-            .build();
+        SagaStepCompletedEvent event = new SagaStepCompletedEvent(
+            saga.getId(),
+            correlationId,
+            saga.getDocumentType().name(),
+            completedStep.getCode(),
+            nextStep != null ? nextStep.getCode() : null
+        );
 
         Map<String, String> headers = new HashMap<>();
         headers.put("sagaId", saga.getId());
@@ -121,17 +121,17 @@ public class SagaEventPublisher {
     public void publishSagaCompleted(SagaInstance saga, String correlationId, String invoiceNumber) {
         long durationMs = java.time.Duration.between(saga.getCreatedAt(), saga.getCompletedAt()).toMillis();
 
-        SagaCompletedEvent event = SagaCompletedEvent.builder()
-            .sagaId(saga.getId())
-            .correlationId(correlationId)
-            .documentType(saga.getDocumentType().name())
-            .documentId(saga.getDocumentId())
-            .invoiceNumber(invoiceNumber)
-            .stepsExecuted(saga.getCommandHistory().size())
-            .startedAt(saga.getCreatedAt())
-            .completedAt(saga.getCompletedAt())
-            .durationMs(durationMs)
-            .build();
+        SagaCompletedEvent event = new SagaCompletedEvent(
+            saga.getId(),
+            correlationId,
+            saga.getDocumentType().name(),
+            saga.getDocumentId(),
+            invoiceNumber,
+            saga.getCommandHistory().size(),
+            saga.getCreatedAt(),
+            saga.getCompletedAt(),
+            durationMs
+        );
 
         Map<String, String> headers = new HashMap<>();
         headers.put("sagaId", saga.getId());
@@ -161,20 +161,20 @@ public class SagaEventPublisher {
         long durationMs = java.time.Duration.between(saga.getCreatedAt(), saga.getUpdatedAt()).toMillis();
         boolean compensating = saga.getStatus() == SagaStatus.COMPENSATING;
 
-        SagaFailedEvent event = SagaFailedEvent.builder()
-            .sagaId(saga.getId())
-            .correlationId(correlationId)
-            .documentType(saga.getDocumentType().name())
-            .documentId(saga.getDocumentId())
-            .invoiceNumber(invoiceNumber)
-            .failedStep(failedStep != null ? failedStep.getCode() : null)
-            .errorMessage(errorMessage)
-            .retryCount(saga.getRetryCount())
-            .compensationInitiated(compensating)
-            .startedAt(saga.getCreatedAt())
-            .failedAt(saga.getUpdatedAt())
-            .durationMs(durationMs)
-            .build();
+        SagaFailedEvent event = new SagaFailedEvent(
+            saga.getId(),
+            correlationId,
+            saga.getDocumentType().name(),
+            saga.getDocumentId(),
+            invoiceNumber,
+            failedStep != null ? failedStep.getCode() : null,
+            errorMessage,
+            saga.getRetryCount(),
+            compensating,
+            saga.getCreatedAt(),
+            saga.getUpdatedAt(),
+            durationMs
+        );
 
         Map<String, String> headers = new HashMap<>();
         headers.put("sagaId", saga.getId());

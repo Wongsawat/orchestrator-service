@@ -412,7 +412,7 @@ public class SagaReplyConsumer {
 
         sagaApplicationService.handleReply(
                 reply.getSagaId(),
-                reply.getSagaStep(),
+                reply.getSagaStep().getCode(),
                 isSuccess,
                 errorMessage,
                 resultData

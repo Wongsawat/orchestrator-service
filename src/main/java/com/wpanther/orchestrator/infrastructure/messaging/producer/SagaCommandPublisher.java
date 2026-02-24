@@ -1,11 +1,12 @@
 package com.wpanther.orchestrator.infrastructure.messaging.producer;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.saga.domain.enums.SagaStep;
-import com.wpanther.saga.domain.model.IntegrationEvent;
+import com.wpanther.saga.domain.model.SagaCommand;
 import com.wpanther.saga.infrastructure.outbox.OutboxService;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -15,8 +16,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Publisher for saga commands to processing services via the outbox pattern.
@@ -36,25 +39,25 @@ public class SagaCommandPublisher {
     @Value("${app.kafka.topics.saga-command-invoice:saga.command.invoice}")
     private String invoiceCommandTopic;
 
-    @Value("${app.kafka.topics.saga.command-tax-invoice:saga.command.tax-invoice}")
+    @Value("${app.kafka.topics.saga-command-tax-invoice:saga.command.tax-invoice}")
     private String taxInvoiceCommandTopic;
 
-    @Value("${app.kafka.topics.saga.command-xml-signing:saga.command.xml-signing}")
+    @Value("${app.kafka.topics.saga-command-xml-signing:saga.command.xml-signing}")
     private String xmlSigningCommandTopic;
 
     @Value("${app.kafka.topics.saga.command-signedxml-storage:saga.command.signedxml-storage}")
     private String signedXmlStorageCommandTopic;
 
-    @Value("${app.kafka.topics.saga.command-invoice-pdf:saga.command.invoice-pdf}")
+    @Value("${app.kafka.topics.saga-command-invoice-pdf:saga.command.invoice-pdf}")
     private String invoicePdfCommandTopic;
 
-    @Value("${app.kafka.topics.saga.command-tax-invoice-pdf:saga.command.tax-invoice-pdf}")
+    @Value("${app.kafka.topics.saga-command-tax-invoice-pdf:saga.command.tax-invoice-pdf}")
     private String taxInvoicePdfCommandTopic;
 
-    @Value("${app.kafka.topics.saga.command-pdf-signing:saga.command.pdf-signing}")
+    @Value("${app.kafka.topics.saga-command-pdf-signing:saga.command.pdf-signing}")
     private String pdfSigningCommandTopic;
 
-    @Value("${app.kafka.topics.saga.command-document-storage:saga.command.document-storage}")
+    @Value("${app.kafka.topics.saga-command-document-storage:saga.command.document-storage}")
     private String documentStorageCommandTopic;
 
     @Value("${app.saga.compensation.invoice:saga.compensation.invoice}")
@@ -100,7 +103,7 @@ public class SagaCommandPublisher {
     public void publishProcessInvoiceCommand(SagaInstance saga, String correlationId) {
         ProcessInvoiceCommand command = new ProcessInvoiceCommand(
             saga.getId(),
-            SagaStep.PROCESS_INVOICE.getCode(),
+            SagaStep.PROCESS_INVOICE,
             correlationId,
             saga.getDocumentId(),
             saga.getDocumentMetadata().getXmlContent(),
@@ -120,7 +123,7 @@ public class SagaCommandPublisher {
     public void publishProcessTaxInvoiceCommand(SagaInstance saga, String correlationId) {
         ProcessTaxInvoiceCommand command = new ProcessTaxInvoiceCommand(
             saga.getId(),
-            SagaStep.PROCESS_TAX_INVOICE.getCode(),
+            SagaStep.PROCESS_TAX_INVOICE,
             correlationId,
             saga.getDocumentId(),
             saga.getDocumentMetadata().getXmlContent(),
@@ -151,7 +154,7 @@ public class SagaCommandPublisher {
 
         StoreDocumentCommand command = new StoreDocumentCommand(
             saga.getId(),
-            SagaStep.STORE_DOCUMENT.getCode(),
+            SagaStep.STORE_DOCUMENT,
             correlationId,
             saga.getDocumentId(),
             getInvoiceNumber(saga),
@@ -181,7 +184,7 @@ public class SagaCommandPublisher {
 
         SendEbmsCommand command = new SendEbmsCommand(
             saga.getId(),
-            SagaStep.SEND_EBMS.getCode(),
+            SagaStep.SEND_EBMS,
             correlationId,
             saga.getDocumentId(),
             getInvoiceNumber(saga),
@@ -202,7 +205,7 @@ public class SagaCommandPublisher {
     public void publishSignXmlCommand(SagaInstance saga, String correlationId) {
         ProcessXmlSigningCommand command = new ProcessXmlSigningCommand(
             saga.getId(),
-            SagaStep.SIGN_XML.getCode(),
+            SagaStep.SIGN_XML,
             correlationId,
             saga.getDocumentId(),
             saga.getDocumentMetadata().getXmlContent(),
@@ -231,7 +234,7 @@ public class SagaCommandPublisher {
 
         ProcessSignedXmlStorageCommand command = new ProcessSignedXmlStorageCommand(
             saga.getId(),
-            SagaStep.SIGNEDXML_STORAGE.getCode(),
+            SagaStep.SIGNEDXML_STORAGE,
             correlationId,
             saga.getDocumentId(),
             signedXmlUrl,
@@ -265,7 +268,7 @@ public class SagaCommandPublisher {
 
         ProcessInvoicePdfCommand command = new ProcessInvoicePdfCommand(
             saga.getId(),
-            SagaStep.GENERATE_INVOICE_PDF.getCode(),
+            SagaStep.GENERATE_INVOICE_PDF,
             correlationId,
             saga.getDocumentId(),
             getInvoiceId(saga),
@@ -300,7 +303,7 @@ public class SagaCommandPublisher {
 
         ProcessTaxInvoicePdfCommand command = new ProcessTaxInvoicePdfCommand(
             saga.getId(),
-            SagaStep.GENERATE_TAX_INVOICE_PDF.getCode(),
+            SagaStep.GENERATE_TAX_INVOICE_PDF,
             correlationId,
             saga.getDocumentId(),
             getTaxInvoiceId(saga),
@@ -337,7 +340,7 @@ public class SagaCommandPublisher {
 
         ProcessPdfSigningCommand command = new ProcessPdfSigningCommand(
             saga.getId(),
-            SagaStep.SIGN_PDF.getCode(),
+            SagaStep.SIGN_PDF,
             correlationId,
             saga.getDocumentId(),
             getInvoiceNumber(saga),
@@ -368,7 +371,7 @@ public class SagaCommandPublisher {
 
         ProcessPdfStorageCommand command = new ProcessPdfStorageCommand(
             saga.getId(),
-            SagaStep.PDF_STORAGE.getCode(),
+            SagaStep.PDF_STORAGE,
             correlationId,
             saga.getDocumentId(),
             getInvoiceNumber(saga),
@@ -449,7 +452,7 @@ public class SagaCommandPublisher {
 
         CompensationCommand command = new CompensationCommand(
             saga.getId(),
-            "COMPENSATE_" + stepToCompensate.getCode(),
+            stepToCompensate,
             correlationId,
             stepToCompensate.getCode(),
             saga.getDocumentId(),
@@ -478,7 +481,7 @@ public class SagaCommandPublisher {
             saga.getId(), stepToCompensate, compensationTopic);
     }
 
-    private void publishCommand(IntegrationEvent command, String topic, SagaInstance saga,
+    private void publishCommand(SagaCommand command, String topic, SagaInstance saga,
                                 String correlationId, String commandType) {
         Map<String, String> headers = new HashMap<>();
         headers.put("sagaId", saga.getId());
@@ -541,17 +544,8 @@ public class SagaCommandPublisher {
      * Command for invoice processing service.
      */
     @Getter
-    public static class ProcessInvoiceCommand extends IntegrationEvent {
+    public static class ProcessInvoiceCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -562,12 +556,27 @@ public class SagaCommandPublisher {
         @JsonProperty("invoiceNumber")
         private final String invoiceNumber;
 
-        public ProcessInvoiceCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessInvoiceCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                      String documentId, String xmlContent, String invoiceNumber) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.invoiceNumber = invoiceNumber;
+        }
+
+        @JsonCreator
+        public ProcessInvoiceCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("xmlContent") String xmlContent,
+                @JsonProperty("invoiceNumber") String invoiceNumber) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.xmlContent = xmlContent;
             this.invoiceNumber = invoiceNumber;
@@ -578,17 +587,8 @@ public class SagaCommandPublisher {
      * Command for tax invoice processing service.
      */
     @Getter
-    public static class ProcessTaxInvoiceCommand extends IntegrationEvent {
+    public static class ProcessTaxInvoiceCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -599,12 +599,27 @@ public class SagaCommandPublisher {
         @JsonProperty("invoiceNumber")
         private final String invoiceNumber;
 
-        public ProcessTaxInvoiceCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessTaxInvoiceCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                          String documentId, String xmlContent, String invoiceNumber) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.invoiceNumber = invoiceNumber;
+        }
+
+        @JsonCreator
+        public ProcessTaxInvoiceCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("xmlContent") String xmlContent,
+                @JsonProperty("invoiceNumber") String invoiceNumber) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.xmlContent = xmlContent;
             this.invoiceNumber = invoiceNumber;
@@ -615,17 +630,8 @@ public class SagaCommandPublisher {
      * Command for compensating (rolling back) a completed step.
      */
     @Getter
-    public static class CompensationCommand extends IntegrationEvent {
+    public static class CompensationCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("stepToCompensate")
         private final String stepToCompensate;
@@ -636,12 +642,27 @@ public class SagaCommandPublisher {
         @JsonProperty("documentType")
         private final String documentType;
 
-        public CompensationCommand(String sagaId, String sagaStep, String correlationId,
+        public CompensationCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                    String stepToCompensate, String documentId, String documentType) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.stepToCompensate = stepToCompensate;
+            this.documentId = documentId;
+            this.documentType = documentType;
+        }
+
+        @JsonCreator
+        public CompensationCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("stepToCompensate") String stepToCompensate,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("documentType") String documentType) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.stepToCompensate = stepToCompensate;
             this.documentId = documentId;
             this.documentType = documentType;
@@ -652,17 +673,8 @@ public class SagaCommandPublisher {
      * Command for document storage service.
      */
     @Getter
-    public static class StoreDocumentCommand extends IntegrationEvent {
+    public static class StoreDocumentCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -682,13 +694,34 @@ public class SagaCommandPublisher {
         @JsonProperty("signatureLevel")
         private final String signatureLevel;
 
-        public StoreDocumentCommand(String sagaId, String sagaStep, String correlationId,
+        public StoreDocumentCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                      String documentId, String invoiceNumber, String documentType,
                                      String signedPdfUrl, String signedDocumentId, String signatureLevel) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.signedPdfUrl = signedPdfUrl;
+            this.signedDocumentId = signedDocumentId;
+            this.signatureLevel = signatureLevel;
+        }
+
+        @JsonCreator
+        public StoreDocumentCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("invoiceNumber") String invoiceNumber,
+                @JsonProperty("documentType") String documentType,
+                @JsonProperty("signedPdfUrl") String signedPdfUrl,
+                @JsonProperty("signedDocumentId") String signedDocumentId,
+                @JsonProperty("signatureLevel") String signatureLevel) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
@@ -702,17 +735,8 @@ public class SagaCommandPublisher {
      * Command for ebMS sending service.
      */
     @Getter
-    public static class SendEbmsCommand extends IntegrationEvent {
+    public static class SendEbmsCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -726,13 +750,30 @@ public class SagaCommandPublisher {
         @JsonProperty("signedXmlUrl")
         private final String signedXmlUrl;
 
-        public SendEbmsCommand(String sagaId, String sagaStep, String correlationId,
+        public SendEbmsCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                String documentId, String invoiceNumber, String documentType,
                                String signedXmlUrl) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.signedXmlUrl = signedXmlUrl;
+        }
+
+        @JsonCreator
+        public SendEbmsCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("invoiceNumber") String invoiceNumber,
+                @JsonProperty("documentType") String documentType,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
@@ -744,17 +785,8 @@ public class SagaCommandPublisher {
      * Command for xml-signing-service.
      */
     @Getter
-    public static class ProcessXmlSigningCommand extends IntegrationEvent {
+    public static class ProcessXmlSigningCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -768,13 +800,30 @@ public class SagaCommandPublisher {
         @JsonProperty("documentType")
         private final String documentType;
 
-        public ProcessXmlSigningCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessXmlSigningCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                            String documentId, String xmlContent, String invoiceNumber,
                                            String documentType) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+        }
+
+        @JsonCreator
+        public ProcessXmlSigningCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("xmlContent") String xmlContent,
+                @JsonProperty("invoiceNumber") String invoiceNumber,
+                @JsonProperty("documentType") String documentType) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.xmlContent = xmlContent;
             this.invoiceNumber = invoiceNumber;
@@ -786,17 +835,8 @@ public class SagaCommandPublisher {
      * Command for document-storage-service (signed XML).
      */
     @Getter
-    public static class ProcessSignedXmlStorageCommand extends IntegrationEvent {
+    public static class ProcessSignedXmlStorageCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -810,13 +850,30 @@ public class SagaCommandPublisher {
         @JsonProperty("documentType")
         private final String documentType;
 
-        public ProcessSignedXmlStorageCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessSignedXmlStorageCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                               String documentId, String signedXmlUrl, String invoiceNumber,
                                               String documentType) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.signedXmlUrl = signedXmlUrl;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+        }
+
+        @JsonCreator
+        public ProcessSignedXmlStorageCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl,
+                @JsonProperty("invoiceNumber") String invoiceNumber,
+                @JsonProperty("documentType") String documentType) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.signedXmlUrl = signedXmlUrl;
             this.invoiceNumber = invoiceNumber;
@@ -828,17 +885,8 @@ public class SagaCommandPublisher {
      * Command for invoice-pdf-generation-service.
      */
     @Getter
-    public static class ProcessInvoicePdfCommand extends IntegrationEvent {
+    public static class ProcessInvoicePdfCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -855,13 +903,32 @@ public class SagaCommandPublisher {
         @JsonProperty("invoiceDataJson")
         private final String invoiceDataJson;
 
-        public ProcessInvoicePdfCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessInvoicePdfCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                          String documentId, String invoiceId, String invoiceNumber,
                                          String signedXmlUrl, String invoiceDataJson) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.invoiceId = invoiceId;
+            this.invoiceNumber = invoiceNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.invoiceDataJson = invoiceDataJson;
+        }
+
+        @JsonCreator
+        public ProcessInvoicePdfCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("invoiceId") String invoiceId,
+                @JsonProperty("invoiceNumber") String invoiceNumber,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl,
+                @JsonProperty("invoiceDataJson") String invoiceDataJson) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.invoiceId = invoiceId;
             this.invoiceNumber = invoiceNumber;
@@ -874,17 +941,8 @@ public class SagaCommandPublisher {
      * Command for taxinvoice-pdf-generation-service.
      */
     @Getter
-    public static class ProcessTaxInvoicePdfCommand extends IntegrationEvent {
+    public static class ProcessTaxInvoicePdfCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -901,13 +959,32 @@ public class SagaCommandPublisher {
         @JsonProperty("taxInvoiceDataJson")
         private final String taxInvoiceDataJson;
 
-        public ProcessTaxInvoicePdfCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessTaxInvoicePdfCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                             String documentId, String taxInvoiceId, String taxInvoiceNumber,
                                             String signedXmlUrl, String taxInvoiceDataJson) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.taxInvoiceId = taxInvoiceId;
+            this.taxInvoiceNumber = taxInvoiceNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.taxInvoiceDataJson = taxInvoiceDataJson;
+        }
+
+        @JsonCreator
+        public ProcessTaxInvoicePdfCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("taxInvoiceId") String taxInvoiceId,
+                @JsonProperty("taxInvoiceNumber") String taxInvoiceNumber,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl,
+                @JsonProperty("taxInvoiceDataJson") String taxInvoiceDataJson) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.taxInvoiceId = taxInvoiceId;
             this.taxInvoiceNumber = taxInvoiceNumber;
@@ -921,17 +998,8 @@ public class SagaCommandPublisher {
      * Uses @JsonProperty("pdfUrl") to match pdf-signing-service's ProcessPdfSigningCommand.
      */
     @Getter
-    public static class ProcessPdfSigningCommand extends IntegrationEvent {
+    public static class ProcessPdfSigningCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -945,13 +1013,30 @@ public class SagaCommandPublisher {
         @JsonProperty("pdfUrl")
         private final String pdfUrl;
 
-        public ProcessPdfSigningCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessPdfSigningCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                         String documentId, String invoiceNumber, String documentType,
                                         String pdfUrl) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.pdfUrl = pdfUrl;
+        }
+
+        @JsonCreator
+        public ProcessPdfSigningCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("invoiceNumber") String invoiceNumber,
+                @JsonProperty("documentType") String documentType,
+                @JsonProperty("pdfUrl") String pdfUrl) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
@@ -964,17 +1049,8 @@ public class SagaCommandPublisher {
      * Requests storage of an unsigned tax invoice PDF from MinIO.
      */
     @Getter
-    public static class ProcessPdfStorageCommand extends IntegrationEvent {
+    public static class ProcessPdfStorageCommand extends SagaCommand {
         private static final long serialVersionUID = 1L;
-
-        @JsonProperty("sagaId")
-        private final String sagaId;
-
-        @JsonProperty("sagaStep")
-        private final String sagaStep;
-
-        @JsonProperty("correlationId")
-        private final String correlationId;
 
         @JsonProperty("documentId")
         private final String documentId;
@@ -991,13 +1067,32 @@ public class SagaCommandPublisher {
         @JsonProperty("pdfSize")
         private final Long pdfSize;
 
-        public ProcessPdfStorageCommand(String sagaId, String sagaStep, String correlationId,
+        public ProcessPdfStorageCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                         String documentId, String invoiceNumber, String documentType,
                                         String pdfUrl, Long pdfSize) {
-            super();
-            this.sagaId = sagaId;
-            this.sagaStep = sagaStep;
-            this.correlationId = correlationId;
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.invoiceNumber = invoiceNumber;
+            this.documentType = documentType;
+            this.pdfUrl = pdfUrl;
+            this.pdfSize = pdfSize;
+        }
+
+        @JsonCreator
+        public ProcessPdfStorageCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("invoiceNumber") String invoiceNumber,
+                @JsonProperty("documentType") String documentType,
+                @JsonProperty("pdfUrl") String pdfUrl,
+                @JsonProperty("pdfSize") Long pdfSize) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.invoiceNumber = invoiceNumber;
             this.documentType = documentType;
