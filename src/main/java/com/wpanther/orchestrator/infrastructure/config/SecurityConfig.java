@@ -67,6 +67,7 @@ public class SecurityConfig {
                                 "/actuator/health/**",
                                 "/actuator/info/**",
                                 "/api/saga/health",
+                                "/api/auth/**",
                                 "/error"
                         ).permitAll()
 

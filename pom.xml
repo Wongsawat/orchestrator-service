@@ -115,11 +115,22 @@
             <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -195,6 +206,72 @@
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <configuration>
+                    <excludes>
+                        <!-- Spring Boot entry point -->
+                        <exclude>com/wpanther/orchestrator/OrchestratorServiceApplication.class</exclude>
+                        <!-- Infrastructure config (Spring beans wiring, no testable logic) -->
+                        <exclude>com/wpanther/orchestrator/infrastructure/config/**</exclude>
+                        <!-- JPA entities (data holders) -->
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SagaInstanceEntity.class</exclude>
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SagaCommandEntity.class</exclude>
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/outbox/OutboxEventEntity.class</exclude>
+                        <!-- Spring Data repository interfaces (framework-generated) -->
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SpringData*.class</exclude>
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/outbox/SpringData*.class</exclude>
+                        <!-- JPA adapters delegating to Spring Data -->
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/Jpa*.class</exclude>
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/outbox/Jpa*.class</exclude>
+                        <!-- MapStruct mapper (generated) -->
+                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SagaInstanceMapper*.class</exclude>
+                        <!-- Deprecated direct Kafka producer -->
+                        <exclude>com/wpanther/orchestrator/infrastructure/messaging/producer/SagaCommandProducer.class</exclude>
+                        <!-- Domain interfaces -->
+                        <exclude>com/wpanther/orchestrator/domain/service/**</exclude>
+                        <exclude>com/wpanther/orchestrator/domain/repository/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

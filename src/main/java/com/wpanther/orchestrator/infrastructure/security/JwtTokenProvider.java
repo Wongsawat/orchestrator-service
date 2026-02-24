@@ -165,7 +165,7 @@ public class JwtTokenProvider {
         try {
             validateToken(token);
             return true;
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }

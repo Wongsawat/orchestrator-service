@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -90,7 +91,7 @@ public class AuthController {
      * @return Response containing the user information
      */
     @PostMapping("/validate")
-    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<?> validateToken(@RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.badRequest()
                     .body(ErrorResponse.builder()
@@ -127,6 +128,8 @@ public class AuthController {
      * Login request DTO.
      */
     @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class LoginRequest {
         @NotBlank(message = "Username is required")
         private String username;
