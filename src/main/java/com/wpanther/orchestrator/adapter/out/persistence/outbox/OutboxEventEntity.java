@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.persistence.outbox;
+package com.wpanther.orchestrator.adapter.out.persistence.outbox;
 
 import com.wpanther.saga.domain.outbox.OutboxEvent;
 import com.wpanther.saga.domain.outbox.OutboxStatus;

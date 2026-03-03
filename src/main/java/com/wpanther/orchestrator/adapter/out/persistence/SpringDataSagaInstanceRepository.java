@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.persistence;
+package com.wpanther.orchestrator.adapter.out.persistence;
 
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.saga.domain.enums.SagaStatus;

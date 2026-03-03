@@ -40,7 +40,7 @@ import static org.mockito.Mockito.mock;
     basePackages = {
         "com.wpanther.orchestrator.domain",
         "com.wpanther.orchestrator.application",
-        "com.wpanther.orchestrator.infrastructure.persistence",
+        "com.wpanther.orchestrator.adapter.out.persistence",
         "com.wpanther.orchestrator.infrastructure.config",
         "com.wpanther.orchestrator.adapter.out.messaging",
         "com.wpanther.saga.infrastructure"

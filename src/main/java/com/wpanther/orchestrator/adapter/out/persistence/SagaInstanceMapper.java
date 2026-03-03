@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.persistence;
+package com.wpanther.orchestrator.adapter.out.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
