@@ -1,5 +1,6 @@
 package com.wpanther.orchestrator.domain.event;
 
+import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -2,7 +2,7 @@ package com.wpanther.orchestrator.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.wpanther.orchestrator.domain.event.StartSagaCommand;
+import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.infrastructure.messaging.ConcreteSagaReply;
 import com.wpanther.saga.domain.model.SagaReply;
 import org.apache.kafka.clients.consumer.ConsumerConfig;

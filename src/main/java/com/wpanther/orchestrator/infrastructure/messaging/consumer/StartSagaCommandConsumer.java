@@ -2,7 +2,7 @@ package com.wpanther.orchestrator.infrastructure.messaging.consumer;
 
 import com.wpanther.orchestrator.application.dto.StartSagaRequest;
 import com.wpanther.orchestrator.application.service.SagaApplicationService;
-import com.wpanther.orchestrator.domain.event.StartSagaCommand;
+import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import lombok.RequiredArgsConstructor;

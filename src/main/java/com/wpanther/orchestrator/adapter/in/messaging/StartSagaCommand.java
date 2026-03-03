@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.domain.event;
+package com.wpanther.orchestrator.adapter.in.messaging;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
