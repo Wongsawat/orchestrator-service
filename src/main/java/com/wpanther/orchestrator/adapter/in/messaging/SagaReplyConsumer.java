@@ -1,7 +1,6 @@
-package com.wpanther.orchestrator.infrastructure.messaging.consumer;
+package com.wpanther.orchestrator.adapter.in.messaging;
 
 import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
-import com.wpanther.orchestrator.infrastructure.messaging.ConcreteSagaReply;
 import com.wpanther.saga.domain.model.SagaReply;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

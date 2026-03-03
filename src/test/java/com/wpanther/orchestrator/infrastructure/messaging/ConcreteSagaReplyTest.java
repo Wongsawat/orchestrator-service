@@ -1,5 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.messaging;
 
+import com.wpanther.orchestrator.adapter.in.messaging.ConcreteSagaReply;
 import com.wpanther.saga.domain.enums.ReplyStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import org.junit.jupiter.api.DisplayName;

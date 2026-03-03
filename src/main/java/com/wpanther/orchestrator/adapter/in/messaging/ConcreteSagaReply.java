@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.messaging;
+package com.wpanther.orchestrator.adapter.in.messaging;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;

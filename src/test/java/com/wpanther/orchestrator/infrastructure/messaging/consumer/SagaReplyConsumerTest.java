@@ -1,7 +1,8 @@
 package com.wpanther.orchestrator.infrastructure.messaging.consumer;
 
 import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
-import com.wpanther.orchestrator.infrastructure.messaging.ConcreteSagaReply;
+import com.wpanther.orchestrator.adapter.in.messaging.ConcreteSagaReply;
+import com.wpanther.orchestrator.adapter.in.messaging.SagaReplyConsumer;
 import com.wpanther.saga.domain.enums.ReplyStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.domain.model.SagaReply;

@@ -3,6 +3,7 @@ package com.wpanther.orchestrator.infrastructure.messaging.consumer;
 import com.wpanther.orchestrator.application.dto.StartSagaRequest;
 import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
 import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
+import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommandConsumer;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
