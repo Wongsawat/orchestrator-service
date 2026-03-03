@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.application.controller;
+package com.wpanther.orchestrator.adapter.in.web;
 
 import com.wpanther.orchestrator.application.dto.SagaResponse;
 import com.wpanther.orchestrator.application.dto.StartSagaRequest;

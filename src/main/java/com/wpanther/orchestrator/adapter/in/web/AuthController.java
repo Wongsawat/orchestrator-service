@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.application.controller;
+package com.wpanther.orchestrator.adapter.in.web;
 
 import com.wpanther.orchestrator.infrastructure.security.JwtTokenProvider;
 import jakarta.validation.Valid;
