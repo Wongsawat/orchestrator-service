@@ -1,5 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.messaging.producer;
 
+import com.wpanther.orchestrator.adapter.out.messaging.SagaEventPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
