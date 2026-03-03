@@ -1,7 +1,7 @@
 package com.wpanther.orchestrator.integration;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.wpanther.orchestrator.application.service.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;

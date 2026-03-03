@@ -2,7 +2,7 @@ package com.wpanther.orchestrator.application.controller;
 
 import com.wpanther.orchestrator.application.dto.SagaResponse;
 import com.wpanther.orchestrator.application.dto.StartSagaRequest;
-import com.wpanther.orchestrator.application.service.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.saga.domain.enums.SagaStatus;

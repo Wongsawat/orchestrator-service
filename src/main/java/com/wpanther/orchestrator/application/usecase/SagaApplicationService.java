@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.application.service;
+package com.wpanther.orchestrator.application.usecase;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

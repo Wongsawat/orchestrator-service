@@ -1,7 +1,7 @@
 package com.wpanther.orchestrator.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wpanther.orchestrator.application.service.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
 import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
