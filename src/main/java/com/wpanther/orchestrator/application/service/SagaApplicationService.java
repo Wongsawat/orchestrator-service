@@ -9,7 +9,7 @@ import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.orchestrator.port.out.SagaCommandRecordRepository;
 import com.wpanther.orchestrator.port.out.SagaInstanceRepository;
-import com.wpanther.orchestrator.domain.service.SagaOrchestrationService;
+import com.wpanther.orchestrator.port.in.SagaOrchestrationService;
 import com.wpanther.orchestrator.infrastructure.messaging.producer.SagaCommandProducer;
 import com.wpanther.orchestrator.infrastructure.messaging.producer.SagaCommandPublisher;
 import com.wpanther.orchestrator.infrastructure.messaging.producer.SagaEventPublisher;

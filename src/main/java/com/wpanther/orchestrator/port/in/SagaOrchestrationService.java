@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.domain.service;
+package com.wpanther.orchestrator.port.in;
 
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
