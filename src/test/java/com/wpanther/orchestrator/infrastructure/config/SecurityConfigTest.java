@@ -1,6 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.config;
 
-import com.wpanther.orchestrator.infrastructure.security.JwtTokenProvider;
+import com.wpanther.orchestrator.adapter.in.security.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

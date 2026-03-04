@@ -1,4 +1,6 @@
-package com.wpanther.orchestrator.infrastructure.security;
+package com.wpanther.orchestrator.adapter.in.security;
+
+import com.wpanther.orchestrator.adapter.in.security.JwtTokenProvider;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;

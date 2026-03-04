@@ -1,4 +1,7 @@
-package com.wpanther.orchestrator.infrastructure.security;
+package com.wpanther.orchestrator.adapter.in.security;
+
+import com.wpanther.orchestrator.adapter.in.security.JwtAuthenticationFilter;
+import com.wpanther.orchestrator.adapter.in.security.JwtTokenProvider;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;

@@ -1,7 +1,7 @@
 package com.wpanther.orchestrator.adapter.in.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wpanther.orchestrator.infrastructure.security.JwtTokenProvider;
+import com.wpanther.orchestrator.adapter.in.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

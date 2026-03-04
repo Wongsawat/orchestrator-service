@@ -1,6 +1,6 @@
 package com.wpanther.orchestrator.adapter.in.web;
 
-import com.wpanther.orchestrator.infrastructure.security.JwtTokenProvider;
+import com.wpanther.orchestrator.adapter.in.security.JwtTokenProvider;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

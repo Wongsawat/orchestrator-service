@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.security;
+package com.wpanther.orchestrator.adapter.in.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

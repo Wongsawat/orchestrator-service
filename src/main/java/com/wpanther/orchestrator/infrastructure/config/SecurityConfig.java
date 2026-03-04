@@ -1,6 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.config;
 
-import com.wpanther.orchestrator.infrastructure.security.JwtAuthenticationFilter;
+import com.wpanther.orchestrator.adapter.in.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

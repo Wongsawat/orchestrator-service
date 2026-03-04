@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.security;
+package com.wpanther.orchestrator.adapter.in.security;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
