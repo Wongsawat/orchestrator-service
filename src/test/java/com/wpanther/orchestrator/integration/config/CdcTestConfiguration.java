@@ -41,7 +41,7 @@ import static org.mockito.Mockito.mock;
         "com.wpanther.orchestrator.domain",
         "com.wpanther.orchestrator.application",
         "com.wpanther.orchestrator.adapter.out.persistence",
-        "com.wpanther.orchestrator.infrastructure.config",
+        "com.wpanther.orchestrator.config",
         "com.wpanther.orchestrator.adapter.out.messaging",
         "com.wpanther.saga.infrastructure"
     },

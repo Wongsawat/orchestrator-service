@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.config;
+package com.wpanther.orchestrator.config;
 
 import com.wpanther.orchestrator.adapter.out.persistence.outbox.JpaOrchestratorOutboxRepository;
 import com.wpanther.orchestrator.adapter.out.persistence.outbox.SpringDataOrchestratorOutboxRepository;

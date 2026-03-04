@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.config;
+package com.wpanther.orchestrator.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
