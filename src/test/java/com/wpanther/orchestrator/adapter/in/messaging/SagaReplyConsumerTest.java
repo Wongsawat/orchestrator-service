@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.messaging.consumer;
+package com.wpanther.orchestrator.adapter.in.messaging;
 
 import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
 import com.wpanther.orchestrator.adapter.in.messaging.ConcreteSagaReply;

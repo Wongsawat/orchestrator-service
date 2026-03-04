@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.messaging.producer;
+package com.wpanther.orchestrator.adapter.out.messaging;
 
 import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;

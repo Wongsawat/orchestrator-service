@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.infrastructure.messaging;
+package com.wpanther.orchestrator.adapter.in.messaging;
 
 import com.wpanther.orchestrator.adapter.in.messaging.ConcreteSagaReply;
 import com.wpanther.saga.domain.enums.ReplyStatus;
