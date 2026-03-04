@@ -215,25 +215,25 @@
                     <excludes>
                         <!-- Spring Boot entry point -->
                         <exclude>com/wpanther/orchestrator/OrchestratorServiceApplication.class</exclude>
-                        <!-- Infrastructure config (Spring beans wiring, no testable logic) -->
-                        <exclude>com/wpanther/orchestrator/infrastructure/config/**</exclude>
+                        <!-- Config (Spring beans wiring, no testable logic) -->
+                        <exclude>com/wpanther/orchestrator/config/**</exclude>
                         <!-- JPA entities (data holders) -->
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SagaInstanceEntity.class</exclude>
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SagaCommandEntity.class</exclude>
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/outbox/OutboxEventEntity.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/SagaInstanceEntity.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/SagaCommandEntity.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/outbox/OutboxEventEntity.class</exclude>
                         <!-- Spring Data repository interfaces (framework-generated) -->
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SpringData*.class</exclude>
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/outbox/SpringData*.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/SpringData*.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/outbox/SpringData*.class</exclude>
                         <!-- JPA adapters delegating to Spring Data -->
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/Jpa*.class</exclude>
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/outbox/Jpa*.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/Jpa*.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/outbox/Jpa*.class</exclude>
                         <!-- MapStruct mapper (generated) -->
-                        <exclude>com/wpanther/orchestrator/infrastructure/persistence/SagaInstanceMapper*.class</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/persistence/SagaInstanceMapper*.class</exclude>
                         <!-- Deprecated direct Kafka producer -->
-                        <exclude>com/wpanther/orchestrator/infrastructure/messaging/producer/SagaCommandProducer.class</exclude>
-                        <!-- Domain interfaces -->
-                        <exclude>com/wpanther/orchestrator/domain/service/**</exclude>
-                        <exclude>com/wpanther/orchestrator/domain/repository/**</exclude>
+                        <exclude>com/wpanther/orchestrator/adapter/out/messaging/SagaCommandProducer.class</exclude>
+                        <!-- Port interfaces -->
+                        <exclude>com/wpanther/orchestrator/port/in/**</exclude>
+                        <exclude>com/wpanther/orchestrator/port/out/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
