@@ -1,7 +1,7 @@
 package com.wpanther.orchestrator.infrastructure.config.outbox;
 
-import com.wpanther.orchestrator.adapter.out.persistence.outbox.JpaOrchestratorOutboxRepository;
-import com.wpanther.orchestrator.adapter.out.persistence.outbox.SpringDataOrchestratorOutboxRepository;
+import com.wpanther.orchestrator.infrastructure.adapter.out.persistence.outbox.JpaOrchestratorOutboxRepository;
+import com.wpanther.orchestrator.infrastructure.adapter.out.persistence.outbox.SpringDataOrchestratorOutboxRepository;
 import com.wpanther.saga.domain.outbox.OutboxEventRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;

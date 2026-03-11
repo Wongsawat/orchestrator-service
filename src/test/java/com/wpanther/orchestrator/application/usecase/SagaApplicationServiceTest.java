@@ -8,9 +8,8 @@ import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandProducer;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaEventPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +34,6 @@ class SagaApplicationServiceTest {
 
     @Mock private SagaInstanceRepository sagaRepository;
     @Mock private SagaCommandRecordRepository commandRepository;
-    @Mock private SagaCommandProducer commandProducer;
     @Mock private SagaCommandPublisher commandPublisher;
     @Mock private SagaEventPublisher eventPublisher;
 
@@ -46,7 +44,7 @@ class SagaApplicationServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         service = new SagaApplicationService(
-            sagaRepository, commandRepository, commandProducer,
+            sagaRepository, commandRepository,
             commandPublisher, eventPublisher, objectMapper
         );
     }

@@ -1,9 +1,8 @@
 package com.wpanther.orchestrator.application.usecase;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandProducer;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaEventPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
@@ -31,7 +30,6 @@ class QuerySagaUseCaseTest {
 
     @Mock private SagaInstanceRepository sagaRepository;
     @Mock private SagaCommandRecordRepository commandRepository;
-    @Mock private SagaCommandProducer commandProducer;
     @Mock private SagaCommandPublisher commandPublisher;
     @Mock private SagaEventPublisher eventPublisher;
 
@@ -40,7 +38,7 @@ class QuerySagaUseCaseTest {
     @BeforeEach
     void setUp() {
         service = new SagaApplicationService(
-            sagaRepository, commandRepository, commandProducer,
+            sagaRepository, commandRepository,
             commandPublisher, eventPublisher, new ObjectMapper()
         );
     }

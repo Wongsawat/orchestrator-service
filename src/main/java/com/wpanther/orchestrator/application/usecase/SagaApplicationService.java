@@ -9,9 +9,8 @@ import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandProducer;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaEventPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +33,6 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
 
     private final SagaInstanceRepository sagaRepository;
     private final SagaCommandRecordRepository commandRepository;
-    private final SagaCommandProducer commandProducer;
     private final SagaCommandPublisher commandPublisher;
     private final SagaEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;

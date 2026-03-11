@@ -1,6 +1,6 @@
 package com.wpanther.orchestrator.integration;
 
-import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
+import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.saga.domain.enums.SagaStep;

@@ -3,7 +3,7 @@ package com.wpanther.orchestrator.integration.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
@@ -40,9 +40,9 @@ import static org.mockito.Mockito.mock;
     basePackages = {
         "com.wpanther.orchestrator.domain",
         "com.wpanther.orchestrator.application",
-        "com.wpanther.orchestrator.adapter.out.persistence",
-        "com.wpanther.orchestrator.config",
-        "com.wpanther.orchestrator.adapter.out.messaging",
+        "com.wpanther.orchestrator.infrastructure.adapter.out.persistence",
+        "com.wpanther.orchestrator.infrastructure.config",
+        "com.wpanther.orchestrator.infrastructure.adapter.out.messaging",
         "com.wpanther.saga.infrastructure"
     },
     excludeFilters = {
