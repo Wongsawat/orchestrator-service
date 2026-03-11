@@ -2,12 +2,12 @@ package com.wpanther.orchestrator.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
-import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
+import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
-import com.wpanther.orchestrator.port.out.SagaInstanceRepository;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
+import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import com.wpanther.orchestrator.integration.config.ConsumerTestConfiguration;
 import com.wpanther.orchestrator.integration.config.TestKafkaProducerConfig;
 import com.wpanther.saga.domain.enums.SagaStep;

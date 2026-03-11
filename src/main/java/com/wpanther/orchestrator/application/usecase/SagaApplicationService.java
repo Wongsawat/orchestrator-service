@@ -7,12 +7,10 @@ import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaCommandRecord;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
-import com.wpanther.orchestrator.port.out.SagaCommandRecordRepository;
-import com.wpanther.orchestrator.port.out.SagaInstanceRepository;
-import com.wpanther.orchestrator.port.in.SagaOrchestrationService;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandProducer;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
-import com.wpanther.orchestrator.adapter.out.messaging.SagaEventPublisher;
+import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
+import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
+import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import lombok.RequiredArgsConstructor;
@@ -30,51 +28,14 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SagaApplicationService implements SagaOrchestrationService {
+public class SagaApplicationService implements StartSagaUseCase, HandleSagaReplyUseCase,
+        HandleCompensationUseCase, QuerySagaUseCase, SagaManagementUseCase {
 
     private final SagaInstanceRepository sagaRepository;
     private final SagaCommandRecordRepository commandRepository;
-    private final SagaCommandProducer commandProducer;
     private final SagaCommandPublisher commandPublisher;
     private final SagaEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
-
-    @Override
-    @Transactional
-    public SagaInstance startSaga(DocumentType documentType, String documentId, DocumentMetadata metadata) {
-        log.info("Starting saga for document type {} with ID {}", documentType, documentId);
-
-        // Check if saga already exists for this document
-        var existing = sagaRepository.findByDocumentTypeAndDocumentId(documentType, documentId);
-        if (existing.isPresent()) {
-            SagaInstance existingSaga = existing.get();
-            if (existingSaga.getStatus() != SagaStatus.FAILED
-                    && existingSaga.getStatus() != SagaStatus.COMPLETED) {
-                log.warn("Saga already exists for document {} with status {}", documentId, existingSaga.getStatus());
-                return existingSaga;
-            }
-        }
-
-        // Generate correlation ID
-        String correlationId = generateCorrelationId(documentId);
-
-        // Create new saga instance
-        SagaInstance instance = SagaInstance.create(documentType, documentId, metadata);
-        instance.start();
-
-        // Save saga instance
-        SagaInstance saved = sagaRepository.save(instance);
-
-        // Publish saga started event
-        String invoiceNumber = extractInvoiceNumber(metadata);
-        eventPublisher.publishSagaStarted(saved, correlationId, invoiceNumber);
-
-        // Create and send first command via outbox
-        sendCommandForStep(saved, correlationId);
-
-        log.info("Started saga {} for document {}", saved.getId(), documentId);
-        return saved;
-    }
 
     /**
      * Starts a saga from a DTO request.
@@ -97,8 +58,10 @@ public class SagaApplicationService implements SagaOrchestrationService {
     }
 
     /**
-     * Starts a saga with explicit correlation ID.
+     * Starts a saga with an explicit correlation ID for end-to-end tracing.
+     * If {@code correlationId} is null, a new one is generated.
      */
+    @Override
     @Transactional
     public SagaInstance startSaga(DocumentType documentType, String documentId,
                                   DocumentMetadata metadata, String correlationId) {
@@ -136,12 +99,6 @@ public class SagaApplicationService implements SagaOrchestrationService {
 
         log.info("Started saga {} for document {}", saved.getId(), documentId);
         return saved;
-    }
-
-    @Override
-    @Transactional
-    public SagaInstance handleReply(String sagaId, String step, boolean success, String errorMessage) {
-        return handleReply(sagaId, step, success, errorMessage, null);
     }
 
     @Override
@@ -296,8 +253,8 @@ public class SagaApplicationService implements SagaOrchestrationService {
     }
 
     @Override
-    public List<SagaInstance> getActiveSagas() {
-        return sagaRepository.findByStatus(SagaStatus.IN_PROGRESS);
+    public List<SagaInstance> getSagasByStatus(SagaStatus status) {
+        return sagaRepository.findByStatus(status);
     }
 
     @Override
