@@ -1,8 +1,8 @@
 package com.wpanther.orchestrator.infrastructure.adapter.in.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wpanther.orchestrator.application.usecase.HandleSagaReplyUseCase;
 import com.wpanther.orchestrator.application.usecase.QuerySagaUseCase;
+import com.wpanther.orchestrator.application.usecase.SagaManagementUseCase;
 import com.wpanther.orchestrator.application.usecase.StartSagaUseCase;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
@@ -38,14 +38,14 @@ class OrchestratorControllerTest {
 
     @Mock private StartSagaUseCase startSagaUseCase;
     @Mock private QuerySagaUseCase querySagaUseCase;
-    @Mock private HandleSagaReplyUseCase handleSagaReplyUseCase;
+    @Mock private SagaManagementUseCase sagaManagementUseCase;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        OrchestratorController controller = new OrchestratorController(startSagaUseCase, querySagaUseCase, handleSagaReplyUseCase);
+        OrchestratorController controller = new OrchestratorController(startSagaUseCase, querySagaUseCase, sagaManagementUseCase);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
         objectMapper = new ObjectMapper();
     }
@@ -169,7 +169,7 @@ class OrchestratorControllerTest {
         @DisplayName("returns updated saga after advance")
         void returnsUpdatedSaga() throws Exception {
             SagaInstance saga = createSaga(DocumentType.INVOICE, "doc-001");
-            when(handleSagaReplyUseCase.advanceSaga("saga-001")).thenReturn(saga);
+            when(sagaManagementUseCase.advanceSaga("saga-001")).thenReturn(saga);
 
             mockMvc.perform(post("/api/saga/saga-001/advance"))
                     .andExpect(status().isOk())
@@ -185,7 +185,7 @@ class OrchestratorControllerTest {
         @DisplayName("returns updated saga after retry")
         void returnsUpdatedSaga() throws Exception {
             SagaInstance saga = createSaga(DocumentType.INVOICE, "doc-001");
-            when(handleSagaReplyUseCase.retryStep("saga-001")).thenReturn(saga);
+            when(sagaManagementUseCase.retryStep("saga-001")).thenReturn(saga);
 
             mockMvc.perform(post("/api/saga/saga-001/retry"))
                     .andExpect(status().isOk())

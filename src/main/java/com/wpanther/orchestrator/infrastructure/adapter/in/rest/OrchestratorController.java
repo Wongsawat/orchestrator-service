@@ -2,8 +2,8 @@ package com.wpanther.orchestrator.infrastructure.adapter.in.rest;
 
 import com.wpanther.orchestrator.application.dto.SagaResponse;
 import com.wpanther.orchestrator.application.dto.StartSagaRequest;
-import com.wpanther.orchestrator.application.usecase.HandleSagaReplyUseCase;
 import com.wpanther.orchestrator.application.usecase.QuerySagaUseCase;
+import com.wpanther.orchestrator.application.usecase.SagaManagementUseCase;
 import com.wpanther.orchestrator.application.usecase.StartSagaUseCase;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
@@ -34,7 +34,7 @@ public class OrchestratorController {
 
     private final StartSagaUseCase startSagaUseCase;
     private final QuerySagaUseCase querySagaUseCase;
-    private final HandleSagaReplyUseCase handleSagaReplyUseCase;
+    private final SagaManagementUseCase sagaManagementUseCase;
 
     /**
      * Starts a new saga instance.
@@ -131,7 +131,7 @@ public class OrchestratorController {
     public ResponseEntity<SagaResponse> advanceSaga(@PathVariable String sagaId) {
         log.info("Manually advancing saga {}", sagaId);
 
-        SagaInstance instance = handleSagaReplyUseCase.advanceSaga(sagaId);
+        SagaInstance instance = sagaManagementUseCase.advanceSaga(sagaId);
         return ResponseEntity.ok(SagaResponse.fromDomain(instance));
     }
 
@@ -146,7 +146,7 @@ public class OrchestratorController {
     public ResponseEntity<SagaResponse> retrySaga(@PathVariable String sagaId) {
         log.info("Retrying saga {}", sagaId);
 
-        SagaInstance instance = handleSagaReplyUseCase.retryStep(sagaId);
+        SagaInstance instance = sagaManagementUseCase.retryStep(sagaId);
         return ResponseEntity.ok(SagaResponse.fromDomain(instance));
     }
 

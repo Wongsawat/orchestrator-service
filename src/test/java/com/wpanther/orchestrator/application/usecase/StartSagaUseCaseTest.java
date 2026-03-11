@@ -19,7 +19,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StartSagaUseCase contract tests")
@@ -63,6 +65,24 @@ class StartSagaUseCaseTest {
         assertThat(result).isNotNull();
         assertThat(result.getDocumentId()).isEqualTo("doc-123");
         assertThat(result.getDocumentType()).isEqualTo(DocumentType.INVOICE);
+    }
+
+    @Test
+    @DisplayName("startSaga(4-arg) propagates explicit correlationId to event publisher")
+    void startSaga_propagatesExplicitCorrelationId() {
+        when(sagaRepository.findByDocumentTypeAndDocumentId(any(), any())).thenReturn(Optional.empty());
+        when(sagaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(commandRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        DocumentMetadata metadata = DocumentMetadata.builder().xmlContent("<Invoice/>").build();
+        String correlationId = "my-correlation-id";
+
+        StartSagaUseCase useCase = service;
+        useCase.startSaga(DocumentType.INVOICE, "doc-456", metadata, correlationId);
+
+        ArgumentCaptor<String> correlationCaptor = ArgumentCaptor.forClass(String.class);
+        verify(eventPublisher).publishSagaStarted(any(), correlationCaptor.capture(), any());
+        assertThat(correlationCaptor.getValue()).isEqualTo(correlationId);
     }
 
     @Test

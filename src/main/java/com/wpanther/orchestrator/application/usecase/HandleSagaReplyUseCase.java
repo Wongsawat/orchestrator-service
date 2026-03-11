@@ -11,7 +11,4 @@ public interface HandleSagaReplyUseCase {
     SagaInstance handleReply(String sagaId, String step, boolean success,
                              String errorMessage, Map<String, Object> resultData);
 
-    SagaInstance advanceSaga(String sagaId);
-
-    SagaInstance retryStep(String sagaId);
 }

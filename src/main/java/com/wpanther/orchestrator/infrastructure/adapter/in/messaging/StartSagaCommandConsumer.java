@@ -53,8 +53,9 @@ public class StartSagaCommandConsumer {
                 .metadata(metadataMap)
                 .build();
 
-            // Start the saga
-            SagaInstance saga = startSagaUseCase.startSaga(documentType, command.getDocumentId(), metadata);
+            // Start the saga, propagating the caller's correlationId for end-to-end tracing
+            SagaInstance saga = startSagaUseCase.startSaga(
+                    documentType, command.getDocumentId(), metadata, command.getCorrelationId());
 
             // Acknowledge message only after successful processing
             if (ack != null) {

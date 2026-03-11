@@ -29,50 +29,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class SagaApplicationService implements StartSagaUseCase, HandleSagaReplyUseCase,
-        HandleCompensationUseCase, QuerySagaUseCase {
+        HandleCompensationUseCase, QuerySagaUseCase, SagaManagementUseCase {
 
     private final SagaInstanceRepository sagaRepository;
     private final SagaCommandRecordRepository commandRepository;
     private final SagaCommandPublisher commandPublisher;
     private final SagaEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
-
-    @Override
-    @Transactional
-    public SagaInstance startSaga(DocumentType documentType, String documentId, DocumentMetadata metadata) {
-        log.info("Starting saga for document type {} with ID {}", documentType, documentId);
-
-        // Check if saga already exists for this document
-        var existing = sagaRepository.findByDocumentTypeAndDocumentId(documentType, documentId);
-        if (existing.isPresent()) {
-            SagaInstance existingSaga = existing.get();
-            if (existingSaga.getStatus() != SagaStatus.FAILED
-                    && existingSaga.getStatus() != SagaStatus.COMPLETED) {
-                log.warn("Saga already exists for document {} with status {}", documentId, existingSaga.getStatus());
-                return existingSaga;
-            }
-        }
-
-        // Generate correlation ID
-        String correlationId = generateCorrelationId(documentId);
-
-        // Create new saga instance
-        SagaInstance instance = SagaInstance.create(documentType, documentId, metadata);
-        instance.start();
-
-        // Save saga instance
-        SagaInstance saved = sagaRepository.save(instance);
-
-        // Publish saga started event
-        String invoiceNumber = extractInvoiceNumber(metadata);
-        eventPublisher.publishSagaStarted(saved, correlationId, invoiceNumber);
-
-        // Create and send first command via outbox
-        sendCommandForStep(saved, correlationId);
-
-        log.info("Started saga {} for document {}", saved.getId(), documentId);
-        return saved;
-    }
 
     /**
      * Starts a saga from a DTO request.
@@ -95,8 +58,10 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     }
 
     /**
-     * Starts a saga with explicit correlation ID.
+     * Starts a saga with an explicit correlation ID for end-to-end tracing.
+     * If {@code correlationId} is null, a new one is generated.
      */
+    @Override
     @Transactional
     public SagaInstance startSaga(DocumentType documentType, String documentId,
                                   DocumentMetadata metadata, String correlationId) {
