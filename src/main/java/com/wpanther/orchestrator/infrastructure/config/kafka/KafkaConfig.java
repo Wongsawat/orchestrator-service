@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.config;
+package com.wpanther.orchestrator.infrastructure.config.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;

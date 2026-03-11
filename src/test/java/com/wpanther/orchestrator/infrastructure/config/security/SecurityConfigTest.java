@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.config;
+package com.wpanther.orchestrator.infrastructure.config.security;
 
 import com.wpanther.orchestrator.adapter.in.security.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
