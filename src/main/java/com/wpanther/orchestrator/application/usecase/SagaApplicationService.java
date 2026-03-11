@@ -103,12 +103,6 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
 
     @Override
     @Transactional
-    public SagaInstance handleReply(String sagaId, String step, boolean success, String errorMessage) {
-        return handleReply(sagaId, step, success, errorMessage, null);
-    }
-
-    @Override
-    @Transactional
     public SagaInstance handleReply(String sagaId, String step, boolean success,
                                      String errorMessage, Map<String, Object> resultData) {
         log.debug("Handling reply for saga {}, step {}, success: {}", sagaId, step, success);
@@ -261,6 +255,11 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     @Override
     public List<SagaInstance> getActiveSagas() {
         return sagaRepository.findByStatus(SagaStatus.IN_PROGRESS);
+    }
+
+    @Override
+    public List<SagaInstance> getSagasByStatus(SagaStatus status) {
+        return sagaRepository.findByStatus(status);
     }
 
     @Override

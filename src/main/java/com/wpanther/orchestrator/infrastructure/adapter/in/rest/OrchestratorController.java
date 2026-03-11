@@ -161,18 +161,12 @@ public class OrchestratorController {
     public ResponseEntity<List<SagaResponse>> getSagasByStatus(@PathVariable SagaStatus status) {
         log.debug("Fetching sagas with status {}", status);
 
-        // This would require adding a method to the repository interface
-        // For now, return active sagas if status is IN_PROGRESS
-        if (status == SagaStatus.IN_PROGRESS) {
-            List<SagaInstance> instances = querySagaUseCase.getActiveSagas();
-            return ResponseEntity.ok(
-                    instances.stream()
-                            .map(SagaResponse::fromDomain)
-                            .toList()
-            );
-        }
-
-        return ResponseEntity.ok(List.of());
+        List<SagaInstance> instances = querySagaUseCase.getSagasByStatus(status);
+        return ResponseEntity.ok(
+                instances.stream()
+                        .map(SagaResponse::fromDomain)
+                        .toList()
+        );
     }
 
     /**

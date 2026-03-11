@@ -35,21 +35,6 @@ public interface SagaCommandRecordRepository {
     List<SagaCommandRecord> findBySagaId(String sagaId);
 
     /**
-     * Finds pending commands that need to be retried.
-     *
-     * @return List of pending commands
-     */
-    List<SagaCommandRecord> findPendingCommands();
-
-    /**
-     * Finds sent commands that have not received a reply.
-     *
-     * @param timeoutSeconds The timeout in seconds
-     * @return List of commands that may have timed out
-     */
-    List<SagaCommandRecord> findTimedOutCommands(int timeoutSeconds);
-
-    /**
      * Deletes all command records for a saga instance.
      *
      * @param sagaId The saga instance ID

@@ -201,7 +201,7 @@ class OrchestratorControllerTest {
         @DisplayName("returns active sagas for IN_PROGRESS status")
         void returnsActiveSagasForInProgress() throws Exception {
             SagaInstance saga = createSaga(DocumentType.INVOICE, "doc-001");
-            when(querySagaUseCase.getActiveSagas()).thenReturn(List.of(saga));
+            when(querySagaUseCase.getSagasByStatus(SagaStatus.IN_PROGRESS)).thenReturn(List.of(saga));
 
             mockMvc.perform(get("/api/saga/status/IN_PROGRESS"))
                     .andExpect(status().isOk())

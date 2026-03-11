@@ -95,4 +95,15 @@ class QuerySagaUseCaseTest {
 
         assertThat(result).isNotNull();
     }
+
+    @Test
+    @DisplayName("getSagasByStatus delegates to repository with given status")
+    void getSagasByStatus_returnsList() {
+        when(sagaRepository.findByStatus(SagaStatus.FAILED)).thenReturn(List.of());
+
+        QuerySagaUseCase useCase = service;
+        List<SagaInstance> result = useCase.getSagasByStatus(SagaStatus.FAILED);
+
+        assertThat(result).isNotNull();
+    }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
+import com.wpanther.orchestrator.domain.model.SagaCommandRecord;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -79,6 +81,38 @@ class HandleSagaReplyUseCaseTest {
                 Map.of("signedXmlUrl", "http://example.com/signed.xml"));
 
         assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("handleReply throws when saga not found")
+    void handleReply_throwsException_whenSagaNotFound() {
+        when(sagaRepository.findById("missing")).thenReturn(Optional.empty());
+
+        HandleSagaReplyUseCase useCase = service;
+        assertThatThrownBy(() -> useCase.handleReply("missing", "process-invoice", true, null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("handleReply with success=false and a matching SENT command increments retry count")
+    void handleReply_failurePath_incrementsRetry() {
+        SagaInstance existing = buildInProgressSaga();
+
+        // Build a command record in SENT status matching the expected step
+        SagaCommandRecord cmd = SagaCommandRecord.create("saga-123", "ProcessInvoiceCommand",
+                SagaStep.PROCESS_INVOICE, "{}");
+        cmd.markAsSent();
+
+        when(sagaRepository.findById("saga-123")).thenReturn(Optional.of(existing));
+        when(sagaRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(commandRepository.findBySagaId(anyString())).thenReturn(List.of(cmd));
+        when(commandRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        HandleSagaReplyUseCase useCase = service;
+        SagaInstance result = useCase.handleReply("saga-123", "process-invoice", false, "Service unavailable");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getRetryCount()).isGreaterThan(0);
     }
 
     private SagaInstance buildInProgressSaga() {

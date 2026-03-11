@@ -5,7 +5,6 @@ import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,24 +33,6 @@ public class JpaSagaCommandRepository implements SagaCommandRecordRepository {
     @Override
     public List<SagaCommandRecord> findBySagaId(String sagaId) {
         return springRepository.findBySagaIdOrderByCreatedAtAsc(sagaId).stream()
-                .map(this::toDomain)
-                .toList();
-    }
-
-    @Override
-    public List<SagaCommandRecord> findPendingCommands() {
-        return springRepository.findByStatus(SagaCommandRecord.CommandStatus.PENDING).stream()
-                .map(this::toDomain)
-                .toList();
-    }
-
-    @Override
-    public List<SagaCommandRecord> findTimedOutCommands(int timeoutSeconds) {
-        Instant timeout = Instant.now().minusSeconds(timeoutSeconds);
-        return springRepository.findByStatusAndSentAtBefore(
-                SagaCommandRecord.CommandStatus.SENT,
-                timeout
-        ).stream()
                 .map(this::toDomain)
                 .toList();
     }
