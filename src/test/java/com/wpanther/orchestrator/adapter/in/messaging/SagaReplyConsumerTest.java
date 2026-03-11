@@ -1,6 +1,6 @@
 package com.wpanther.orchestrator.adapter.in.messaging;
 
-import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.HandleSagaReplyUseCase;
 import com.wpanther.orchestrator.adapter.in.messaging.ConcreteSagaReply;
 import com.wpanther.orchestrator.adapter.in.messaging.SagaReplyConsumer;
 import com.wpanther.saga.domain.enums.ReplyStatus;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class SagaReplyConsumerTest {
 
-    @Mock private SagaApplicationService sagaApplicationService;
+    @Mock private HandleSagaReplyUseCase handleSagaReplyUseCase;
     @Mock private Acknowledgment acknowledgment;
     @Mock private SagaReply mockReply;
 
@@ -34,7 +34,7 @@ class SagaReplyConsumerTest {
 
     @BeforeEach
     void setUp() {
-        consumer = new SagaReplyConsumer(sagaApplicationService);
+        consumer = new SagaReplyConsumer(handleSagaReplyUseCase);
     }
 
     @Nested
@@ -50,7 +50,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "process-invoice", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "process-invoice", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -65,7 +65,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "process-invoice", false, "Processing failed", null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "process-invoice", false, "Processing failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -74,7 +74,7 @@ class SagaReplyConsumerTest {
         void withNullReply_logsWarningAndAcknowledges() {
             consumer.handleInvoiceReply(null, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -86,7 +86,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -98,7 +98,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -110,7 +110,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
+                .when(handleSagaReplyUseCase).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
@@ -127,7 +127,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, null);
 
-            verify(sagaApplicationService).handleReply("saga-001", "process-invoice", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "process-invoice", true, null, null);
         }
 
         @Test
@@ -140,7 +140,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoiceReply(mockReply, "saga.reply.invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "sign-xml", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "sign-xml", true, null, null);
         }
     }
 
@@ -157,7 +157,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "process-tax-invoice", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "process-tax-invoice", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -172,7 +172,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "process-tax-invoice", false, "Tax invoice processing failed", null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "process-tax-invoice", false, "Tax invoice processing failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -181,7 +181,7 @@ class SagaReplyConsumerTest {
         void withNullReply_logsWarningAndAcknowledges() {
             consumer.handleTaxInvoiceReply(null, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -193,7 +193,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
+                .when(handleSagaReplyUseCase).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleTaxInvoiceReply(mockReply, "saga.reply.tax-invoice", 0, 0L, acknowledgment);
 
@@ -215,7 +215,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleDocumentStorageReply(mockReply, "saga.reply.document-storage", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "store-document", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "store-document", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -230,7 +230,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleDocumentStorageReply(mockReply, "saga.reply.document-storage", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "store-document", false, "Storage failed", null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "store-document", false, "Storage failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -239,7 +239,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handleDocumentStorageReply(null, "saga.reply.document-storage", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -251,7 +251,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
+                .when(handleSagaReplyUseCase).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleDocumentStorageReply(mockReply, "saga.reply.document-storage", 0, 0L, acknowledgment);
 
@@ -273,7 +273,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleXmlSigningReply(mockReply, "saga.reply.xml-signing", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "sign-xml", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "sign-xml", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -282,7 +282,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handleXmlSigningReply(null, "saga.reply.xml-signing", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -294,7 +294,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("DB error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
+                .when(handleSagaReplyUseCase).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleXmlSigningReply(mockReply, "saga.reply.xml-signing", 0, 0L, acknowledgment);
 
@@ -316,7 +316,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleSignedXmlStorageReply(mockReply, "saga.reply.signedxml-storage", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "signedxml-storage", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "signedxml-storage", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -325,7 +325,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handleSignedXmlStorageReply(null, "saga.reply.signedxml-storage", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
     }
@@ -344,7 +344,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleInvoicePdfReply(mockReply, "saga.reply.invoice-pdf", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "generate-invoice-pdf", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "generate-invoice-pdf", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -353,7 +353,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handleInvoicePdfReply(null, "saga.reply.invoice-pdf", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
     }
@@ -372,7 +372,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleTaxInvoicePdfReply(mockReply, "saga.reply.tax-invoice-pdf", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "generate-tax-invoice-pdf", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "generate-tax-invoice-pdf", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -381,7 +381,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handleTaxInvoicePdfReply(null, "saga.reply.tax-invoice-pdf", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -393,7 +393,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("Error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
+                .when(handleSagaReplyUseCase).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleTaxInvoicePdfReply(mockReply, "saga.reply.tax-invoice-pdf", 0, 0L, acknowledgment);
 
@@ -415,7 +415,7 @@ class SagaReplyConsumerTest {
 
             consumer.handlePdfStorageReply(mockReply, "saga.reply.pdf-storage", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "pdf-storage", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "pdf-storage", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -424,7 +424,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handlePdfStorageReply(null, "saga.reply.pdf-storage", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
     }
@@ -443,7 +443,7 @@ class SagaReplyConsumerTest {
 
             consumer.handlePdfSigningReply(mockReply, "saga.reply.pdf-signing", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "sign-pdf", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "sign-pdf", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -459,7 +459,7 @@ class SagaReplyConsumerTest {
 
             consumer.handlePdfSigningReply(concreteReply, "saga.reply.pdf-signing", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply(
+            verify(handleSagaReplyUseCase).handleReply(
                 eq("saga-001"), eq("sign-pdf"), eq(true), isNull(),
                 argThat(data -> data != null && data.containsKey("signedPdfUrl"))
             );
@@ -471,7 +471,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handlePdfSigningReply(null, "saga.reply.pdf-signing", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -483,7 +483,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("Error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
+                .when(handleSagaReplyUseCase).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handlePdfSigningReply(mockReply, "saga.reply.pdf-signing", 0, 0L, acknowledgment);
 
@@ -505,7 +505,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleEbmsSendingReply(mockReply, "saga.reply.ebms-sending", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "send-ebms", true, null, null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "send-ebms", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -520,7 +520,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleEbmsSendingReply(mockReply, "saga.reply.ebms-sending", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply("saga-001", "send-ebms", false, "EBMS sending failed", null);
+            verify(handleSagaReplyUseCase).handleReply("saga-001", "send-ebms", false, "EBMS sending failed", null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -529,7 +529,7 @@ class SagaReplyConsumerTest {
         void nullReply_acknowledgesAndSkips() {
             consumer.handleEbmsSendingReply(null, "saga.reply.ebms-sending", 0, 0L, acknowledgment);
 
-            verifyNoInteractions(sagaApplicationService);
+            verifyNoInteractions(handleSagaReplyUseCase);
             verify(acknowledgment).acknowledge();
         }
 
@@ -541,7 +541,7 @@ class SagaReplyConsumerTest {
             when(mockReply.isSuccess()).thenReturn(true);
             when(mockReply.isFailure()).thenReturn(false);
             doThrow(new RuntimeException("Error"))
-                .when(sagaApplicationService).handleReply(any(), any(), anyBoolean(), any(), any());
+                .when(handleSagaReplyUseCase).handleReply(any(), any(), anyBoolean(), any(), any());
 
             consumer.handleEbmsSendingReply(mockReply, "saga.reply.ebms-sending", 0, 0L, acknowledgment);
 
@@ -564,7 +564,7 @@ class SagaReplyConsumerTest {
 
             consumer.handleSignedXmlStorageReply(concreteReply, "saga.reply.signedxml-storage", 0, 0L, acknowledgment);
 
-            verify(sagaApplicationService).handleReply(
+            verify(handleSagaReplyUseCase).handleReply(
                 eq("saga-001"), eq("signedxml-storage"), eq(true), isNull(), isNull()
             );
         }

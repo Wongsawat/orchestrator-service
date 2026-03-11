@@ -9,7 +9,6 @@ import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
-import com.wpanther.orchestrator.port.in.SagaOrchestrationService;
 import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandProducer;
 import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
 import com.wpanther.orchestrator.adapter.out.messaging.SagaEventPublisher;
@@ -30,7 +29,8 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class SagaApplicationService implements SagaOrchestrationService {
+public class SagaApplicationService implements StartSagaUseCase, HandleSagaReplyUseCase,
+        HandleCompensationUseCase, QuerySagaUseCase {
 
     private final SagaInstanceRepository sagaRepository;
     private final SagaCommandRecordRepository commandRepository;

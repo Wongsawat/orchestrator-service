@@ -5,7 +5,7 @@ import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
-import com.wpanther.orchestrator.port.out.SagaInstanceRepository;
+import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
 import com.wpanther.orchestrator.adapter.out.messaging.SagaCommandPublisher;
 import com.wpanther.saga.domain.enums.SagaStep;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

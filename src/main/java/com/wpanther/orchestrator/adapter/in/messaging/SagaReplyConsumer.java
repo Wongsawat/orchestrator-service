@@ -1,6 +1,6 @@
 package com.wpanther.orchestrator.adapter.in.messaging;
 
-import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.HandleSagaReplyUseCase;
 import com.wpanther.saga.domain.model.SagaReply;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import java.util.Map;
 @Slf4j
 public class SagaReplyConsumer {
 
-    private final SagaApplicationService sagaApplicationService;
+    private final HandleSagaReplyUseCase handleSagaReplyUseCase;
 
     /**
      * Handles replies from invoice processing services.
@@ -409,7 +409,7 @@ public class SagaReplyConsumer {
             }
         }
 
-        sagaApplicationService.handleReply(
+        handleSagaReplyUseCase.handleReply(
                 reply.getSagaId(),
                 reply.getSagaStep().getCode(),
                 isSuccess,

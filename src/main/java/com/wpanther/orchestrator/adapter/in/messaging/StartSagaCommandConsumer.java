@@ -1,7 +1,7 @@
 package com.wpanther.orchestrator.adapter.in.messaging;
 
-import com.wpanther.orchestrator.application.dto.StartSagaRequest;
-import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.StartSagaUseCase;
+import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ import java.util.Map;
 @Slf4j
 public class StartSagaCommandConsumer {
 
-    private final SagaApplicationService sagaApplicationService;
+    private final StartSagaUseCase startSagaUseCase;
 
     @KafkaListener(
         topics = "${app.kafka.topics.saga-commands-orchestrator:saga.commands.orchestrator}",
@@ -42,25 +42,19 @@ public class StartSagaCommandConsumer {
             DocumentType documentType = DocumentType.valueOf(command.getDocumentType());
 
             // Create metadata map
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("invoiceNumber", command.getInvoiceNumber());
-            metadata.put("source", command.getSource());
-            metadata.put("eventId", command.getEventId().toString());
+            Map<String, Object> metadataMap = new HashMap<>();
+            metadataMap.put("invoiceNumber", command.getInvoiceNumber());
+            metadataMap.put("source", command.getSource());
+            metadataMap.put("eventId", command.getEventId().toString());
 
-            // Create start request from command
-            StartSagaRequest request = new StartSagaRequest(
-                documentType,
-                command.getDocumentId(),
-                null,  // filePath - not provided in command
-                command.getXmlContent(),
-                metadata,
-                null,  // fileSize
-                null,  // mimeType
-                null   // checksum
-            );
+            // Build DocumentMetadata from command
+            DocumentMetadata metadata = DocumentMetadata.builder()
+                .xmlContent(command.getXmlContent())
+                .metadata(metadataMap)
+                .build();
 
             // Start the saga
-            SagaInstance saga = sagaApplicationService.startSaga(request);
+            SagaInstance saga = startSagaUseCase.startSaga(documentType, command.getDocumentId(), metadata);
 
             // Acknowledge message only after successful processing
             if (ack != null) {

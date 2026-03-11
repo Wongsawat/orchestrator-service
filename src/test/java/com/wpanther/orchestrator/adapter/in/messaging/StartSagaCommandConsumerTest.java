@@ -1,7 +1,6 @@
 package com.wpanther.orchestrator.adapter.in.messaging;
 
-import com.wpanther.orchestrator.application.dto.StartSagaRequest;
-import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.StartSagaUseCase;
 import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.adapter.in.messaging.StartSagaCommandConsumer;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
@@ -20,20 +19,21 @@ import org.springframework.kafka.support.Acknowledgment;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("StartSagaCommandConsumer Tests")
 class StartSagaCommandConsumerTest {
 
-    @Mock private SagaApplicationService sagaApplicationService;
+    @Mock private StartSagaUseCase startSagaUseCase;
     @Mock private Acknowledgment acknowledgment;
 
     private StartSagaCommandConsumer consumer;
 
     @BeforeEach
     void setUp() {
-        consumer = new StartSagaCommandConsumer(sagaApplicationService);
+        consumer = new StartSagaCommandConsumer(startSagaUseCase);
     }
 
     private StartSagaCommand createCommand(String documentType) {
@@ -67,11 +67,11 @@ class StartSagaCommandConsumerTest {
         @DisplayName("starts saga for valid INVOICE document type and acknowledges")
         void validInvoiceCommand_startsAndAcknowledges() {
             StartSagaCommand command = createCommand("INVOICE");
-            when(sagaApplicationService.startSaga(any(StartSagaRequest.class))).thenReturn(createSagaInstance());
+            when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class))).thenReturn(createSagaInstance());
 
             consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
 
-            verify(sagaApplicationService).startSaga(any(StartSagaRequest.class));
+            verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class));
             verify(acknowledgment).acknowledge();
         }
 
@@ -82,11 +82,11 @@ class StartSagaCommandConsumerTest {
             SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-001",
                     DocumentMetadata.builder().xmlContent("<xml/>").build());
             saga.start();
-            when(sagaApplicationService.startSaga(any(StartSagaRequest.class))).thenReturn(saga);
+            when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class))).thenReturn(saga);
 
             consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
 
-            verify(sagaApplicationService).startSaga(any(StartSagaRequest.class));
+            verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class));
             verify(acknowledgment).acknowledge();
         }
 
@@ -94,11 +94,11 @@ class StartSagaCommandConsumerTest {
         @DisplayName("handles null acknowledgment without NPE")
         void nullAcknowledgment_doesNotThrow() {
             StartSagaCommand command = createCommand("INVOICE");
-            when(sagaApplicationService.startSaga(any(StartSagaRequest.class))).thenReturn(createSagaInstance());
+            when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class))).thenReturn(createSagaInstance());
 
             consumer.handleStartSagaCommand(command, "doc-001", null);
 
-            verify(sagaApplicationService).startSaga(any(StartSagaRequest.class));
+            verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class));
         }
     }
 
@@ -113,7 +113,7 @@ class StartSagaCommandConsumerTest {
 
             consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
 
-            verify(sagaApplicationService, never()).startSaga(any());
+            verify(startSagaUseCase, never()).startSaga(any(), any(), any());
             verify(acknowledgment).acknowledge(); // Acknowledge to skip invalid message
         }
 
@@ -126,7 +126,7 @@ class StartSagaCommandConsumerTest {
 
             consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
 
-            verify(sagaApplicationService, never()).startSaga(any());
+            verify(startSagaUseCase, never()).startSaga(any(), any(), any());
             verify(acknowledgment, never()).acknowledge(); // NPE → retry
         }
     }
@@ -139,12 +139,12 @@ class StartSagaCommandConsumerTest {
         @DisplayName("does not acknowledge on generic exception (triggers retry)")
         void serviceThrowsException_doesNotAcknowledge() {
             StartSagaCommand command = createCommand("INVOICE");
-            when(sagaApplicationService.startSaga(any(StartSagaRequest.class)))
+            when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class)))
                     .thenThrow(new RuntimeException("Database connection failed"));
 
             consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
 
-            verify(sagaApplicationService).startSaga(any(StartSagaRequest.class));
+            verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class));
             verify(acknowledgment, never()).acknowledge(); // Don't ack - let Kafka retry
         }
 
@@ -152,13 +152,13 @@ class StartSagaCommandConsumerTest {
         @DisplayName("does not acknowledge on null ack when exception occurs")
         void nullAckWithException_doesNotThrow() {
             StartSagaCommand command = createCommand("INVOICE");
-            when(sagaApplicationService.startSaga(any(StartSagaRequest.class)))
+            when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class)))
                     .thenThrow(new RuntimeException("Database error"));
 
             consumer.handleStartSagaCommand(command, "doc-001", null);
 
             // Should not throw NPE even with null ack
-            verify(sagaApplicationService).startSaga(any(StartSagaRequest.class));
+            verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class));
         }
     }
 }

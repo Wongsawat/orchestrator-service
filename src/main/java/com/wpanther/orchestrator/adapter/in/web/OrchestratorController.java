@@ -2,7 +2,10 @@ package com.wpanther.orchestrator.adapter.in.web;
 
 import com.wpanther.orchestrator.application.dto.SagaResponse;
 import com.wpanther.orchestrator.application.dto.StartSagaRequest;
-import com.wpanther.orchestrator.application.usecase.SagaApplicationService;
+import com.wpanther.orchestrator.application.usecase.HandleSagaReplyUseCase;
+import com.wpanther.orchestrator.application.usecase.QuerySagaUseCase;
+import com.wpanther.orchestrator.application.usecase.StartSagaUseCase;
+import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.saga.domain.enums.SagaStatus;
@@ -29,7 +32,9 @@ import java.util.List;
 @Slf4j
 public class OrchestratorController {
 
-    private final SagaApplicationService sagaApplicationService;
+    private final StartSagaUseCase startSagaUseCase;
+    private final QuerySagaUseCase querySagaUseCase;
+    private final HandleSagaReplyUseCase handleSagaReplyUseCase;
 
     /**
      * Starts a new saga instance.
@@ -44,7 +49,16 @@ public class OrchestratorController {
         log.info("Received request to start saga for document type {} with ID {}",
                 request.documentType(), request.documentId());
 
-        SagaInstance instance = sagaApplicationService.startSaga(request);
+        DocumentMetadata metadata = DocumentMetadata.builder()
+                .filePath(request.filePath())
+                .xmlContent(request.xmlContent())
+                .metadata(request.metadata())
+                .fileSize(request.fileSize())
+                .mimeType(request.mimeType())
+                .checksum(request.checksum())
+                .build();
+
+        SagaInstance instance = startSagaUseCase.startSaga(request.documentType(), request.documentId(), metadata);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(SagaResponse.fromDomain(instance));
@@ -61,7 +75,7 @@ public class OrchestratorController {
     public ResponseEntity<SagaResponse> getSaga(@PathVariable String sagaId) {
         log.debug("Fetching saga {}", sagaId);
 
-        SagaInstance instance = sagaApplicationService.getSagaInstance(sagaId);
+        SagaInstance instance = querySagaUseCase.getSagaInstance(sagaId);
         return ResponseEntity.ok(SagaResponse.fromDomain(instance));
     }
 
@@ -75,7 +89,7 @@ public class OrchestratorController {
     public ResponseEntity<List<SagaResponse>> getActiveSagas() {
         log.debug("Fetching active sagas");
 
-        List<SagaInstance> instances = sagaApplicationService.getActiveSagas();
+        List<SagaInstance> instances = querySagaUseCase.getActiveSagas();
         return ResponseEntity.ok(
                 instances.stream()
                         .map(SagaResponse::fromDomain)
@@ -98,7 +112,7 @@ public class OrchestratorController {
 
         log.debug("Fetching sagas for document type {} with ID {}", documentType, documentId);
 
-        List<SagaInstance> instances = sagaApplicationService.getSagasForDocument(documentType, documentId);
+        List<SagaInstance> instances = querySagaUseCase.getSagasForDocument(documentType, documentId);
         return ResponseEntity.ok(
                 instances.stream()
                         .map(SagaResponse::fromDomain)
@@ -117,7 +131,7 @@ public class OrchestratorController {
     public ResponseEntity<SagaResponse> advanceSaga(@PathVariable String sagaId) {
         log.info("Manually advancing saga {}", sagaId);
 
-        SagaInstance instance = sagaApplicationService.advanceSaga(sagaId);
+        SagaInstance instance = handleSagaReplyUseCase.advanceSaga(sagaId);
         return ResponseEntity.ok(SagaResponse.fromDomain(instance));
     }
 
@@ -132,7 +146,7 @@ public class OrchestratorController {
     public ResponseEntity<SagaResponse> retrySaga(@PathVariable String sagaId) {
         log.info("Retrying saga {}", sagaId);
 
-        SagaInstance instance = sagaApplicationService.retryStep(sagaId);
+        SagaInstance instance = handleSagaReplyUseCase.retryStep(sagaId);
         return ResponseEntity.ok(SagaResponse.fromDomain(instance));
     }
 
@@ -150,7 +164,7 @@ public class OrchestratorController {
         // This would require adding a method to the repository interface
         // For now, return active sagas if status is IN_PROGRESS
         if (status == SagaStatus.IN_PROGRESS) {
-            List<SagaInstance> instances = sagaApplicationService.getActiveSagas();
+            List<SagaInstance> instances = querySagaUseCase.getActiveSagas();
             return ResponseEntity.ok(
                     instances.stream()
                             .map(SagaResponse::fromDomain)
