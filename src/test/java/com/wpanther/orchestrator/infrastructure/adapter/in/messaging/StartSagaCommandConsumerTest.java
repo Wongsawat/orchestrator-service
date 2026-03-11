@@ -90,16 +90,6 @@ class StartSagaCommandConsumerTest {
             verify(acknowledgment).acknowledge();
         }
 
-        @Test
-        @DisplayName("handles null acknowledgment without NPE")
-        void nullAcknowledgment_doesNotThrow() {
-            StartSagaCommand command = createCommand("INVOICE");
-            when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class), anyString())).thenReturn(createSagaInstance());
-
-            consumer.handleStartSagaCommand(command, "doc-001", null);
-
-            verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class), anyString());
-        }
     }
 
     @Nested
@@ -148,17 +138,5 @@ class StartSagaCommandConsumerTest {
             verify(acknowledgment, never()).acknowledge(); // Don't ack - let Kafka retry
         }
 
-        @Test
-        @DisplayName("does not acknowledge on null ack when exception occurs")
-        void nullAckWithException_doesNotThrow() {
-            StartSagaCommand command = createCommand("INVOICE");
-            when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class), anyString()))
-                    .thenThrow(new RuntimeException("Database error"));
-
-            consumer.handleStartSagaCommand(command, "doc-001", null);
-
-            // Should not throw NPE even with null ack
-            verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class), anyString());
-        }
     }
 }

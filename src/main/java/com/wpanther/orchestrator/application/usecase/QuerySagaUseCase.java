@@ -8,13 +8,28 @@ import java.util.List;
 
 public interface QuerySagaUseCase {
 
+    /**
+     * Returns the saga instance with the given ID.
+     *
+     * @throws RuntimeException if no saga exists with that ID
+     */
     SagaInstance getSagaInstance(String sagaId);
 
+    /**
+     * Returns all sagas currently in {@code IN_PROGRESS} status.
+     * Convenience bridge for {@link #getSagasByStatus(SagaStatus)}.
+     */
     default List<SagaInstance> getActiveSagas() {
         return getSagasByStatus(SagaStatus.IN_PROGRESS);
     }
 
+    /**
+     * Returns all sagas associated with the given document type and document ID.
+     */
     List<SagaInstance> getSagasForDocument(DocumentType documentType, String documentId);
 
+    /**
+     * Returns all sagas with the given status.
+     */
     List<SagaInstance> getSagasByStatus(SagaStatus status);
 }

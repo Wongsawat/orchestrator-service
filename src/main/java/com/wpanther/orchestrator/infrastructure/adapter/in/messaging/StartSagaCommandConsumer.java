@@ -58,9 +58,7 @@ public class StartSagaCommandConsumer {
                     documentType, command.getDocumentId(), metadata, command.getCorrelationId());
 
             // Acknowledge message only after successful processing
-            if (ack != null) {
-                ack.acknowledge();
-            }
+            ack.acknowledge();
 
             log.info("Successfully started saga {} for document: {}", saga.getId(), command.getDocumentId());
 
@@ -68,9 +66,7 @@ public class StartSagaCommandConsumer {
             // Invalid document type - don't retry, just log and skip
             log.error("Failed to process StartSagaCommand for document {}: Invalid document type '{}'",
                 command.getDocumentId(), command.getDocumentType(), e);
-            if (ack != null) {
-                ack.acknowledge(); // Acknowledge to skip invalid message
-            }
+            ack.acknowledge(); // Acknowledge to skip invalid message
         } catch (Exception e) {
             // Other errors - don't acknowledge to trigger retry
             log.error("Failed to process StartSagaCommand for document: {}",
