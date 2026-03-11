@@ -10,7 +10,9 @@ public interface QuerySagaUseCase {
 
     SagaInstance getSagaInstance(String sagaId);
 
-    List<SagaInstance> getActiveSagas();
+    default List<SagaInstance> getActiveSagas() {
+        return getSagasByStatus(SagaStatus.IN_PROGRESS);
+    }
 
     List<SagaInstance> getSagasForDocument(DocumentType documentType, String documentId);
 

@@ -58,6 +58,8 @@ public class OrchestratorController {
                 .checksum(request.checksum())
                 .build();
 
+        // REST-started sagas always receive a generated correlation ID.
+        // Callers who need end-to-end tracing should use the Kafka path (StartSagaCommand.correlationId).
         SagaInstance instance = startSagaUseCase.startSaga(request.documentType(), request.documentId(), metadata);
         return ResponseEntity
                 .status(HttpStatus.CREATED)

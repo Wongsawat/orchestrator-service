@@ -253,11 +253,6 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     }
 
     @Override
-    public List<SagaInstance> getActiveSagas() {
-        return sagaRepository.findByStatus(SagaStatus.IN_PROGRESS);
-    }
-
-    @Override
     public List<SagaInstance> getSagasByStatus(SagaStatus status) {
         return sagaRepository.findByStatus(status);
     }
