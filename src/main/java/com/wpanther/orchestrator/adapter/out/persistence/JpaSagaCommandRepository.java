@@ -1,7 +1,7 @@
 package com.wpanther.orchestrator.adapter.out.persistence;
 
 import com.wpanther.orchestrator.domain.model.SagaCommandRecord;
-import com.wpanther.orchestrator.port.out.SagaCommandRecordRepository;
+import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

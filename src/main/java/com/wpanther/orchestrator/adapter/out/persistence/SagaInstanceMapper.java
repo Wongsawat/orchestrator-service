@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaCommandRecord;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
-import com.wpanther.orchestrator.port.out.SagaCommandRecordRepository;
+import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package com.wpanther.orchestrator.port.out;
+package com.wpanther.orchestrator.domain.repository;
 
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;

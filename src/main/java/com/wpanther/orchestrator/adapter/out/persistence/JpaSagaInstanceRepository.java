@@ -2,7 +2,7 @@ package com.wpanther.orchestrator.adapter.out.persistence;
 
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
-import com.wpanther.orchestrator.port.out.SagaInstanceRepository;
+import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
