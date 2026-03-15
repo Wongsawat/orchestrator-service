@@ -38,8 +38,14 @@ public class StartSagaCommandConsumer {
             command.getDocumentId(), command.getDocumentType(), command.getCorrelationId());
 
         try {
+            // Validate document type is not null or blank before processing
+            String docTypeStr = command.getDocumentType();
+            if (docTypeStr == null || docTypeStr.isBlank()) {
+                throw new IllegalArgumentException("Document type cannot be null or blank");
+            }
+
             // Convert document type string to enum
-            DocumentType documentType = DocumentType.valueOf(command.getDocumentType());
+            DocumentType documentType = DocumentType.valueOf(docTypeStr);
 
             // Create metadata map
             Map<String, Object> metadataMap = new HashMap<>();

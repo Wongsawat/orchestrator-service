@@ -94,6 +94,13 @@ public class SagaInstance {
     private int maxRetries = 3;
 
     /**
+     * Default step flow strategy used for determining next and compensation steps.
+     * This can be overridden by injecting a custom strategy in the application layer.
+     */
+    private static final com.wpanther.orchestrator.domain.service.SagaStepFlowStrategy DEFAULT_FLOW_STRATEGY =
+            new com.wpanther.orchestrator.domain.service.DefaultSagaStepFlowStrategy();
+
+    /**
      * Creates a new saga instance.
      */
     public static SagaInstance create(DocumentType documentType, String documentId, DocumentMetadata metadata) {
@@ -194,43 +201,25 @@ public class SagaInstance {
 
     /**
      * Gets the next step in the saga flow.
+     * Uses the default step flow strategy to determine the next step based on
+     * the current step and document type.
+     *
+     * @return the next saga step, or null if the saga is complete
+     * @throws IllegalStateException if the current step is unknown
      */
     public SagaStep getNextStep() {
-        return switch (currentStep) {
-            case PROCESS_INVOICE -> SagaStep.SIGN_XML;
-            case PROCESS_TAX_INVOICE -> SagaStep.SIGN_XML;
-            case SIGN_XML -> SagaStep.SIGNEDXML_STORAGE;
-            case SIGNEDXML_STORAGE -> documentType == DocumentType.INVOICE
-                    ? SagaStep.GENERATE_INVOICE_PDF
-                    : SagaStep.GENERATE_TAX_INVOICE_PDF;
-            case GENERATE_INVOICE_PDF -> SagaStep.SIGN_PDF;
-            case GENERATE_TAX_INVOICE_PDF -> SagaStep.PDF_STORAGE;
-            case PDF_STORAGE -> SagaStep.SIGN_PDF;
-            case SIGN_PDF -> SagaStep.STORE_DOCUMENT;
-            case STORE_DOCUMENT -> SagaStep.SEND_EBMS;
-            case SEND_EBMS -> null; // Saga complete
-            default -> throw new IllegalStateException("Unknown current step: " + currentStep);
-        };
+        return DEFAULT_FLOW_STRATEGY.getNextStep(currentStep, documentType);
     }
 
     /**
      * Gets the compensation step for the current step.
+     * Uses the default step flow strategy to determine the compensation step based on
+     * the current step and document type.
+     *
+     * @return the compensation step, or null if no compensation is available
      */
     public SagaStep getCompensationStep() {
-        return switch (currentStep) {
-            case SEND_EBMS -> SagaStep.STORE_DOCUMENT;
-            case STORE_DOCUMENT -> SagaStep.SIGN_PDF;
-            case SIGN_PDF -> documentType == DocumentType.INVOICE
-                    ? SagaStep.GENERATE_INVOICE_PDF
-                    : SagaStep.PDF_STORAGE;
-            case PDF_STORAGE -> SagaStep.GENERATE_TAX_INVOICE_PDF;
-            case GENERATE_INVOICE_PDF, GENERATE_TAX_INVOICE_PDF -> SagaStep.SIGNEDXML_STORAGE;
-            case SIGNEDXML_STORAGE -> SagaStep.SIGN_XML;
-            case SIGN_XML -> documentType == DocumentType.INVOICE
-                    ? SagaStep.PROCESS_INVOICE
-                    : SagaStep.PROCESS_TAX_INVOICE;
-            default -> null; // No compensation for earlier steps
-        };
+        return DEFAULT_FLOW_STRATEGY.getCompensationStep(currentStep, documentType);
     }
 
     /**

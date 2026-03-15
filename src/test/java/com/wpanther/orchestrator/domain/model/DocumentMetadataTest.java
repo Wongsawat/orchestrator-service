@@ -86,6 +86,69 @@ class DocumentMetadataTest {
     }
 
     @Nested
+    @DisplayName("withMetadataValue()")
+    class WithMetadataValueTests {
+
+        @Test
+        @DisplayName("returns new instance with added metadata without modifying original")
+        void returnsNewInstanceWithAddedMetadata() {
+            Map<String, Object> meta = new HashMap<>();
+            meta.put("existing", "value");
+            DocumentMetadata original = DocumentMetadata.builder()
+                    .xmlContent("<xml/>")
+                    .metadata(meta)
+                    .build();
+
+            DocumentMetadata updated = original.withMetadataValue("newKey", "newValue");
+
+            // Original should be unchanged
+            assertThat(original.getMetadataValue("newKey")).isNull();
+            assertThat(original.getMetadataValue("existing")).isEqualTo("value");
+
+            // New instance should have both values
+            assertThat(updated.getMetadataValue("newKey")).isEqualTo("newValue");
+            assertThat(updated.getMetadataValue("existing")).isEqualTo("value");
+        }
+
+        @Test
+        @DisplayName("creates new metadata map when original is null")
+        void createsNewMapWhenOriginalNull() {
+            DocumentMetadata original = DocumentMetadata.builder()
+                    .xmlContent("<xml/>")
+                    .build();
+
+            DocumentMetadata updated = original.withMetadataValue("key", "value");
+
+            // Original should remain unchanged (null metadata)
+            assertThat(original.getMetadata()).isNull();
+
+            // New instance should have the new value
+            assertThat(updated.getMetadataValue("key")).isEqualTo("value");
+        }
+
+        @Test
+        @DisplayName("chains multiple immutable updates correctly")
+        void chainsMultipleUpdates() {
+            DocumentMetadata original = DocumentMetadata.builder()
+                    .xmlContent("<xml/>")
+                    .build();
+
+            DocumentMetadata result = original
+                    .withMetadataValue("step1", "value1")
+                    .withMetadataValue("step2", "value2")
+                    .withMetadataValue("step3", "value3");
+
+            // Original unchanged
+            assertThat(original.getMetadata()).isNull();
+
+            // Result has all values
+            assertThat(result.getMetadataValue("step1")).isEqualTo("value1");
+            assertThat(result.getMetadataValue("step2")).isEqualTo("value2");
+            assertThat(result.getMetadataValue("step3")).isEqualTo("value3");
+        }
+    }
+
+    @Nested
     @DisplayName("Builder")
     class BuilderTests {
 
