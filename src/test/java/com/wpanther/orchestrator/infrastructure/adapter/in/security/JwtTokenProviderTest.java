@@ -32,7 +32,79 @@ import static org.mockito.ArgumentMatchers.eq;
 class JwtTokenProviderTest {
 
     private JwtTokenProvider jwtTokenProvider;
-    private String testSecret = "test-secret-key-for-jwt-token-generation-in-tests";
+    // Strong test secret (32+ characters, no placeholder keywords)
+    private String testSecret = "aB3xK9mP2qL7vR6wT5nY8cD4fG1hJ0kL3mN6oP9sQ2uV5wX8zA1bC4dE7fG0hI3jK6";
+
+    @Nested
+    @DisplayName("init() - secret validation")
+    class SecretValidationTests {
+
+        @Test
+        @DisplayName("should throw exception when secret is null")
+        void shouldThrowExceptionWhenSecretIsNull() {
+            JwtTokenProvider provider = new JwtTokenProvider();
+            ReflectionTestUtils.setField(provider, "jwtSecret", (String) null);
+            ReflectionTestUtils.setField(provider, "jwtTokenValidityInSeconds", 3600L);
+            ReflectionTestUtils.setField(provider, "jwtIssuer", "test-orchestrator");
+
+            assertThatThrownBy(provider::init)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("JWT secret must be configured");
+        }
+
+        @Test
+        @DisplayName("should throw exception when secret is blank")
+        void shouldThrowExceptionWhenSecretIsBlank() {
+            JwtTokenProvider provider = new JwtTokenProvider();
+            ReflectionTestUtils.setField(provider, "jwtSecret", "   ");
+            ReflectionTestUtils.setField(provider, "jwtTokenValidityInSeconds", 3600L);
+            ReflectionTestUtils.setField(provider, "jwtIssuer", "test-orchestrator");
+
+            assertThatThrownBy(provider::init)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("JWT secret must be configured");
+        }
+
+        @Test
+        @DisplayName("should throw exception when secret contains placeholder text")
+        void shouldThrowExceptionWhenSecretContainsPlaceholder() {
+            JwtTokenProvider provider = new JwtTokenProvider();
+            ReflectionTestUtils.setField(provider, "jwtSecret", "orchestrator-service-secret-key-for-jwt-token-generation-change-in-production");
+            ReflectionTestUtils.setField(provider, "jwtTokenValidityInSeconds", 3600L);
+            ReflectionTestUtils.setField(provider, "jwtIssuer", "test-orchestrator");
+
+            assertThatThrownBy(provider::init)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("placeholder")
+                    .hasMessageContaining("minimum 32 characters");
+        }
+
+        @Test
+        @DisplayName("should throw exception when secret is too short")
+        void shouldThrowExceptionWhenSecretIsTooShort() {
+            JwtTokenProvider provider = new JwtTokenProvider();
+            ReflectionTestUtils.setField(provider, "jwtSecret", "short-secret");
+            ReflectionTestUtils.setField(provider, "jwtTokenValidityInSeconds", 3600L);
+            ReflectionTestUtils.setField(provider, "jwtIssuer", "test-orchestrator");
+
+            assertThatThrownBy(provider::init)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("too weak")
+                    .hasMessageContaining("minimum 32 characters");
+        }
+
+        @Test
+        @DisplayName("should accept strong secret of 32+ characters")
+        void shouldAcceptStrongSecret() {
+            JwtTokenProvider provider = new JwtTokenProvider();
+            ReflectionTestUtils.setField(provider, "jwtSecret", testSecret);
+            ReflectionTestUtils.setField(provider, "jwtTokenValidityInSeconds", 3600L);
+            ReflectionTestUtils.setField(provider, "jwtIssuer", "test-orchestrator");
+
+            // Should not throw exception
+            provider.init();
+        }
+    }
 
     @BeforeEach
     void setUp() {
