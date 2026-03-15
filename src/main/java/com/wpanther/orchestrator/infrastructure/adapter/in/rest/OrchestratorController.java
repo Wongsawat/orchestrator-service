@@ -1,5 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.adapter.in.rest;
 
+import com.wpanther.orchestrator.application.dto.HealthStatus;
 import com.wpanther.orchestrator.application.dto.SagaResponse;
 import com.wpanther.orchestrator.application.dto.StartSagaRequest;
 import com.wpanther.orchestrator.application.usecase.QuerySagaUseCase;
@@ -180,9 +181,4 @@ public class OrchestratorController {
     public ResponseEntity<HealthStatus> health() {
         return ResponseEntity.ok(new HealthStatus("UP", "Orchestrator service is running"));
     }
-
-    /**
-     * Health status record.
-     */
-    public record HealthStatus(String status, String message) {}
 }
