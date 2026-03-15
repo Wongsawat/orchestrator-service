@@ -65,6 +65,17 @@ public class JpaSagaInstanceRepository implements SagaInstanceRepository {
                 .toList();
     }
 
+    /**
+     * Finds saga instances that have been in progress too long (stale instances).
+     * This is a more explicit alias for {@link #findTimeoutInstances(int)}.
+     *
+     * @param timeoutSeconds the timeout threshold in seconds
+     * @return list of stale saga instances that need attention
+     */
+    public List<SagaInstance> findStaleInProgressInstances(int timeoutSeconds) {
+        return findTimeoutInstances(timeoutSeconds);
+    }
+
     @Override
     public void deleteById(String id) {
         springRepository.deleteById(id);

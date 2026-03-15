@@ -74,7 +74,10 @@ public class KafkaConfig {
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        // Restrict to known safe packages for SagaReply deserialization
+        config.put(JsonDeserializer.TRUSTED_PACKAGES,
+            "com.wpanther.orchestrator.infrastructure.adapter.in.messaging," +
+            "com.wpanther.saga.domain.model");
 
         // SagaReply is abstract; map it to ConcreteSagaReply for deserialization
         ObjectMapper replyMapper = objectMapper.copy();
@@ -119,7 +122,9 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "orchestrator-service");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        // Restrict to known safe packages for StartSagaCommand deserialization
+        props.put(JsonDeserializer.TRUSTED_PACKAGES,
+            "com.wpanther.orchestrator.infrastructure.adapter.in.messaging");
         return new DefaultKafkaConsumerFactory<>(
             props,
             new StringDeserializer(),

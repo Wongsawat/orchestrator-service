@@ -108,16 +108,25 @@ class StartSagaCommandConsumerTest {
         }
 
         @Test
-        @DisplayName("null document type causes NPE which falls into generic exception handler (no ack)")
-        void nullDocumentType_doesNotAcknowledge() {
-            // DocumentType.valueOf(null) throws NullPointerException, not IllegalArgumentException
-            // This falls into the generic `catch (Exception e)` block which does NOT acknowledge
+        @DisplayName("null document type acknowledges and skips message")
+        void nullDocumentType_acknowledgesAndSkips() {
             StartSagaCommand command = createCommand(null);
 
             consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
 
             verify(startSagaUseCase, never()).startSaga(any(), any(), any(), any());
-            verify(acknowledgment, never()).acknowledge(); // NPE → retry
+            verify(acknowledgment).acknowledge(); // Acknowledge to skip invalid message
+        }
+
+        @Test
+        @DisplayName("blank document type acknowledges and skips message")
+        void blankDocumentType_acknowledgesAndSkips() {
+            StartSagaCommand command = createCommand("   ");
+
+            consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
+
+            verify(startSagaUseCase, never()).startSaga(any(), any(), any(), any());
+            verify(acknowledgment).acknowledge(); // Acknowledge to skip invalid message
         }
     }
 

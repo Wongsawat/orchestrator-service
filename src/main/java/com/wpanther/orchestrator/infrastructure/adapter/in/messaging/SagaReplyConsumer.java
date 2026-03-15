@@ -12,9 +12,11 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Kafka consumer for handling saga replies from services.
+ * Uses a unified handler pattern to avoid code duplication across multiple reply topics.
  */
 @Component
 @RequiredArgsConstructor
@@ -24,357 +26,90 @@ public class SagaReplyConsumer {
     private final HandleSagaReplyUseCase handleSagaReplyUseCase;
 
     /**
-     * Handles replies from invoice processing services.
+     * Extracts the step name from the topic name for logging.
+     * Topics follow the pattern: saga.reply.{step-name}
+     */
+    private static final Pattern TOPIC_NAME_EXTRACTOR = Pattern.compile("saga\\.reply\\.(.+)");
+
+    /**
+     * Unified handler for all saga reply topics.
+     * Uses topic patterns to route all replies through a single method.
+     * <p>
+     * Topics handled:
+     * - saga.reply.invoice (Invoice processing)
+     * - saga.reply.tax-invoice (Tax invoice processing)
+     * - saga.reply.document-storage (Document storage - final PDF)
+     * - saga.reply.xml-signing (XML signing)
+     * - saga.reply.signedxml-storage (Signed XML storage)
+     * - saga.reply.invoice-pdf (Invoice PDF generation)
+     * - saga.reply.tax-invoice-pdf (Tax invoice PDF generation)
+     * - saga.reply.pdf-storage (Unsigned PDF storage for tax invoices)
+     * - saga.reply.pdf-signing (PDF signing)
+     * - saga.reply.ebms-sending (ebMS sending to Revenue Department)
+     * </p>
      */
     @KafkaListener(
-            topics = "${app.saga.reply.invoice:saga.reply.invoice}",
+            topics = {
+                    "${app.saga.reply.invoice:saga.reply.invoice}",
+                    "${app.saga.reply.tax-invoice:saga.reply.tax-invoice}",
+                    "${app.saga.reply.document-storage:saga.reply.document-storage}",
+                    "${app.saga.reply.xml-signing:saga.reply.xml-signing}",
+                    "${app.saga.reply.signedxml-storage:saga.reply.signedxml-storage}",
+                    "${app.saga.reply.invoice-pdf:saga.reply.invoice-pdf}",
+                    "${app.saga.reply.tax-invoice-pdf:saga.reply.tax-invoice-pdf}",
+                    "${app.saga.reply.pdf-storage:saga.reply.pdf-storage}",
+                    "${app.saga.reply.pdf-signing:saga.reply.pdf-signing}",
+                    "${app.saga.reply.ebms-sending:saga.reply.ebms-sending}"
+            },
             groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
             containerFactory = "sagaReplyKafkaListenerContainerFactory"
     )
-    public void handleInvoiceReply(
+    public void handleSagaReply(
             @Payload SagaReply reply,
             @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset,
             Acknowledgment acknowledgment) {
 
-        log.debug("Received invoice reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
+        String stepName = extractStepName(topic);
+        log.debug("Received {} reply from topic {} (partition: {}, offset: {}): {}",
+                stepName, topic, partition, offset, reply);
 
         try {
             processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
+            acknowledgeSafely(acknowledgment, reply, stepName);
         } catch (Exception e) {
-            log.error("Error processing invoice reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            // Still acknowledge to avoid retry loop - the saga will be marked as failed
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
+            log.error("Error processing {} reply for saga {}: {}",
+                    stepName, getSagaIdSafe(reply), e.getMessage(), e);
+            // Always acknowledge to avoid retry loop - the saga will be marked as failed internally
+            acknowledgeSafely(acknowledgment, null, stepName);
         }
     }
 
     /**
-     * Handles replies from tax invoice processing services.
+     * Extracts a human-readable step name from the Kafka topic.
+     * Converts "saga.reply.tax-invoice-pdf" to "tax-invoice-pdf"
      */
-    @KafkaListener(
-            topics = "${app.saga.reply.tax-invoice:saga.reply.tax-invoice}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handleTaxInvoiceReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received tax-invoice reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing tax-invoice reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            // Still acknowledge to avoid retry loop
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
+    private String extractStepName(String topic) {
+        var matcher = TOPIC_NAME_EXTRACTOR.matcher(topic);
+        return matcher.matches() ? matcher.group(1) : topic;
     }
 
     /**
-     * Handles replies from document storage service.
+     * Safely extracts saga ID from reply, returning "null" if reply is null.
      */
-    @KafkaListener(
-            topics = "${app.saga.reply.document-storage:saga.reply.document-storage}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handleDocumentStorageReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received document-storage reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing document-storage reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
+    private String getSagaIdSafe(SagaReply reply) {
+        return reply != null ? reply.getSagaId() : "null";
     }
 
     /**
-     * Handles replies from XML signing service.
+     * Safely acknowledges a message, logging a trace message on success.
      */
-    @KafkaListener(
-            topics = "${app.saga.reply.xml-signing:saga.reply.xml-signing}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handleXmlSigningReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received xml-signing reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing xml-signing reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
-    }
-
-    /**
-     * Handles replies from signed XML storage service.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.signedxml-storage:saga.reply.signedxml-storage}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handleSignedXmlStorageReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received signedxml-storage reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing signedxml-storage reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
-    }
-
-    /**
-     * Handles replies from invoice PDF generation service.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.invoice-pdf:saga.reply.invoice-pdf}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handleInvoicePdfReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received invoice-pdf reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing invoice-pdf reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
-    }
-
-    /**
-     * Handles replies from tax invoice PDF generation service.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.tax-invoice-pdf:saga.reply.tax-invoice-pdf}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handleTaxInvoicePdfReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received tax-invoice-pdf reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing tax-invoice-pdf reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
-    }
-
-    /**
-     * Handles replies from PDF storage service (PDF_STORAGE step).
-     * This reply contains storedDocumentUrl which is passed to the SIGN_PDF step.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.pdf-storage:saga.reply.pdf-storage}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handlePdfStorageReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received pdf-storage reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing pdf-storage reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
-    }
-
-    /**
-     * Handles replies from PDF signing service.
-     * This reply may contain additional data (signedPdfUrl, signedDocumentId, etc.)
-     * that is propagated to subsequent steps via DocumentMetadata.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.pdf-signing:saga.reply.pdf-signing}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handlePdfSigningReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received pdf-signing reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing pdf-signing reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-            }
-        }
-    }
-
-    /**
-     * Handles replies from ebMS sending service.
-     * This is the final step in the saga - after SEND_EBMS succeeds, the saga completes.
-     */
-    @KafkaListener(
-            topics = "${app.saga.reply.ebms-sending:saga.reply.ebms-sending}",
-            groupId = "${spring.kafka.consumer.group-id:orchestrator-service}",
-            containerFactory = "sagaReplyKafkaListenerContainerFactory"
-    )
-    public void handleEbmsSendingReply(
-            @Payload SagaReply reply,
-            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
-
-        log.debug("Received ebms-sending reply from topic {} (partition: {}, offset: {}): {}",
-                topic, partition, offset, reply);
-
-        try {
-            processReply(reply);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
-                if (reply != null) {
-                    log.trace("Acknowledged reply for saga {}", reply.getSagaId());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing ebms-sending reply for saga {}: {}",
-                    reply != null ? reply.getSagaId() : "null", e.getMessage(), e);
-            if (acknowledgment != null) {
-                acknowledgment.acknowledge();
+    private void acknowledgeSafely(Acknowledgment acknowledgment, SagaReply reply, String stepName) {
+        if (acknowledgment != null) {
+            acknowledgment.acknowledge();
+            if (reply != null) {
+                log.trace("Acknowledged {} reply for saga {}", stepName, reply.getSagaId());
             }
         }
     }

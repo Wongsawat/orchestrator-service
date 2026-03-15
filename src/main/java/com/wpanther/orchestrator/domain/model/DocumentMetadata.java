@@ -55,11 +55,39 @@ public class DocumentMetadata {
 
     /**
      * Adds a metadata value.
+     * <p><b>Warning:</b> This method mutates the DocumentMetadata instance.
+     * Use {@link #withMetadataValue(String, Object)} for immutable updates instead.
+     * This method is retained for internal use within saga orchestration where
+     * performance is critical and the instance is not shared across threads.</p>
      */
     public void addMetadataValue(String key, Object value) {
         if (this.metadata == null) {
             this.metadata = new java.util.HashMap<>();
         }
         this.metadata.put(key, value);
+    }
+
+    /**
+     * Returns a new DocumentMetadata instance with an additional metadata value.
+     * <p>This method creates a new instance without modifying the current one,
+     * making it safe for use in concurrent scenarios or when immutability is desired.</p>
+     *
+     * @param key   the metadata key
+     * @param value the metadata value
+     * @return a new DocumentMetadata instance with the added metadata
+     */
+    public DocumentMetadata withMetadataValue(String key, Object value) {
+        java.util.Map<String, Object> newMap = this.metadata != null
+            ? new java.util.HashMap<>(this.metadata)
+            : new java.util.HashMap<>();
+        newMap.put(key, value);
+        return DocumentMetadata.builder()
+                .filePath(this.filePath)
+                .xmlContent(this.xmlContent)
+                .metadata(newMap)
+                .fileSize(this.fileSize)
+                .mimeType(this.mimeType)
+                .checksum(this.checksum)
+                .build();
     }
 }

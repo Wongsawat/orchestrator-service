@@ -26,7 +26,7 @@ public class JwtTokenProvider {
 
     private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
 
-    @Value("${app.security.jwt.secret:orchestrator-service-secret-key-for-jwt-token-generation-change-in-production}")
+    @Value("${app.security.jwt.secret}")
     private String jwtSecret;
 
     @Value("${app.security.jwt.token-validity-in-seconds:3600}")
@@ -40,6 +40,28 @@ public class JwtTokenProvider {
 
     @PostConstruct
     public void init() {
+        // Validate secret is configured and not using placeholder
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException("JWT secret must be configured via app.security.jwt.secret");
+        }
+
+        // Detect common placeholder/default values that should not be used in production
+        // More specific patterns to avoid false positives on legitimate test secrets
+        String lowerSecret = jwtSecret.toLowerCase();
+        if (lowerSecret.contains("change-in-production") ||
+            lowerSecret.contains("placeholder") ||
+            lowerSecret.contains("example") ||
+            lowerSecret.contains("your-secret-here") ||
+            lowerSecret.contains("replace-with-your") ||
+            // Original placeholder from code - exact match on key parts
+            (lowerSecret.contains("secret-key") && lowerSecret.contains("change-in-production")) ||
+            jwtSecret.length() < 32) {
+            throw new IllegalStateException(
+                "JWT secret appears to be a placeholder or is too weak (minimum 32 characters required). " +
+                "Configure a strong random secret via app.security.jwt.secret for production use."
+            );
+        }
+
         // Initialize secret key
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
