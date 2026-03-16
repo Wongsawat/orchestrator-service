@@ -48,14 +48,21 @@ public class JwtTokenProvider {
         // Detect common placeholder/default values that should not be used in production
         // More specific patterns to avoid false positives on legitimate test secrets
         String lowerSecret = jwtSecret.toLowerCase();
-        if (lowerSecret.contains("change-in-production") ||
-            lowerSecret.contains("placeholder") ||
-            lowerSecret.contains("example") ||
-            lowerSecret.contains("your-secret-here") ||
-            lowerSecret.contains("replace-with-your") ||
-            // Original placeholder from code - exact match on key parts
-            (lowerSecret.contains("secret-key") && lowerSecret.contains("change-in-production")) ||
-            jwtSecret.length() < 32) {
+
+        // Check for common placeholder patterns - these are explicit indicators
+        // of placeholder/default values that should never be used in production
+        boolean hasPlaceholderPattern = lowerSecret.contains("change-in-production") ||
+                lowerSecret.contains("placeholder") ||
+                lowerSecret.contains("example") ||
+                lowerSecret.contains("your-secret-here") ||
+                lowerSecret.contains("replace-with-your") ||
+                lowerSecret.contains("dummy") ||
+                lowerSecret.contains("default-secret");
+
+        // Check minimum length requirement
+        boolean isTooShort = jwtSecret.length() < 32;
+
+        if (hasPlaceholderPattern || isTooShort) {
             throw new IllegalStateException(
                 "JWT secret appears to be a placeholder or is too weak (minimum 32 characters required). " +
                 "Configure a strong random secret via app.security.jwt.secret for production use."
