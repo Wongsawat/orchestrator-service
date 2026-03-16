@@ -85,7 +85,7 @@ app:
       xml-signing: saga.command.xml-signing
       signedxml-storage: saga.command.signedxml-storage
       invoice-pdf: saga.command.invoice-pdf
-      taxinvoice-pdf: saga.command.tax-invoice-pdf
+      tax-invoice-pdf: saga.command.tax-invoice-pdf
       pdf-signing: saga.command.pdf-signing
       document-storage: saga.command.document-storage
       ebms-sending: saga.command.ebms-sending
@@ -106,7 +106,7 @@ app:
       xml-signing: saga.compensation.xml-signing
       signedxml-storage: saga.compensation.signedxml-storage
       invoice-pdf: saga.compensation.invoice-pdf
-      taxinvoice-pdf: saga.compensation.tax-invoice-pdf
+      tax-invoice-pdf: saga.compensation.tax-invoice-pdf
       pdf-signing: saga.compensation.pdf-signing
       document-storage: saga.compensation.document-storage
       ebms-sending: saga.compensation.ebms-sending

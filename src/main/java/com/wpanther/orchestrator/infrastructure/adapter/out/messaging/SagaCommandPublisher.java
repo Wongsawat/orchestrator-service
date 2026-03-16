@@ -75,7 +75,7 @@ public class SagaCommandPublisher {
     @Value("${app.saga.compensation.invoice-pdf:saga.compensation.invoice-pdf}")
     private String invoicePdfCompensationTopic;
 
-    @Value("${app.saga.compensation.taxinvoice-pdf:saga.compensation.tax-invoice-pdf}")
+    @Value("${app.saga.compensation.tax-invoice-pdf:saga.compensation.tax-invoice-pdf}")
     private String taxInvoicePdfCompensationTopic;
 
     @Value("${app.saga.compensation.pdf-signing:saga.compensation.pdf-signing}")
