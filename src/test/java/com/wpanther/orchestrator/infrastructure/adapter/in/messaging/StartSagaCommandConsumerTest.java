@@ -135,13 +135,16 @@ class StartSagaCommandConsumerTest {
     class ExceptionHandlingTests {
 
         @Test
-        @DisplayName("does not acknowledge on generic exception (triggers retry)")
+        @DisplayName("does not acknowledge on transient exception (throws to trigger Kafka retry)")
         void serviceThrowsException_doesNotAcknowledge() {
             StartSagaCommand command = createCommand("INVOICE");
             when(startSagaUseCase.startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class), anyString()))
                     .thenThrow(new RuntimeException("Database connection failed"));
 
-            consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
+            // Expect exception to be thrown (Kafka will retry)
+            org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> {
+                consumer.handleStartSagaCommand(command, "doc-001", acknowledgment);
+            });
 
             verify(startSagaUseCase).startSaga(any(DocumentType.class), anyString(), any(DocumentMetadata.class), anyString());
             verify(acknowledgment, never()).acknowledge(); // Don't ack - let Kafka retry

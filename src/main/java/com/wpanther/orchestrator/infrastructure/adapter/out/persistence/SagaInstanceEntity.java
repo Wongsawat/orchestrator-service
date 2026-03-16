@@ -84,6 +84,7 @@ public class SagaInstanceEntity {
     @Column(name = "max_retries")
     private Integer maxRetries;
 
+    @Version
     @Column(name = "version")
     private Integer version;
 
@@ -110,6 +111,7 @@ public class SagaInstanceEntity {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = Instant.now();
-        version = (version == null ? 0 : version) + 1;
+        // Note: version is now automatically managed by JPA's @Version annotation
+        // No manual incrementing needed - JPA will handle optimistic locking
     }
 }

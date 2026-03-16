@@ -6,18 +6,26 @@ import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Kafka consumer for StartSagaCommand events from document-intake-service.
  * Consumes from saga.commands.orchestrator topic and starts new saga instances.
+ * <p>
+ * Error handling strategy:
+ * - Permanent errors (validation, invalid data): Acknowledge and skip
+ * - Transient errors (database connection, temporary failures): Don't acknowledge (trigger retry)
+ * - Concurrent modification errors: Don't acknowledge (trigger retry with backoff)
  */
 @Component
 @RequiredArgsConstructor
@@ -69,15 +77,85 @@ public class StartSagaCommandConsumer {
             log.info("Successfully started saga {} for document: {}", saga.getId(), command.getDocumentId());
 
         } catch (IllegalArgumentException e) {
-            // Invalid document type - don't retry, just log and skip
-            log.error("Failed to process StartSagaCommand for document {}: Invalid document type '{}'",
-                command.getDocumentId(), command.getDocumentType(), e);
-            ack.acknowledge(); // Acknowledge to skip invalid message
+            // Permanent error: Invalid document type or validation failure
+            // Acknowledge to skip this message permanently
+            log.error("Permanent error processing StartSagaCommand for document {}: Invalid data - {}",
+                command.getDocumentId(), e.getMessage());
+            ack.acknowledge();
+
+        } catch (DataIntegrityViolationException e) {
+            // Check if this is a constraint violation (duplicate saga)
+            if (isUniqueConstraintViolation(e)) {
+                // Permanent error: Duplicate document - acknowledge and skip
+                log.warn("Duplicate saga for document {}, acknowledging and skipping: {}",
+                    command.getDocumentId(), e.getMessage());
+                ack.acknowledge();
+            } else {
+                // Transient error: Other data integrity issues - retry
+                log.warn("Transient data integrity error for document {}, will retry: {}",
+                    command.getDocumentId(), e.getMessage());
+                throw e;
+            }
+
+        } catch (OptimisticLockingFailureException e) {
+            // Transient error: Concurrent modification - retry with backoff
+            log.warn("Concurrent modification detected for document {}, will retry: {}",
+                command.getDocumentId(), e.getMessage());
+            // Don't acknowledge - message will be retried by Kafka
+            throw e;
+
         } catch (Exception e) {
-            // Other errors - don't acknowledge to trigger retry
-            log.error("Failed to process StartSagaCommand for document: {}",
-                command.getDocumentId(), e);
-            // Don't acknowledge - message will be retried
+            // For unexpected exceptions, check if it's a transient error
+            if (isTransientError(e)) {
+                // Transient error: Don't acknowledge to trigger retry with backoff
+                log.warn("Transient error processing StartSagaCommand for document {}, will retry: {}",
+                    command.getDocumentId(), e.getMessage());
+                // Don't acknowledge - message will be retried by Kafka
+                throw e;
+            } else {
+                // Permanent error: Acknowledge to skip
+                log.error("Permanent error processing StartSagaCommand for document {}: {}",
+                    command.getDocumentId(), e.getMessage(), e);
+                ack.acknowledge();
+            }
         }
+    }
+
+    /**
+     * Checks if a DataIntegrityViolationException is due to a unique constraint violation.
+     * This indicates a duplicate saga for the same document.
+     */
+    private boolean isUniqueConstraintViolation(DataIntegrityViolationException e) {
+        if (e.getCause() instanceof SQLException sqlEx) {
+            String sqlState = sqlEx.getSQLState();
+            String message = sqlEx.getMessage();
+            // PostgreSQL unique constraint violation: 23505
+            // MySQL duplicate entry: 1062 (ER_DUP_ENTRY)
+            return "23505".equals(sqlState) ||
+                   (message != null && message.toLowerCase().contains("duplicate"));
+        }
+        return false;
+    }
+
+    /**
+     * Determines if an exception represents a transient error that should be retried.
+     * Transient errors include: database connection issues, timeouts, temporary network issues.
+     */
+    private boolean isTransientError(Exception e) {
+        String className = e.getClass().getSimpleName();
+        String message = e.getMessage();
+
+        // Database connection issues
+        if (className.contains("Connection") || className.contains("Timeout")) {
+            return true;
+        }
+        if (message != null) {
+            String lowerMessage = message.toLowerCase();
+            return lowerMessage.contains("connection") ||
+                   lowerMessage.contains("timeout") ||
+                   lowerMessage.contains("temporary") ||
+                   lowerMessage.contains("unavailable");
+        }
+        return false;
     }
 }
