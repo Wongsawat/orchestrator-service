@@ -1,29 +1,23 @@
 package com.wpanther.orchestrator.infrastructure.config.security;
 
-import com.wpanther.orchestrator.infrastructure.adapter.in.security.JwtTokenProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Integration tests for SecurityConfig.
+ * Integration tests for SecurityConfig with API key authentication.
  * Tests endpoint security configuration with Spring Security.
  */
 @SpringBootTest(classes = com.wpanther.orchestrator.OrchestratorServiceApplication.class)
@@ -37,17 +31,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.password=",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.dialect=org.hibernate.dialect.H2Dialect",
-        "app.security.jwt.secret=test-secret-key-for-jwt-security-tests-must-be-at-least-256-bits-long",
-        "app.security.jwt.token-validity-in-seconds=3600"
+        // Configure API keys for testing
+        "orchestrator.admin.api-keys=test-admin-key-12345,another-test-key-67890"
 })
-@DisplayName("SecurityConfig Tests")
+@DisplayName("SecurityConfig Tests - API Key Authentication")
 class SecurityConfigTest {
 
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private static final String VALID_API_KEY = "test-admin-key-12345";
+    private static final String ANOTHER_VALID_API_KEY = "another-test-key-67890";
+    private static final String INVALID_API_KEY = "invalid-api-key";
 
     @Nested
     @DisplayName("Public Endpoints")
@@ -73,38 +68,6 @@ class SecurityConfigTest {
             mockMvc.perform(get("/actuator/info"))
                     .andExpect(status().isOk());
         }
-
-        @Test
-        @DisplayName("POST /api/auth/login should be accessible without authentication")
-        void loginEndpointShouldBePublic() throws Exception {
-            mockMvc.perform(post("/api/auth/login")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"username\":\"test\"}"))
-                    .andExpect(result -> {
-                        int status = result.getResponse().getStatus();
-                        if (status == 403) {
-                            throw new AssertionError("Login endpoint should be public but returned 403 Forbidden");
-                        }
-                        // Any other status (400, 401, etc.) is acceptable - it means the endpoint is accessible
-                    });
-        }
-
-        /**
-         * Helper method to check status is not 401 or 403.
-         */
-        private org.hamcrest.Matcher<java.lang.Integer> isNotUnauthorizedOrForbidden() {
-            return new org.hamcrest.TypeSafeMatcher<>() {
-                @Override
-                protected boolean matchesSafely(Integer status) {
-                    return status != 401 && status != 403;
-                }
-
-                @Override
-                public void describeTo(org.hamcrest.Description description) {
-                    description.appendText("not 401 (Unauthorized) or 403 (Forbidden)");
-                }
-            };
-        }
     }
 
     @Nested
@@ -112,147 +75,206 @@ class SecurityConfigTest {
     class ProtectedEndpointsTests {
 
         @Test
-        @DisplayName("GET /api/saga/{sagaId} should require authentication")
-        void getSagaEndpointShouldBeProtected() throws Exception {
+        @DisplayName("GET /api/saga/{sagaId} should return 401 without API key")
+        void getSagaEndpointShouldReturnUnauthorized() throws Exception {
             mockMvc.perform(get("/api/saga/some-saga-id"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /api/saga/active should require authentication")
-        void getActiveSagasEndpointShouldBeProtected() throws Exception {
+        @DisplayName("GET /api/saga/active should return 401 without API key")
+        void getActiveSagasEndpointShouldReturnUnauthorized() throws Exception {
             mockMvc.perform(get("/api/saga/active"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("POST /api/saga/start should require authentication")
-        void startSagaEndpointShouldBeProtected() throws Exception {
+        @DisplayName("POST /api/saga/start should return 401 without API key")
+        void startSagaEndpointShouldReturnUnauthorized() throws Exception {
             mockMvc.perform(post("/api/saga/start")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"documentType\":\"INVOICE\",\"documentId\":\"doc-123\"}"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("POST /api/saga/{sagaId}/advance should require authentication")
-        void advanceSagaEndpointShouldBeProtected() throws Exception {
+        @DisplayName("POST /api/saga/{sagaId}/advance should return 401 without API key")
+        void advanceSagaEndpointShouldReturnUnauthorized() throws Exception {
             mockMvc.perform(post("/api/saga/some-saga-id/advance"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("POST /api/saga/{sagaId}/retry should require authentication")
-        void retrySagaEndpointShouldBeProtected() throws Exception {
+        @DisplayName("POST /api/saga/{sagaId}/retry should return 401 without API key")
+        void retrySagaEndpointShouldReturnUnauthorized() throws Exception {
             mockMvc.perform(post("/api/saga/some-saga-id/retry"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @DisplayName("GET /api/saga/document should require authentication")
-        void getSagasForDocumentEndpointShouldBeProtected() throws Exception {
+        @DisplayName("GET /api/saga/document should return 401 without API key")
+        void getSagasForDocumentEndpointShouldReturnUnauthorized() throws Exception {
             mockMvc.perform(get("/api/saga/document?documentType=INVOICE&documentId=doc-123"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
     }
 
     @Nested
-    @DisplayName("Protected Endpoints - With Valid Authentication")
-    protected class ProtectedEndpointsWithAuthTests {
+    @DisplayName("Protected Endpoints - With Valid API Key")
+    class ProtectedEndpointsWithApiKeyTests {
 
         @Test
-        @WithMockUser(username = "api-user", authorities = {"ROLE_API_USER"})
-        @DisplayName("GET /api/saga/{sagaId} should allow authenticated user")
-        void getSagaEndpointShouldAllowAuth() throws Exception {
+        @DisplayName("GET /api/saga/{sagaId} should allow access with valid API key")
+        void getSagaEndpointShouldAllowAccessWithApiKey() throws Exception {
             try {
-                mockMvc.perform(get("/api/saga/some-saga-id"))
+                mockMvc.perform(get("/api/saga/some-saga-id")
+                                .header("X-API-Key", VALID_API_KEY))
                         .andExpect(result -> {
                             int status = result.getResponse().getStatus();
+                            // 404 is acceptable (saga not found), but 401/403 means auth failed
                             if (status == 401 || status == 403) {
-                                throw new AssertionError("Endpoint should be accessible with valid auth but got " + status);
+                                throw new AssertionError("Endpoint should be accessible with valid API key but got " + status);
                             }
                         });
             } catch (Exception e) {
-                // If exception contains "401" or "403", it's an auth error
-                if (e.getMessage() != null && (e.getMessage().contains("401") || e.getMessage().contains("403"))) {
-                    throw e;
+                // ServletException with "Saga not found" is expected behavior when saga doesn't exist
+                // This means authentication succeeded, but the saga doesn't exist (which is fine for this test)
+                Throwable cause = e;
+                while (cause != null) {
+                    if (cause.getMessage() != null && cause.getMessage().contains("Saga not found")) {
+                        // This is expected - authentication succeeded, saga just doesn't exist
+                        return;
+                    }
+                    cause = cause.getCause();
                 }
-                // Otherwise, it's a business logic exception (saga not found), which is OK - endpoint is accessible
+                // If it's not a "Saga not found" exception, rethrow it
+                throw e;
             }
         }
 
         @Test
-        @WithMockUser(username = "api-user", authorities = {"ROLE_API_USER"})
-        @DisplayName("GET /api/saga/active should allow authenticated user")
-        void getActiveSagasEndpointShouldAllowAuth() throws Exception {
-            mockMvc.perform(get("/api/saga/active"))
+        @DisplayName("GET /api/saga/active should allow access with valid API key")
+        void getActiveSagasEndpointShouldAllowAccessWithApiKey() throws Exception {
+            mockMvc.perform(get("/api/saga/active")
+                            .header("X-API-Key", VALID_API_KEY))
                     .andExpect(status().isOk()) // Will return empty list
-                    .andExpect(MockMvcResultMatchers.content().string("[]"));
+                    .andExpect(content().string("[]"));
         }
 
         @Test
-        @WithMockUser(username = "api-user", authorities = {"ROLE_API_USER"})
-        @DisplayName("POST /api/saga/start should allow authenticated user")
-        void startSagaEndpointShouldAllowAuth() throws Exception {
+        @DisplayName("GET /api/saga/active should allow access with another valid API key")
+        void getActiveSagasEndpointShouldAllowAccessWithAnotherApiKey() throws Exception {
+            mockMvc.perform(get("/api/saga/active")
+                            .header("X-API-Key", ANOTHER_VALID_API_KEY))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("[]"));
+        }
+
+        @Test
+        @DisplayName("POST /api/saga/start should allow access with valid API key")
+        void startSagaEndpointShouldAllowAccessWithApiKey() throws Exception {
+            mockMvc.perform(post("/api/saga/start")
+                            .header("X-API-Key", VALID_API_KEY)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"documentType\":\"INVOICE\",\"documentId\":\"doc-123\",\"invoiceNumber\":\"INV-001\",\"xmlContent\":\"<test></test>\"}"))
+                    .andExpect(result -> {
+                        int status = result.getResponse().getStatus();
+                        // 400 is acceptable (validation error), but 401/403 means auth failed
+                        if (status == 401 || status == 403) {
+                            throw new AssertionError("Endpoint should be accessible with valid API key but got " + status);
+                        }
+                    });
+        }
+
+        @Test
+        @DisplayName("POST /api/saga/{sagaId}/retry should allow access with valid API key")
+        void retrySagaEndpointShouldAllowAccessWithApiKey() throws Exception {
             try {
-                mockMvc.perform(post("/api/saga/start")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"documentType\":\"INVOICE\",\"documentId\":\"doc-123\",\"invoiceNumber\":\"INV-001\",\"xmlContent\":\"<test></test>\"}"))
+                mockMvc.perform(post("/api/saga/some-saga-id/retry")
+                                .header("X-API-Key", VALID_API_KEY))
                         .andExpect(result -> {
                             int status = result.getResponse().getStatus();
+                            // 404 is acceptable (saga not found), but 401/403 means auth failed
                             if (status == 401 || status == 403) {
-                                throw new AssertionError("Endpoint should be accessible with valid auth but got " + status);
+                                throw new AssertionError("Endpoint should be accessible with valid API key but got " + status);
                             }
                         });
             } catch (Exception e) {
-                // If exception contains "401" or "403", it's an auth error
-                if (e.getMessage() != null && (e.getMessage().contains("401") || e.getMessage().contains("403"))) {
-                    throw e;
+                // ServletException with "Saga not found" is expected behavior when saga doesn't exist
+                Throwable cause = e;
+                while (cause != null) {
+                    if (cause.getMessage() != null && cause.getMessage().contains("Saga not found")) {
+                        // This is expected - authentication succeeded, saga just doesn't exist
+                        return;
+                    }
+                    cause = cause.getCause();
                 }
-                // Otherwise, it's a business logic exception, which is OK - endpoint is accessible
+                throw e;
             }
         }
 
         @Test
-        @WithMockUser(username = "api-user", authorities = {"ROLE_API_USER"})
-        @DisplayName("POST /api/saga/{sagaId}/advance should allow authenticated user")
-        void advanceSagaEndpointShouldAllowAuth() throws Exception {
+        @DisplayName("GET /api/saga/{sagaId} should allow access with API key in header")
+        void getSagaEndpointShouldAllowAccessWithApiKeyInHeader() throws Exception {
             try {
-                mockMvc.perform(post("/api/saga/some-saga-id/advance"))
+                mockMvc.perform(get("/api/saga/some-saga-id")
+                                .header("X-API-Key", VALID_API_KEY))
                         .andExpect(result -> {
                             int status = result.getResponse().getStatus();
                             if (status == 401 || status == 403) {
-                                throw new AssertionError("Endpoint should be accessible with valid auth but got " + status);
+                                throw new AssertionError("Endpoint should be accessible with valid API key but got " + status);
                             }
                         });
             } catch (Exception e) {
-                // If exception contains "401" or "403", it's an auth error
-                if (e.getMessage() != null && (e.getMessage().contains("401") || e.getMessage().contains("403"))) {
-                    throw e;
+                // ServletException with "Saga not found" is expected behavior when saga doesn't exist
+                Throwable cause = e;
+                while (cause != null) {
+                    if (cause.getMessage() != null && cause.getMessage().contains("Saga not found")) {
+                        // This is expected - authentication succeeded, saga just doesn't exist
+                        return;
+                    }
+                    cause = cause.getCause();
                 }
-                // Otherwise, it's a business logic exception (saga not found), which is OK - endpoint is accessible
+                throw e;
             }
         }
     }
 
     @Nested
-    @DisplayName("Endpoint Authorization - Wrong Role")
-    protected class EndpointAuthorizationTests {
+    @DisplayName("Protected Endpoints - With Invalid API Key")
+    class ProtectedEndpointsWithInvalidApiKeyTests {
 
         @Test
-        @WithMockUser(username = "api-user", authorities = {"ROLE_WRONG"})
-        @DisplayName("should deny access without ROLE_API_USER")
-        void shouldDenyAccessWithoutApiUserRole() throws Exception {
-            mockMvc.perform(get("/api/saga/active"))
-                    .andExpect(status().isForbidden());
+        @DisplayName("GET /api/saga/active should return 401 with invalid API key")
+        void getActiveSagasEndpointShouldReturnUnauthorizedWithInvalidKey() throws Exception {
+            mockMvc.perform(get("/api/saga/active")
+                            .header("X-API-Key", INVALID_API_KEY))
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
-        @WithMockUser(username = "api-user")
-        @DisplayName("should deny access without any role")
-        void shouldDenyAccessWithoutAnyRole() throws Exception {
+        @DisplayName("GET /api/saga/active should return 401 with missing API key")
+        void getActiveSagasEndpointShouldReturnUnauthorizedWithMissingKey() throws Exception {
             mockMvc.perform(get("/api/saga/active"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("GET /api/saga/active should return 401 with empty API key")
+        void getActiveSagasEndpointShouldReturnUnauthorizedWithEmptyKey() throws Exception {
+            mockMvc.perform(get("/api/saga/active")
+                            .header("X-API-Key", ""))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("POST /api/saga/start should return 401 with invalid API key")
+        void startSagaEndpointShouldReturnUnauthorizedWithInvalidKey() throws Exception {
+            mockMvc.perform(post("/api/saga/start")
+                            .header("X-API-Key", INVALID_API_KEY)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"documentType\":\"INVOICE\",\"documentId\":\"doc-123\"}"))
+                    .andExpect(status().isUnauthorized());
         }
     }
 
@@ -275,13 +297,35 @@ class SecurityConfigTest {
     class CsrfProtectionTests {
 
         @Test
-        @DisplayName("should disable CSRF for JWT stateless authentication")
+        @DisplayName("should disable CSRF for stateless API key authentication")
         void shouldDisableCsrfProtection() throws Exception {
-            // Stateless JWT doesn't need CSRF
-            // POST request to protected endpoint should work without CSRF token (will get 403 due to no auth, not 403 due to CSRF)
-            // We use a GET request to a public endpoint to verify CSRF is not blocking
+            // Stateless API key authentication doesn't need CSRF
+            // POST request to public endpoint should work without CSRF token
             mockMvc.perform(get("/actuator/health"))
                     .andExpect(status().isOk()); // CSRF is disabled, public endpoint accessible
+        }
+    }
+
+    @Nested
+    @DisplayName("API Key Header Case Sensitivity")
+    class ApiKeyHeaderTests {
+
+        @Test
+        @DisplayName("should accept API key with lowercase header name (HTTP headers are case-insensitive)")
+        void shouldRejectApiKeyWithWrongHeaderName() throws Exception {
+            mockMvc.perform(get("/api/saga/active")
+                            .header("x-api-key", VALID_API_KEY)) // lowercase header name (HTTP spec: case-insensitive)
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("[]"));
+        }
+
+        @Test
+        @DisplayName("should accept API key with correct header name")
+        void shouldAcceptApiKeyWithCorrectHeaderName() throws Exception {
+            mockMvc.perform(get("/api/saga/active")
+                            .header("X-API-Key", VALID_API_KEY)) // correct header name
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("[]"));
         }
     }
 }

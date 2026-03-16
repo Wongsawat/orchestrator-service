@@ -116,17 +116,15 @@ app:
     compensation-timeout-seconds: 300
 
   # Security configuration
-  security:
-    jwt:
-      # Secret key for JWT token signing - MUST be configured via environment variable
-      # JwtTokenProvider validates this at startup and rejects placeholders/weak secrets
-      # Minimum 32 characters required, no placeholder patterns allowed
-      secret: ${JWT_SECRET:}
-      # JWT issuer
-      issuer: orchestrator-service
-    cors:
-      # Allowed CORS origins (comma-separated)
-      allowed-origins: http://localhost:3000,http://localhost:8080,http://localhost:4200
+  admin:
+    # API keys for admin access to REST endpoints
+    # Comma-separated list of valid API keys
+    # In production, set via ORCHESTRATOR_API_KEYS environment variable
+    # Example: "prod-admin-key-abc123,ops-key-xyz789"
+    api-keys: ${ORCHESTRATOR_API_KEYS:dev-admin-key-12345}
+  cors:
+    # Allowed CORS origins (comma-separated)
+    allowed-origins: http://localhost:3000,http://localhost:8080,http://localhost:4200
 
 logging:
   level:
