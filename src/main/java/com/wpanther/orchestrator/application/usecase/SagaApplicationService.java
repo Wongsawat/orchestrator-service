@@ -118,7 +118,12 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         if (resultData != null && !resultData.isEmpty() && success) {
             DocumentMetadata metadata = instance.getDocumentMetadata();
             if (metadata != null) {
-                resultData.forEach(metadata::addMetadataValue);
+                // Apply all resultData entries immutably using withMetadataValue pattern
+                DocumentMetadata updatedMetadata = metadata;
+                for (Map.Entry<String, Object> entry : resultData.entrySet()) {
+                    updatedMetadata = updatedMetadata.withMetadataValue(entry.getKey(), entry.getValue());
+                }
+                instance.setDocumentMetadata(updatedMetadata);
                 log.debug("Merged {} result data fields into saga {} metadata: {}",
                         resultData.size(), sagaId, resultData.keySet());
             }

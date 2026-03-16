@@ -52,6 +52,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
      * Reads API keys from the Spring Environment.
      *
      * @param environment the Spring environment for reading properties
+     * @throws IllegalStateException if no API keys are configured
      */
     public ApiKeyAuthenticationFilter(Environment environment) {
         String apiKeys = environment.getProperty("orchestrator.admin.api-keys", "");
@@ -62,10 +63,11 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                     .toList();
             log.info("Loaded {} valid API key(s) for admin access", this.validApiKeys.size());
         } else {
-            // Development default - should be overridden in production
-            this.validApiKeys = List.of("dev-admin-key-12345");
-            log.warn("No API keys configured - using development default key! " +
-                     "Set orchestrator.admin.api-keys or ORCHESTRATOR_API_KEYS environment variable in production.");
+            // Fail fast if no API keys configured - security risk in production
+            throw new IllegalStateException(
+                "No API keys configured! Set orchestrator.admin.api-keys property or " +
+                "ORCHESTRATOR_API_KEYS environment variable before starting the service."
+            );
         }
     }
 
@@ -109,8 +111,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } else {
             // Invalid or missing API key
-            log.warn("Unauthorized access attempt from {} to {} (API key: {})",
-                    request.getRemoteAddr(), path, maskApiKey(apiKey));
+            log.warn("Unauthorized access attempt from {} to {}",
+                    request.getRemoteAddr(), path);
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
@@ -148,19 +150,4 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                path.equals("/error");
     }
 
-    /**
-     * Masks an API key for logging purposes (shows first 4 and last 4 characters).
-     *
-     * @param apiKey the API key to mask
-     * @return the masked API key, or "null" if the key is null
-     */
-    private String maskApiKey(String apiKey) {
-        if (apiKey == null) {
-            return "null";
-        }
-        if (apiKey.length() <= 8) {
-            return "****";
-        }
-        return apiKey.substring(0, 4) + "****" + apiKey.substring(apiKey.length() - 4);
-    }
 }

@@ -48,9 +48,15 @@ public class DocumentMetadata {
 
     /**
      * Retrieves a metadata value by key.
+     *
+     * @param key the metadata key to retrieve
+     * @return the metadata value, or null if the key doesn't exist or metadata is null
      */
     public Object getMetadataValue(String key) {
-        return metadata != null ? metadata.get(key) : null;
+        if (metadata == null) {
+            return null;
+        }
+        return metadata.get(key);
     }
 
     /**
