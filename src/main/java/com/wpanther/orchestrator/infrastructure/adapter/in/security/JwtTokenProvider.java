@@ -26,10 +26,15 @@ public class JwtTokenProvider {
 
     private static final Logger log = LoggerFactory.getLogger(JwtTokenProvider.class);
 
+    /**
+     * Default token validity period: 1 hour (3600 seconds).
+     */
+    private static final long DEFAULT_TOKEN_VALIDITY_SECONDS = 3600L;
+
     @Value("${app.security.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${app.security.jwt.token-validity-in-seconds:3600}")
+    @Value("${app.security.jwt.token-validity-in-seconds:" + DEFAULT_TOKEN_VALIDITY_SECONDS + "}")
     private long jwtTokenValidityInSeconds;
 
     @Value("${app.security.jwt.issuer:orchestrator-service}")

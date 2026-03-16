@@ -1,7 +1,7 @@
 package com.wpanther.orchestrator.infrastructure.config.security;
 
 import com.wpanther.orchestrator.infrastructure.adapter.in.security.JwtAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -14,8 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import java.util.List;
-
 /**
  * Security configuration for the orchestrator service.
  * <p>
@@ -26,14 +24,14 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@EnableConfigurationProperties
 public class SecurityConfig {
 
-    @Value("${app.security.cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
-    private List<String> corsAllowedOrigins;
-
+    private final CorsProperties corsProperties;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(CorsProperties corsProperties, JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.corsProperties = corsProperties;
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -49,7 +47,7 @@ public class SecurityConfig {
                 // Configure CORS
                 .cors(cors -> cors.configurationSource(request -> {
                     var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                    corsConfig.setAllowedOrigins(corsAllowedOrigins);
+                    corsConfig.setAllowedOrigins(corsProperties.getAllowedOrigins());
                     corsConfig.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     corsConfig.setAllowedHeaders(java.util.List.of("*"));
                     corsConfig.setAllowCredentials(true);
