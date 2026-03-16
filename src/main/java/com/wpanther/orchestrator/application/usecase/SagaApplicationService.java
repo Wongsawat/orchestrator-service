@@ -11,6 +11,7 @@ import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
+import com.wpanther.orchestrator.infrastructure.config.SagaProperties;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     private final SagaCommandPublisher commandPublisher;
     private final SagaEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
+    private final SagaProperties sagaProperties;
 
     /**
      * Starts a saga from a DTO request.
@@ -83,8 +85,9 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
             correlationId = generateCorrelationId();
         }
 
-        // Create new saga instance with correlation ID
-        SagaInstance instance = SagaInstance.create(documentType, documentId, metadata);
+        // Create new saga instance with configured max retries
+        int maxRetries = sagaProperties.getMaxRetries();
+        SagaInstance instance = SagaInstance.create(documentType, documentId, metadata, maxRetries);
         instance.setCorrelationId(correlationId);
         instance.start();
 

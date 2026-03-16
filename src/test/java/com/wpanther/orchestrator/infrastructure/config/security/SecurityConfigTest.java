@@ -77,7 +77,7 @@ class SecurityConfigTest {
         @Test
         @DisplayName("GET /api/saga/{sagaId} should return 401 without API key")
         void getSagaEndpointShouldReturnUnauthorized() throws Exception {
-            mockMvc.perform(get("/api/saga/some-saga-id"))
+            mockMvc.perform(get("/api/saga/550e8400-e29b-41d4-a716-446655440000"))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -100,14 +100,14 @@ class SecurityConfigTest {
         @Test
         @DisplayName("POST /api/saga/{sagaId}/advance should return 401 without API key")
         void advanceSagaEndpointShouldReturnUnauthorized() throws Exception {
-            mockMvc.perform(post("/api/saga/some-saga-id/advance"))
+            mockMvc.perform(post("/api/saga/550e8400-e29b-41d4-a716-446655440000/advance"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
         @DisplayName("POST /api/saga/{sagaId}/retry should return 401 without API key")
         void retrySagaEndpointShouldReturnUnauthorized() throws Exception {
-            mockMvc.perform(post("/api/saga/some-saga-id/retry"))
+            mockMvc.perform(post("/api/saga/550e8400-e29b-41d4-a716-446655440000/retry"))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -127,7 +127,7 @@ class SecurityConfigTest {
         @DisplayName("GET /api/saga/{sagaId} should allow access with valid API key")
         void getSagaEndpointShouldAllowAccessWithApiKey() throws Exception {
             try {
-                mockMvc.perform(get("/api/saga/some-saga-id")
+                mockMvc.perform(get("/api/saga/550e8400-e29b-41d4-a716-446655440000")
                                 .header("X-API-Key", VALID_API_KEY))
                         .andExpect(result -> {
                             int status = result.getResponse().getStatus();
@@ -190,7 +190,7 @@ class SecurityConfigTest {
         @DisplayName("POST /api/saga/{sagaId}/retry should allow access with valid API key")
         void retrySagaEndpointShouldAllowAccessWithApiKey() throws Exception {
             try {
-                mockMvc.perform(post("/api/saga/some-saga-id/retry")
+                mockMvc.perform(post("/api/saga/550e8400-e29b-41d4-a716-446655440000/retry")
                                 .header("X-API-Key", VALID_API_KEY))
                         .andExpect(result -> {
                             int status = result.getResponse().getStatus();
@@ -217,7 +217,7 @@ class SecurityConfigTest {
         @DisplayName("GET /api/saga/{sagaId} should allow access with API key in header")
         void getSagaEndpointShouldAllowAccessWithApiKeyInHeader() throws Exception {
             try {
-                mockMvc.perform(get("/api/saga/some-saga-id")
+                mockMvc.perform(get("/api/saga/550e8400-e29b-41d4-a716-446655440000")
                                 .header("X-API-Key", VALID_API_KEY))
                         .andExpect(result -> {
                             int status = result.getResponse().getStatus();

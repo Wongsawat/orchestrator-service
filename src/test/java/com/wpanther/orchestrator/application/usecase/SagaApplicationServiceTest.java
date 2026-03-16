@@ -10,6 +10,7 @@ import com.wpanther.orchestrator.domain.repository.SagaCommandRecordRepository;
 import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
+import com.wpanther.orchestrator.infrastructure.config.SagaProperties;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class SagaApplicationServiceTest {
@@ -36,6 +38,7 @@ class SagaApplicationServiceTest {
     @Mock private SagaCommandRecordRepository commandRepository;
     @Mock private SagaCommandPublisher commandPublisher;
     @Mock private SagaEventPublisher eventPublisher;
+    @Mock private SagaProperties sagaProperties;
 
     private ObjectMapper objectMapper;
     private SagaApplicationService service;
@@ -43,9 +46,12 @@ class SagaApplicationServiceTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        // Configure default SagaProperties behavior
+        lenient().when(sagaProperties.getMaxRetries()).thenReturn(3);
+
         service = new SagaApplicationService(
             sagaRepository, commandRepository,
-            commandPublisher, eventPublisher, objectMapper
+            commandPublisher, eventPublisher, objectMapper, sagaProperties
         );
     }
 

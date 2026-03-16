@@ -3,6 +3,7 @@ package com.wpanther.orchestrator.application.usecase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
+import com.wpanther.orchestrator.infrastructure.config.SagaProperties;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
@@ -20,6 +21,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -30,14 +32,16 @@ class SagaManagementUseCaseTest {
     @Mock private SagaCommandRecordRepository commandRepository;
     @Mock private SagaCommandPublisher commandPublisher;
     @Mock private SagaEventPublisher eventPublisher;
+    @Mock private SagaProperties sagaProperties;
 
     private SagaApplicationService service;
 
     @BeforeEach
     void setUp() {
+        lenient().when(sagaProperties.getMaxRetries()).thenReturn(3);
         service = new SagaApplicationService(
             sagaRepository, commandRepository,
-            commandPublisher, eventPublisher, new ObjectMapper()
+            commandPublisher, eventPublisher, new ObjectMapper(), sagaProperties
         );
     }
 

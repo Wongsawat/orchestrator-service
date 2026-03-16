@@ -11,11 +11,15 @@ import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,12 +28,13 @@ import java.util.List;
  * REST controller for the orchestrator service.
  * Provides endpoints for managing saga instances.
  * <p>
- * All endpoints require JWT authentication with ROLE_API_USER authority.
+ * All endpoints require API key authentication with ROLE_API_USER authority.
  * </p>
  */
 @RestController
 @RequestMapping("/api/saga")
 @RequiredArgsConstructor
+@Validated
 @Slf4j
 public class OrchestratorController {
 
@@ -70,12 +75,13 @@ public class OrchestratorController {
     /**
      * Gets a saga instance by ID.
      *
-     * @param sagaId The saga instance ID
+     * @param sagaId The saga instance ID (UUID format)
      * @return The saga response
      */
     @GetMapping("/{sagaId}")
     @PreAuthorize("hasAuthority('ROLE_API_USER')")
-    public ResponseEntity<SagaResponse> getSaga(@PathVariable String sagaId) {
+    public ResponseEntity<SagaResponse> getSaga(
+            @PathVariable @Pattern(regexp = "[a-f0-9\\-]{36}", message = "sagaId must be a valid UUID") String sagaId) {
         log.debug("Fetching saga {}", sagaId);
 
         SagaInstance instance = querySagaUseCase.getSagaInstance(sagaId);
@@ -111,7 +117,7 @@ public class OrchestratorController {
     @PreAuthorize("hasAuthority('ROLE_API_USER')")
     public ResponseEntity<List<SagaResponse>> getSagasForDocument(
             @RequestParam DocumentType documentType,
-            @RequestParam String documentId) {
+            @RequestParam @NotBlank(message = "documentId is required") @Size(max = 255, message = "documentId must not exceed 255 characters") String documentId) {
 
         log.debug("Fetching sagas for document type {} with ID {}", documentType, documentId);
 
@@ -126,12 +132,13 @@ public class OrchestratorController {
     /**
      * Manually advances a saga to the next step.
      *
-     * @param sagaId The saga instance ID
+     * @param sagaId The saga instance ID (UUID format)
      * @return The updated saga response
      */
     @PostMapping("/{sagaId}/advance")
     @PreAuthorize("hasAuthority('ROLE_API_USER')")
-    public ResponseEntity<SagaResponse> advanceSaga(@PathVariable String sagaId) {
+    public ResponseEntity<SagaResponse> advanceSaga(
+            @PathVariable @Pattern(regexp = "[a-f0-9\\-]{36}", message = "sagaId must be a valid UUID") String sagaId) {
         log.info("Manually advancing saga {}", sagaId);
 
         SagaInstance instance = sagaManagementUseCase.advanceSaga(sagaId);
@@ -141,12 +148,13 @@ public class OrchestratorController {
     /**
      * Retries a failed saga step.
      *
-     * @param sagaId The saga instance ID
+     * @param sagaId The saga instance ID (UUID format)
      * @return The updated saga response
      */
     @PostMapping("/{sagaId}/retry")
     @PreAuthorize("hasAuthority('ROLE_API_USER')")
-    public ResponseEntity<SagaResponse> retrySaga(@PathVariable String sagaId) {
+    public ResponseEntity<SagaResponse> retrySaga(
+            @PathVariable @Pattern(regexp = "[a-f0-9\\-]{36}", message = "sagaId must be a valid UUID") String sagaId) {
         log.info("Retrying saga {}", sagaId);
 
         SagaInstance instance = sagaManagementUseCase.retryStep(sagaId);

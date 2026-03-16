@@ -108,9 +108,16 @@ public class SagaInstance {
             new com.wpanther.orchestrator.domain.service.DefaultSagaStepFlowStrategy();
 
     /**
-     * Creates a new saga instance.
+     * Creates a new saga instance with configurable max retries.
+     *
+     * @param documentType the type of document being processed
+     * @param documentId the external document identifier
+     * @param metadata the document metadata
+     * @param maxRetries the maximum number of retry attempts per step
+     * @return a new saga instance
      */
-    public static SagaInstance create(DocumentType documentType, String documentId, DocumentMetadata metadata) {
+    public static SagaInstance create(DocumentType documentType, String documentId,
+                                      DocumentMetadata metadata, int maxRetries) {
         SagaInstance instance = SagaInstance.builder()
                 .id(UUID.randomUUID().toString())
                 .documentType(documentType)
@@ -120,10 +127,24 @@ public class SagaInstance {
                 .updatedAt(Instant.now())
                 .documentMetadata(metadata)
                 .retryCount(0)
+                .maxRetries(maxRetries)
                 .build();
 
         instance.initializeFirstStep();
         return instance;
+    }
+
+    /**
+     * Creates a new saga instance with default max retries (3).
+     *
+     * @param documentType the type of document being processed
+     * @param documentId the external document identifier
+     * @param metadata the document metadata
+     * @return a new saga instance
+     */
+    public static SagaInstance create(DocumentType documentType, String documentId,
+                                      DocumentMetadata metadata) {
+        return create(documentType, documentId, metadata, 3);
     }
 
     /**

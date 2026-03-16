@@ -1,5 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.adapter.out.persistence;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
@@ -86,6 +87,7 @@ public class SagaInstanceEntity {
 
     @Version
     @Column(name = "version")
+    @JsonIgnore
     private Integer version;
 
     @PrePersist

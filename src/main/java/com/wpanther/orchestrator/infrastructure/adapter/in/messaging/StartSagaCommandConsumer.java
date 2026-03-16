@@ -17,6 +17,12 @@ import org.springframework.stereotype.Component;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
+
+// Common database and network transient exceptions
+import org.springframework.dao.QueryTimeoutException;
+import org.springframework.dao.TransientDataAccessException;
+import org.springframework.transaction.CannotCreateTransactionException;
 
 /**
  * Kafka consumer for StartSagaCommand events from document-intake-service.
@@ -140,15 +146,31 @@ public class StartSagaCommandConsumer {
     /**
      * Determines if an exception represents a transient error that should be retried.
      * Transient errors include: database connection issues, timeouts, temporary network issues.
+     * Uses instanceof checks for known exception types first, with message matching as fallback.
      */
     private boolean isTransientError(Exception e) {
-        String className = e.getClass().getSimpleName();
-        String message = e.getMessage();
-
-        // Database connection issues
-        if (className.contains("Connection") || className.contains("Timeout")) {
+        // Check for known transient exception types using instanceof
+        if (e instanceof TimeoutException ||
+            e instanceof QueryTimeoutException ||
+            e instanceof TransientDataAccessException ||
+            e instanceof CannotCreateTransactionException) {
             return true;
         }
+
+        // Check SQLException causes for SQL transient error states
+        if (e.getCause() instanceof SQLException sqlEx) {
+            String sqlState = sqlEx.getSQLState();
+            // PostgreSQL transient errors: 08001 (connection does not exist), 08004 (server rejected),
+            // 08006 (connection failure), 08007 (transaction resolution unknown), 08P01 (protocol violation)
+            // MySQL transient errors: communication errors, timeouts
+            if (sqlState != null && (sqlState.startsWith("08") || "40P01".equals(sqlState))) {
+                return true;  // Connection errors and deadlock retries
+            }
+        }
+
+        // Fallback: message-based matching for unknown exception types
+        // Only used for exceptions that don't match the known types above
+        String message = e.getMessage();
         if (message != null) {
             String lowerMessage = message.toLowerCase();
             return lowerMessage.contains("connection") ||
