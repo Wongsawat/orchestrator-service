@@ -25,7 +25,8 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        # Note: KafkaConfig.java explicitly sets trusted packages to specific allowlist
+        # This YAML default is overridden by code-level configuration for security
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -72,7 +73,7 @@ app:
       saga-reply-xml-signing: saga.reply.xml-signing
       saga-reply-signedxml-storage: saga.reply.signedxml-storage
       saga-reply-invoice-pdf: saga.reply.invoice-pdf
-      saga-reply-taxinvoice-pdf: saga.reply.tax-invoice-pdf
+      saga-reply-tax-invoice-pdf: saga.reply.tax-invoice-pdf
       saga-reply-pdf-signing: saga.reply.pdf-signing
       saga-reply-document-storage: saga.reply.document-storage
       saga-reply-ebms-sending: saga.reply.ebms-sending
@@ -117,10 +118,10 @@ app:
   # Security configuration
   security:
     jwt:
-      # Secret key for JWT token signing (CHANGE IN PRODUCTION!)
-      secret: orchestrator-service-secret-key-for-jwt-token-generation-change-in-production
-      # Token validity in seconds (1 hour)
-      token-validity-in-seconds: 3600
+      # Secret key for JWT token signing - MUST be configured via environment variable
+      # JwtTokenProvider validates this at startup and rejects placeholders/weak secrets
+      # Minimum 32 characters required, no placeholder patterns allowed
+      secret: ${JWT_SECRET:}
       # JWT issuer
       issuer: orchestrator-service
     cors:
