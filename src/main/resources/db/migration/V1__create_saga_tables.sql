@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS saga_instances (
     file_size BIGINT,
     mime_type VARCHAR(100),
     checksum VARCHAR(255),
+    correlation_id VARCHAR(100),
     retry_count INTEGER NOT NULL DEFAULT 0,
     max_retries INTEGER NOT NULL DEFAULT 3,
     version INTEGER NOT NULL DEFAULT 0
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS saga_instances (
 CREATE INDEX IF NOT EXISTS idx_saga_instances_status ON saga_instances(status);
 CREATE INDEX IF NOT EXISTS idx_saga_instances_document ON saga_instances(document_type, document_id);
 CREATE INDEX IF NOT EXISTS idx_saga_instances_updated_at ON saga_instances(updated_at);
+CREATE INDEX IF NOT EXISTS idx_saga_instances_correlation_id ON saga_instances(correlation_id);
 
 -- =====================================================
 -- Command history for audit/compensation
@@ -108,6 +110,7 @@ COMMENT ON COLUMN saga_instances.document_type IS 'Type of document (INVOICE, TA
 COMMENT ON COLUMN saga_instances.document_id IS 'External document identifier';
 COMMENT ON COLUMN saga_instances.current_step IS 'Current step in the saga workflow';
 COMMENT ON COLUMN saga_instances.status IS 'Current status (STARTED, IN_PROGRESS, COMPLETED, COMPENSATING, FAILED)';
+COMMENT ON COLUMN saga_instances.correlation_id IS 'Correlation ID for distributed tracing. This ID remains constant throughout the entire saga lifecycle, enabling end-to-end request tracking across microservices.';
 COMMENT ON COLUMN saga_instances.retry_count IS 'Number of retry attempts for current step';
 COMMENT ON COLUMN saga_instances.max_retries IS 'Maximum allowed retry attempts';
 COMMENT ON COLUMN saga_instances.version IS 'Optimistic locking version';

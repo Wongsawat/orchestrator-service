@@ -82,6 +82,13 @@ public class SagaInstance {
     private List<SagaCommandRecord> commandHistory = new ArrayList<>();
 
     /**
+     * Correlation ID for distributed tracing across services.
+     * This ID remains constant throughout the entire saga lifecycle,
+     * enabling end-to-end request tracking across microservices.
+     */
+    private String correlationId;
+
+    /**
      * Number of retry attempts for the current step.
      */
     @Builder.Default

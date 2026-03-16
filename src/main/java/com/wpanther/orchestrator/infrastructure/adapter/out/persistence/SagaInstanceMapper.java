@@ -42,6 +42,7 @@ public class SagaInstanceMapper {
                 .updatedAt(domain.getUpdatedAt())
                 .completedAt(domain.getCompletedAt())
                 .errorMessage(domain.getErrorMessage())
+                .correlationId(domain.getCorrelationId())
                 .retryCount(domain.getRetryCount())
                 .maxRetries(domain.getMaxRetries());
 
@@ -86,6 +87,7 @@ public class SagaInstanceMapper {
                 .updatedAt(entity.getUpdatedAt())
                 .completedAt(entity.getCompletedAt())
                 .errorMessage(entity.getErrorMessage())
+                .correlationId(entity.getCorrelationId())
                 .retryCount(entity.getRetryCount() != null ? entity.getRetryCount() : 0)
                 .maxRetries(entity.getMaxRetries() != null ? entity.getMaxRetries() : 3);
 

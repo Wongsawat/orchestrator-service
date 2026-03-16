@@ -75,6 +75,9 @@ public class SagaInstanceEntity {
     @Column(name = "checksum", length = 255)
     private String checksum;
 
+    @Column(name = "correlation_id", length = 100)
+    private String correlationId;
+
     @Column(name = "retry_count")
     private Integer retryCount;
 

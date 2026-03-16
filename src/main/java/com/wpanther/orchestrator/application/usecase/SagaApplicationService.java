@@ -83,8 +83,9 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
             correlationId = generateCorrelationId();
         }
 
-        // Create new saga instance
+        // Create new saga instance with correlation ID
         SagaInstance instance = SagaInstance.create(documentType, documentId, metadata);
+        instance.setCorrelationId(correlationId);
         instance.start();
 
         // Save saga instance
@@ -121,7 +122,13 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         }
 
         SagaStep completedStep = SagaStep.fromCode(step);
-        String correlationId = generateCorrelationId();
+        // Retrieve correlation ID from saga instance for distributed tracing
+        String correlationId = instance.getCorrelationId();
+        if (correlationId == null) {
+            correlationId = generateCorrelationId();
+            instance.setCorrelationId(correlationId);
+            log.warn("Saga {} had no correlation ID, generated new one: {}", sagaId, correlationId);
+        }
 
         // Update the command record
         List<SagaCommandRecord> commands = commandRepository.findBySagaId(sagaId);
@@ -202,7 +209,11 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         SagaInstance instance = sagaRepository.findById(sagaId)
                 .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
 
-        String correlationId = generateCorrelationId();
+        String correlationId = instance.getCorrelationId();
+        if (correlationId == null) {
+            correlationId = generateCorrelationId();
+            instance.setCorrelationId(correlationId);
+        }
         SagaStep nextStep = instance.getNextStep();
         if (nextStep == null) {
             instance.complete();
@@ -220,7 +231,11 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         SagaInstance instance = sagaRepository.findById(sagaId)
                 .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
 
-        String correlationId = generateCorrelationId();
+        String correlationId = instance.getCorrelationId();
+        if (correlationId == null) {
+            correlationId = generateCorrelationId();
+            instance.setCorrelationId(correlationId);
+        }
         instance.fail(errorMessage);
         instance.startCompensation();
 
@@ -245,7 +260,11 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         }
 
         instance.incrementRetry();
-        String correlationId = generateCorrelationId();
+        String correlationId = instance.getCorrelationId();
+        if (correlationId == null) {
+            correlationId = generateCorrelationId();
+            instance.setCorrelationId(correlationId);
+        }
         SagaInstance saved = sagaRepository.save(instance);
         sendCommandForStep(instance, correlationId);
 
