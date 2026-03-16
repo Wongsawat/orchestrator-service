@@ -31,7 +31,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration",
         "spring.flyway.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=none",
+        "spring.datasource.url=jdbc:h2:mem:orchestrator_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.jpa.dialect=org.hibernate.dialect.H2Dialect",
         "app.security.jwt.secret=test-secret-key-for-jwt-security-tests-must-be-at-least-256-bits-long",
         "app.security.jwt.token-validity-in-seconds=3600"
 })
