@@ -92,7 +92,7 @@ class OrchestratorControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(requestBody))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.documentType").value("INVOICE"))
+                    .andExpect(jsonPath("$.documentType").value("invoice"))
                     .andExpect(jsonPath("$.documentId").value("doc-001"))
                     .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
         }
@@ -110,7 +110,7 @@ class OrchestratorControllerTest {
 
             mockMvc.perform(get("/api/saga/saga-001"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.documentType").value("TAX_INVOICE"))
+                    .andExpect(jsonPath("$.documentType").value("tax-invoice"))
                     .andExpect(jsonPath("$.documentId").value("doc-002"));
         }
     }

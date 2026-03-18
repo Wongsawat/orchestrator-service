@@ -33,7 +33,7 @@ class SagaResponseTest {
             SagaResponse response = SagaResponse.fromDomain(saga);
 
             assertThat(response.id()).isEqualTo(saga.getId());
-            assertThat(response.documentType()).isEqualTo("INVOICE");
+            assertThat(response.documentType()).isEqualTo("invoice");
             assertThat(response.documentId()).isEqualTo("doc-001");
             assertThat(response.status()).isEqualTo("IN_PROGRESS");
             assertThat(response.currentStep()).isNotNull();
@@ -77,7 +77,7 @@ class SagaResponseTest {
 
             SagaResponse response = SagaResponse.fromDomain(saga);
 
-            assertThat(response.documentType()).isEqualTo("TAX_INVOICE");
+            assertThat(response.documentType()).isEqualTo("tax-invoice");
             assertThat(response.documentId()).isEqualTo("doc-tax");
         }
     }
@@ -96,7 +96,7 @@ class SagaResponseTest {
 
             assertThat(summary.id()).isEqualTo(cmd.getId());
             assertThat(summary.commandType()).isEqualTo("ProcessInvoiceCommand");
-            assertThat(summary.targetStep()).isEqualTo("PROCESS_INVOICE");
+            assertThat(summary.targetStep()).isEqualTo("process-invoice");
             assertThat(summary.status()).isEqualTo("PENDING");
             assertThat(summary.createdAt()).isNotNull();
             assertThat(summary.errorMessage()).isNull();
@@ -112,7 +112,7 @@ class SagaResponseTest {
             SagaResponse.CommandSummary summary = SagaResponse.CommandSummary.fromDomain(cmd);
 
             assertThat(summary.status()).isEqualTo("SENT");
-            assertThat(summary.targetStep()).isEqualTo("PROCESS_TAX_INVOICE");
+            assertThat(summary.targetStep()).isEqualTo("process-tax-invoice");
         }
     }
 }

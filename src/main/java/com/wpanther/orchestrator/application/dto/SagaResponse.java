@@ -74,9 +74,9 @@ public record SagaResponse(
     public static SagaResponse fromDomain(SagaInstance instance) {
         return new SagaResponse(
                 instance.getId(),
-                instance.getDocumentType().name(),
+                instance.getDocumentType().getCode(),
                 instance.getDocumentId(),
-                instance.getCurrentStep() != null ? instance.getCurrentStep().name() : null,
+                instance.getCurrentStep() != null ? instance.getCurrentStep().getCode() : null,
                 instance.getStatus().name(),
                 instance.getCreatedAt(),
                 instance.getUpdatedAt(),
@@ -104,7 +104,7 @@ public record SagaResponse(
             return new CommandSummary(
                     command.getId(),
                     command.getCommandType(),
-                    command.getTargetStep().name(),
+                    command.getTargetStep().getCode(),
                     command.getStatus().name(),
                     command.getCreatedAt(),
                     command.getErrorMessage()
