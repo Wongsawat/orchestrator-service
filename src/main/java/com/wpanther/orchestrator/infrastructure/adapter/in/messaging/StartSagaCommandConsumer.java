@@ -53,12 +53,16 @@ public class StartSagaCommandConsumer {
 
         try {
             // Validate document type is not null or blank before processing
+            // IMPORTANT: DocumentType.valueOf(null) throws NullPointerException, not IllegalArgumentException
+            // The null check below is required to prevent NPE before valueOf() is called
             String docTypeStr = command.getDocumentType();
             if (docTypeStr == null || docTypeStr.isBlank()) {
                 throw new IllegalArgumentException("Document type cannot be null or blank");
             }
 
             // Convert document type string to enum
+            // valueOf() throws IllegalArgumentException for invalid enum names
+            // NPE is prevented by the explicit null check above
             DocumentType documentType = DocumentType.valueOf(docTypeStr);
 
             // Create metadata map
