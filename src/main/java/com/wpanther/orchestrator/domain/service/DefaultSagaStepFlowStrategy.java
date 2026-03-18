@@ -50,7 +50,7 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
             case SIGN_XML -> isInvoice
                     ? SagaStep.PROCESS_INVOICE
                     : SagaStep.PROCESS_TAX_INVOICE;
-            default -> null; // No compensation for earlier steps
+            default -> null; // No compensation available for PROCESS_* steps (first step in flow)
         };
     }
 }
