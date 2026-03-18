@@ -15,12 +15,6 @@ public class SagaStepCompletedEvent extends TraceEvent {
 
     private static final long serialVersionUID = 1L;
 
-    @JsonProperty("sagaId")
-    private final String sagaId;
-
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     @JsonProperty("documentType")
     private final String documentType;
 
@@ -35,9 +29,7 @@ public class SagaStepCompletedEvent extends TraceEvent {
      */
     public SagaStepCompletedEvent(String sagaId, String correlationId, String documentType,
                                    String completedStep, String nextStep) {
-        super(sagaId, "orchestrator", "STEP_COMPLETED");
-        this.sagaId = sagaId;
-        this.correlationId = correlationId;
+        super(sagaId, correlationId, "orchestrator", "STEP_COMPLETED", null);
         this.documentType = documentType;
         this.completedStep = completedStep;
         this.nextStep = nextStep;
@@ -53,30 +45,20 @@ public class SagaStepCompletedEvent extends TraceEvent {
             @JsonProperty("eventType") String eventType,
             @JsonProperty("version") int version,
             @JsonProperty("sagaId") String sagaId,
+            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("source") String source,
             @JsonProperty("traceType") String traceType,
             @JsonProperty("context") String context,
-            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("documentType") String documentType,
             @JsonProperty("completedStep") String completedStep,
             @JsonProperty("nextStep") String nextStep) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
-        this.sagaId = sagaId;
-        this.correlationId = correlationId;
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.completedStep = completedStep;
         this.nextStep = nextStep;
     }
 
     // Getters for additional fields
-    public String getSagaId() {
-        return sagaId;
-    }
-
-    public String getCorrelationId() {
-        return correlationId;
-    }
-
     public String getDocumentType() {
         return documentType;
     }

@@ -15,12 +15,6 @@ public class SagaCompletedEvent extends TraceEvent {
 
     private static final long serialVersionUID = 1L;
 
-    @JsonProperty("sagaId")
-    private final String sagaId;
-
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
     @JsonProperty("documentType")
     private final String documentType;
 
@@ -48,9 +42,7 @@ public class SagaCompletedEvent extends TraceEvent {
     public SagaCompletedEvent(String sagaId, String correlationId, String documentType,
                               String documentId, String invoiceNumber, Integer stepsExecuted,
                               Instant startedAt, Instant completedAt, Long durationMs) {
-        super(sagaId, "orchestrator", "SAGA_COMPLETED");
-        this.sagaId = sagaId;
-        this.correlationId = correlationId;
+        super(sagaId, correlationId, "orchestrator", "SAGA_COMPLETED", null);
         this.documentType = documentType;
         this.documentId = documentId;
         this.invoiceNumber = invoiceNumber;
@@ -70,10 +62,10 @@ public class SagaCompletedEvent extends TraceEvent {
             @JsonProperty("eventType") String eventType,
             @JsonProperty("version") int version,
             @JsonProperty("sagaId") String sagaId,
+            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("source") String source,
             @JsonProperty("traceType") String traceType,
             @JsonProperty("context") String context,
-            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("documentType") String documentType,
             @JsonProperty("documentId") String documentId,
             @JsonProperty("invoiceNumber") String invoiceNumber,
@@ -81,9 +73,7 @@ public class SagaCompletedEvent extends TraceEvent {
             @JsonProperty("startedAt") Instant startedAt,
             @JsonProperty("completedAt") Instant completedAt,
             @JsonProperty("durationMs") Long durationMs) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
-        this.sagaId = sagaId;
-        this.correlationId = correlationId;
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
         this.invoiceNumber = invoiceNumber;
@@ -94,14 +84,6 @@ public class SagaCompletedEvent extends TraceEvent {
     }
 
     // Getters for additional fields
-    public String getSagaId() {
-        return sagaId;
-    }
-
-    public String getCorrelationId() {
-        return correlationId;
-    }
-
     public String getDocumentType() {
         return documentType;
     }

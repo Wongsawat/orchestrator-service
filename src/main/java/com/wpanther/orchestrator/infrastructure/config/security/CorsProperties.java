@@ -10,12 +10,12 @@ import java.util.List;
  * Provides type-safe configuration for allowed origins and related CORS behavior.
  */
 @Component
-@ConfigurationProperties(prefix = "app.security.cors")
+@ConfigurationProperties(prefix = "app.cors")
 public class CorsProperties {
 
     /**
      * Allowed CORS origins.
-     * Maps to app.security.cors.allowed-origins in application.yml.
+     * Maps to app.cors.allowed-origins in application.yml.
      */
     private List<String> allowedOrigins = List.of("http://localhost:3000", "http://localhost:8080");
 

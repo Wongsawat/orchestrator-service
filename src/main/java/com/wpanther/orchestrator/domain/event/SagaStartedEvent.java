@@ -16,18 +16,6 @@ public class SagaStartedEvent extends TraceEvent {
     private static final long serialVersionUID = 1L;
 
     /**
-     * ID of the saga instance.
-     */
-    @JsonProperty("sagaId")
-    private final String sagaId;
-
-    /**
-     * Correlation ID for tracing across services.
-     */
-    @JsonProperty("correlationId")
-    private final String correlationId;
-
-    /**
      * Type of document being processed.
      */
     @JsonProperty("documentType")
@@ -56,9 +44,7 @@ public class SagaStartedEvent extends TraceEvent {
      */
     public SagaStartedEvent(String sagaId, String correlationId, String documentType,
                             String documentId, String currentStep, String invoiceNumber) {
-        super(sagaId, "orchestrator", "SAGA_STARTED");
-        this.sagaId = sagaId;
-        this.correlationId = correlationId;
+        super(sagaId, correlationId, "orchestrator", "SAGA_STARTED", null);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
@@ -75,17 +61,15 @@ public class SagaStartedEvent extends TraceEvent {
             @JsonProperty("eventType") String eventType,
             @JsonProperty("version") int version,
             @JsonProperty("sagaId") String sagaId,
+            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("source") String source,
             @JsonProperty("traceType") String traceType,
             @JsonProperty("context") String context,
-            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("documentType") String documentType,
             @JsonProperty("documentId") String documentId,
             @JsonProperty("currentStep") String currentStep,
             @JsonProperty("invoiceNumber") String invoiceNumber) {
-        super(eventId, occurredAt, eventType, version, sagaId, source, traceType, context);
-        this.sagaId = sagaId;
-        this.correlationId = correlationId;
+        super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
@@ -93,14 +77,6 @@ public class SagaStartedEvent extends TraceEvent {
     }
 
     // Getters for additional fields
-    public String getSagaId() {
-        return sagaId;
-    }
-
-    public String getCorrelationId() {
-        return correlationId;
-    }
-
     public String getDocumentType() {
         return documentType;
     }
