@@ -47,6 +47,15 @@ public class SagaEventPublisher {
     private String sagaFailedTopic;
 
     /**
+     * Expected maximum duration for a saga to complete (in milliseconds).
+     * Used for logging warnings when sagas take longer than expected.
+     * Default: 5 minutes (300,000 ms).
+     * Configurable via app.saga.expected-max-duration-ms property.
+     */
+    @Value("${app.saga.expected-max-duration-ms:300000}")
+    private long expectedMaxDurationMs;
+
+    /**
      * Publishes a SagaStartedEvent when a new saga is created.
      */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -149,7 +158,13 @@ public class SagaEventPublisher {
             headersJson
         );
 
-        log.info("Published SagaCompletedEvent for saga {} with duration {}ms", saga.getId(), durationMs);
+        // Log warning if saga exceeded expected duration
+        if (durationMs > expectedMaxDurationMs) {
+            log.warn("Saga {} completed with duration {}ms, exceeding expected max of {}ms",
+                saga.getId(), durationMs, expectedMaxDurationMs);
+        } else {
+            log.info("Published SagaCompletedEvent for saga {} with duration {}ms", saga.getId(), durationMs);
+        }
     }
 
     /**
