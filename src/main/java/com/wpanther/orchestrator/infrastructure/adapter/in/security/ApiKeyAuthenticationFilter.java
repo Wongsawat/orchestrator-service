@@ -42,6 +42,21 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private static final String API_KEY_HEADER = "X-API-Key";
 
     /**
+     * Sanitizes a request path by removing query parameters to prevent
+     * logging sensitive data that may be present in URL parameters.
+     *
+     * @param path the request path potentially containing query parameters
+     * @return the path without query parameters
+     */
+    private String sanitizePath(String path) {
+        if (path == null) {
+            return null;
+        }
+        int queryIndex = path.indexOf('?');
+        return queryIndex > 0 ? path.substring(0, queryIndex) : path;
+    }
+
+    /**
      * List of valid API keys.
      * Loaded from orchestrator.admin.api-keys property or ORCHESTRATOR_API_KEYS env var.
      */
@@ -61,7 +76,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .toList();
-            log.info("Loaded {} valid API key(s) for admin access", this.validApiKeys.size());
+            log.debug("Loaded {} valid API key(s) for admin access", this.validApiKeys.size());
         } else {
             // Fail fast if no API keys configured - security risk in production
             throw new IllegalStateException(
@@ -105,14 +120,14 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
             if (log.isDebugEnabled()) {
                 log.debug("API key authentication successful for {} from {}",
-                        path, request.getRemoteAddr());
+                        sanitizePath(path), request.getRemoteAddr());
             }
 
             filterChain.doFilter(request, response);
         } else {
             // Invalid or missing API key
             log.warn("Unauthorized access attempt from {} to {}",
-                    request.getRemoteAddr(), path);
+                    request.getRemoteAddr(), sanitizePath(path));
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
