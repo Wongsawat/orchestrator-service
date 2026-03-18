@@ -96,9 +96,16 @@ public class SagaInstance {
 
     /**
      * Maximum retries allowed before marking as failed.
+     * Default value of 3 matches the configured default in SagaProperties.
      */
     @Builder.Default
-    private int maxRetries = 3;
+    private int maxRetries = DEFAULT_MAX_RETRIES;
+
+    /**
+     * Default maximum number of retry attempts per saga step.
+     * This value should match the default in SagaProperties.
+     */
+    private static final int DEFAULT_MAX_RETRIES = 3;
 
     /**
      * Default step flow strategy used for determining next and compensation steps.

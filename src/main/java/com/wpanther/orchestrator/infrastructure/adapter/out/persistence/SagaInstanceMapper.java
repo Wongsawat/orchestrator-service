@@ -21,6 +21,12 @@ import java.util.List;
 @Slf4j
 public class SagaInstanceMapper {
 
+    /**
+     * Default max retries when loading from database with null value.
+     * Matches the default in SagaProperties and SagaInstance.DEFAULT_MAX_RETRIES.
+     */
+    private static final int DEFAULT_MAX_RETRIES = 3;
+
     private final ObjectMapper objectMapper;
     private final SagaCommandRecordRepository commandRepository;
 
@@ -89,7 +95,7 @@ public class SagaInstanceMapper {
                 .errorMessage(entity.getErrorMessage())
                 .correlationId(entity.getCorrelationId())
                 .retryCount(entity.getRetryCount() != null ? entity.getRetryCount() : 0)
-                .maxRetries(entity.getMaxRetries() != null ? entity.getMaxRetries() : 3);
+                .maxRetries(entity.getMaxRetries() != null ? entity.getMaxRetries() : DEFAULT_MAX_RETRIES);
 
         // Map DocumentMetadata if present
         if (entity.getFilePath() != null || entity.getXmlContent() != null

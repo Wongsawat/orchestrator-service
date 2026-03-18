@@ -29,6 +29,11 @@ import java.util.Map;
 @EnableKafka
 public class KafkaConfig {
 
+    /**
+     * Default number of consumer threads for Kafka listener containers.
+     */
+    private static final int DEFAULT_CONSUMER_CONCURRENCY = 3;
+
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
 
@@ -96,7 +101,7 @@ public class KafkaConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(sagaReplyConsumerFactory());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-        factory.setConcurrency(3);
+        factory.setConcurrency(DEFAULT_CONSUMER_CONCURRENCY);
         return factory;
     }
 
@@ -139,7 +144,7 @@ public class KafkaConfig {
             new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(startSagaCommandConsumerFactory());
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-        factory.setConcurrency(3);
+        factory.setConcurrency(DEFAULT_CONSUMER_CONCURRENCY);
         return factory;
     }
 }

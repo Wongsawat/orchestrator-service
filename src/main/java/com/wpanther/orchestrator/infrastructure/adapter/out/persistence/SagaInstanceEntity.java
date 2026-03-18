@@ -90,6 +90,12 @@ public class SagaInstanceEntity {
     @JsonIgnore
     private Integer version;
 
+    /**
+     * Default max retries when persisting new saga instances.
+     * Matches the default in SagaProperties and SagaInstance.DEFAULT_MAX_RETRIES.
+     */
+    private static final int DEFAULT_MAX_RETRIES = 3;
+
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();
@@ -106,7 +112,7 @@ public class SagaInstanceEntity {
             retryCount = 0;
         }
         if (maxRetries == null) {
-            maxRetries = 3;
+            maxRetries = DEFAULT_MAX_RETRIES;
         }
     }
 
