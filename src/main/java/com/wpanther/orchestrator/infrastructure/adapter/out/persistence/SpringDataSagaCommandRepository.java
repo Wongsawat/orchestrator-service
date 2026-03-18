@@ -36,4 +36,11 @@ interface SpringDataSagaCommandRepository extends JpaRepository<SagaCommandEntit
      */
     @Query("SELECT c FROM SagaCommandEntity c WHERE c.sagaId = :sagaId ORDER BY c.createdAt DESC LIMIT 1")
     List<SagaCommandEntity> findLatestCommandBySagaId(@Param("sagaId") String sagaId);
+
+    /**
+     * Finds all commands for multiple saga instances, ordered by creation time.
+     * Used for batch loading to avoid N+1 queries.
+     */
+    @Query("SELECT c FROM SagaCommandEntity c WHERE c.sagaId IN :sagaIds ORDER BY c.sagaId, c.createdAt ASC")
+    List<SagaCommandEntity> findBySagaIdInOrderByCreatedAtAsc(@Param("sagaIds") List<String> sagaIds);
 }

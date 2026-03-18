@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Mapper for converting between SagaInstance domain model and SagaInstanceEntity JPA entity.
@@ -126,6 +127,88 @@ public class SagaInstanceMapper {
 
         // Load command history
         List<SagaCommandRecord> commands = commandRepository.findBySagaId(entity.getId());
+        builder.commandHistory(new ArrayList<>(commands));
+
+        return builder.build();
+    }
+
+    /**
+     * Converts multiple JPA entities to domain models using batch-loaded command history.
+     * This method avoids N+1 queries by loading all command records in a single database query.
+     *
+     * @param entities list of JPA entities to convert
+     * @return list of domain models with command history populated
+     */
+    public List<SagaInstance> toDomainBatch(List<SagaInstanceEntity> entities) {
+        if (entities == null || entities.isEmpty()) {
+            return List.of();
+        }
+
+        // Collect all saga IDs for batch loading
+        List<String> sagaIds = entities.stream()
+                .map(SagaInstanceEntity::getId)
+                .toList();
+
+        // Batch load all command records in one query
+        Map<String, List<SagaCommandRecord>> commandsBySagaId = commandRepository.findBySagaIdIn(sagaIds);
+
+        // Convert each entity, using pre-loaded commands
+        return entities.stream()
+                .map(entity -> toDomainWithCommands(entity, commandsBySagaId.getOrDefault(entity.getId(), List.of())))
+                .toList();
+    }
+
+    /**
+     * Converts JPA entity to domain model with pre-loaded command history.
+     * Used internally by batch conversion to avoid redundant queries.
+     */
+    private SagaInstance toDomainWithCommands(SagaInstanceEntity entity, List<SagaCommandRecord> commands) {
+        if (entity == null) {
+            return null;
+        }
+
+        var builder = SagaInstance.builder()
+                .id(entity.getId())
+                .documentType(entity.getDocumentType())
+                .documentId(entity.getDocumentId())
+                .currentStep(entity.getCurrentStep())
+                .status(entity.getStatus())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .completedAt(entity.getCompletedAt())
+                .errorMessage(entity.getErrorMessage())
+                .correlationId(entity.getCorrelationId())
+                .retryCount(entity.getRetryCount() != null ? entity.getRetryCount() : 0)
+                .maxRetries(entity.getMaxRetries() != null ? entity.getMaxRetries() : DEFAULT_MAX_RETRIES);
+
+        // Map DocumentMetadata if present
+        if (entity.getFilePath() != null || entity.getXmlContent() != null
+                || entity.getMetadata() != null) {
+            DocumentMetadata.DocumentMetadataBuilder metadataBuilder = DocumentMetadata.builder()
+                    .filePath(entity.getFilePath())
+                    .xmlContent(entity.getXmlContent())
+                    .fileSize(entity.getFileSize())
+                    .mimeType(entity.getMimeType())
+                    .checksum(entity.getChecksum());
+
+            // Parse metadata JSON string
+            if (entity.getMetadata() != null && !entity.getMetadata().isEmpty()) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    java.util.Map<String, Object> metadataMap = objectMapper.readValue(
+                            entity.getMetadata(),
+                            java.util.Map.class
+                    );
+                    metadataBuilder.metadata(metadataMap);
+                } catch (JsonProcessingException e) {
+                    log.warn("Failed to deserialize metadata for saga {}", entity.getId(), e);
+                }
+            }
+
+            builder.documentMetadata(metadataBuilder.build());
+        }
+
+        // Use pre-loaded command history
         builder.commandHistory(new ArrayList<>(commands));
 
         return builder.build();

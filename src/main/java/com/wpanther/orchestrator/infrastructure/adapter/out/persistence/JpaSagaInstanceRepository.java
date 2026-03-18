@@ -42,27 +42,24 @@ public class JpaSagaInstanceRepository implements SagaInstanceRepository {
 
     @Override
     public List<SagaInstance> findByStatus(SagaStatus status) {
-        return springRepository.findByStatus(status).stream()
-                .map(mapper::toDomain)
-                .toList();
+        List<SagaInstanceEntity> entities = springRepository.findByStatus(status);
+        return mapper.toDomainBatch(entities);
     }
 
     @Override
     public List<SagaInstance> findByDocumentType(DocumentType documentType) {
-        return springRepository.findByDocumentType(documentType).stream()
-                .map(mapper::toDomain)
-                .toList();
+        List<SagaInstanceEntity> entities = springRepository.findByDocumentType(documentType);
+        return mapper.toDomainBatch(entities);
     }
 
     @Override
     public List<SagaInstance> findTimeoutInstances(int timeoutSeconds) {
         Instant timeout = Instant.now().minusSeconds(timeoutSeconds);
-        return springRepository.findByStatusInAndUpdatedAtBefore(
+        List<SagaInstanceEntity> entities = springRepository.findByStatusInAndUpdatedAtBefore(
                         List.of(SagaStatus.IN_PROGRESS, SagaStatus.STARTED),
                         timeout
-                ).stream()
-                .map(mapper::toDomain)
-                .toList();
+                );
+        return mapper.toDomainBatch(entities);
     }
 
     /**

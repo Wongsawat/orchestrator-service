@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Spring Data JPA implementation of SagaCommandRecordRepository.
@@ -40,6 +42,17 @@ public class JpaSagaCommandRepository implements SagaCommandRecordRepository {
     @Override
     public void deleteBySagaId(String sagaId) {
         springRepository.deleteBySagaId(sagaId);
+    }
+
+    @Override
+    public Map<String, List<SagaCommandRecord>> findBySagaIdIn(List<String> sagaIds) {
+        if (sagaIds == null || sagaIds.isEmpty()) {
+            return Map.of();
+        }
+        List<SagaCommandEntity> entities = springRepository.findBySagaIdInOrderByCreatedAtAsc(sagaIds);
+        return entities.stream()
+                .map(this::toDomain)
+                .collect(Collectors.groupingBy(SagaCommandRecord::getSagaId));
     }
 
     private SagaCommandEntity toEntity(SagaCommandRecord domain) {

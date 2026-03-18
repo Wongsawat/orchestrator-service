@@ -40,4 +40,13 @@ public interface SagaCommandRecordRepository {
      * @param sagaId The saga instance ID
      */
     void deleteBySagaId(String sagaId);
+
+    /**
+     * Finds all command records for multiple saga instances.
+     * Returns a map of saga ID to list of commands for efficient batch loading.
+     *
+     * @param sagaIds The saga instance IDs
+     * @return Map of saga ID to list of command records
+     */
+    java.util.Map<String, List<SagaCommandRecord>> findBySagaIdIn(java.util.List<String> sagaIds);
 }
