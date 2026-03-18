@@ -141,16 +141,9 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishStoreDocumentCommand(SagaInstance saga, String correlationId) {
-        Map<String, Object> metadata = saga.getDocumentMetadata() != null
-                ? saga.getDocumentMetadata().getMetadata()
-                : Map.of();
-
-        String signedPdfUrl = metadata.get("signedPdfUrl") != null
-                ? metadata.get("signedPdfUrl").toString() : null;
-        String signedDocumentId = metadata.get("signedDocumentId") != null
-                ? metadata.get("signedDocumentId").toString() : null;
-        String signatureLevel = metadata.get("signatureLevel") != null
-                ? metadata.get("signatureLevel").toString() : null;
+        String signedPdfUrl = getMetadataValue(saga, "signedPdfUrl");
+        String signedDocumentId = getMetadataValue(saga, "signedDocumentId");
+        String signatureLevel = getMetadataValue(saga, "signatureLevel");
 
         StoreDocumentCommand command = new StoreDocumentCommand(
             saga.getId(),
@@ -175,12 +168,7 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSendEbmsCommand(SagaInstance saga, String correlationId) {
-        Map<String, Object> metadata = saga.getDocumentMetadata() != null
-                ? saga.getDocumentMetadata().getMetadata()
-                : Map.of();
-
-        String signedXmlUrl = metadata.get("signedXmlUrl") != null
-                ? metadata.get("signedXmlUrl").toString() : null;
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
 
         SendEbmsCommand command = new SendEbmsCommand(
             saga.getId(),
@@ -224,13 +212,7 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSignedXmlStorageCommand(SagaInstance saga, String correlationId) {
-        String signedXmlUrl = null;
-        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object url = saga.getDocumentMetadata().getMetadata().get("signedXmlUrl");
-            if (url != null) {
-                signedXmlUrl = url.toString();
-            }
-        }
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
 
         ProcessSignedXmlStorageCommand command = new ProcessSignedXmlStorageCommand(
             saga.getId(),
@@ -253,18 +235,8 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishGenerateInvoicePdfCommand(SagaInstance saga, String correlationId) {
-        String signedXmlUrl = null;
-        String invoiceDataJson = null;
-        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object url = saga.getDocumentMetadata().getMetadata().get("signedXmlUrl");
-            if (url != null) {
-                signedXmlUrl = url.toString();
-            }
-            Object invoiceData = saga.getDocumentMetadata().getMetadata().get("invoiceDataJson");
-            if (invoiceData != null) {
-                invoiceDataJson = invoiceData.toString();
-            }
-        }
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
+        String invoiceDataJson = getMetadataValue(saga, "invoiceDataJson");
 
         ProcessInvoicePdfCommand command = new ProcessInvoicePdfCommand(
             saga.getId(),
@@ -288,18 +260,8 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishGenerateTaxInvoicePdfCommand(SagaInstance saga, String correlationId) {
-        String signedXmlUrl = null;
-        String taxInvoiceDataJson = null;
-        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object url = saga.getDocumentMetadata().getMetadata().get("signedXmlUrl");
-            if (url != null) {
-                signedXmlUrl = url.toString();
-            }
-            Object invoiceData = saga.getDocumentMetadata().getMetadata().get("taxInvoiceDataJson");
-            if (invoiceData != null) {
-                taxInvoiceDataJson = invoiceData.toString();
-            }
-        }
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
+        String taxInvoiceDataJson = getMetadataValue(saga, "taxInvoiceDataJson");
 
         ProcessTaxInvoicePdfCommand command = new ProcessTaxInvoicePdfCommand(
             saga.getId(),
@@ -325,17 +287,11 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSignPdfCommand(SagaInstance saga, String correlationId) {
-        String pdfUrl = null;
-        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            // Tax invoice: URL from PDF_STORAGE step (storedDocumentUrl)
-            // Invoice: URL from GENERATE_INVOICE_PDF step (pdfUrl)
-            Object storedUrl = saga.getDocumentMetadata().getMetadata().get("storedDocumentUrl");
-            Object directUrl = saga.getDocumentMetadata().getMetadata().get("pdfUrl");
-            if (storedUrl != null) {
-                pdfUrl = storedUrl.toString();
-            } else if (directUrl != null) {
-                pdfUrl = directUrl.toString();
-            }
+        // Tax invoice: URL from PDF_STORAGE step (storedDocumentUrl)
+        // Invoice: URL from GENERATE_INVOICE_PDF step (pdfUrl)
+        String pdfUrl = getMetadataValue(saga, "storedDocumentUrl");
+        if (pdfUrl == null) {
+            pdfUrl = getMetadataValue(saga, "pdfUrl");
         }
 
         ProcessPdfSigningCommand command = new ProcessPdfSigningCommand(
@@ -360,14 +316,8 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishPdfStorageCommand(SagaInstance saga, String correlationId) {
-        Map<String, Object> metadata = saga.getDocumentMetadata() != null
-                ? saga.getDocumentMetadata().getMetadata()
-                : Map.of();
-
-        String pdfUrl = metadata.get("pdfUrl") != null
-                ? metadata.get("pdfUrl").toString() : null;
-        Long pdfSize = metadata.get("pdfSize") != null
-                ? Long.parseLong(metadata.get("pdfSize").toString()) : null;
+        String pdfUrl = getMetadataValue(saga, "pdfUrl");
+        Long pdfSize = getMetadataLongValue(saga, "pdfSize");
 
         ProcessPdfStorageCommand command = new ProcessPdfStorageCommand(
             saga.getId(),
@@ -502,33 +452,15 @@ public class SagaCommandPublisher {
     }
 
     private String getInvoiceNumber(SagaInstance saga) {
-        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object invoiceNumber = saga.getDocumentMetadata().getMetadata().get("invoiceNumber");
-            if (invoiceNumber != null) {
-                return invoiceNumber.toString();
-            }
-        }
-        return null;
+        return getMetadataValue(saga, "invoiceNumber");
     }
 
     private String getInvoiceId(SagaInstance saga) {
-        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object invoiceId = saga.getDocumentMetadata().getMetadata().get("invoiceId");
-            if (invoiceId != null) {
-                return invoiceId.toString();
-            }
-        }
-        return null;
+        return getMetadataValue(saga, "invoiceId");
     }
 
     private String getTaxInvoiceId(SagaInstance saga) {
-        if (saga.getDocumentMetadata() != null && saga.getDocumentMetadata().getMetadata() != null) {
-            Object taxInvoiceId = saga.getDocumentMetadata().getMetadata().get("taxInvoiceId");
-            if (taxInvoiceId != null) {
-                return taxInvoiceId.toString();
-            }
-        }
-        return null;
+        return getMetadataValue(saga, "taxInvoiceId");
     }
 
     private String toJson(Map<String, String> map) {
@@ -536,6 +468,43 @@ public class SagaCommandPublisher {
             return objectMapper.writeValueAsString(map);
         } catch (JsonProcessingException e) {
             log.warn("Failed to serialize headers to JSON", e);
+            return null;
+        }
+    }
+
+    /**
+     * Helper method to safely extract a metadata value from a saga instance.
+     * Handles null DocumentMetadata and null metadata map gracefully.
+     *
+     * @param saga the saga instance
+     * @param key the metadata key to extract
+     * @return the metadata value as a String, or null if not found
+     */
+    private String getMetadataValue(SagaInstance saga, String key) {
+        if (saga.getDocumentMetadata() == null ||
+            saga.getDocumentMetadata().getMetadata() == null) {
+            return null;
+        }
+        Object value = saga.getDocumentMetadata().getMetadata().get(key);
+        return value != null ? value.toString() : null;
+    }
+
+    /**
+     * Helper method to safely extract a Long metadata value from a saga instance.
+     *
+     * @param saga the saga instance
+     * @param key the metadata key to extract
+     * @return the metadata value as a Long, or null if not found or not a number
+     */
+    private Long getMetadataLongValue(SagaInstance saga, String key) {
+        String stringValue = getMetadataValue(saga, key);
+        if (stringValue == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(stringValue);
+        } catch (NumberFormatException e) {
+            log.warn("Metadata value '{}' for key '{}' is not a valid Long", stringValue, key);
             return null;
         }
     }
