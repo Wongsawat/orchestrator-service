@@ -1,5 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.adapter.in.security;
 
+import com.wpanther.orchestrator.infrastructure.config.security.PublicEndpoints;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -150,6 +151,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * Determines if the given path is a public endpoint that doesn't require authentication.
+     * Uses constants from {@link com.wpanther.orchestrator.infrastructure.config.security.PublicEndpoints}
+     * to ensure consistency with SecurityConfig.
      *
      * @param path the request path
      * @return true if the path is public, false otherwise
@@ -161,8 +164,8 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                path.equals("/actuator/info") ||
                path.equals("/actuator/info/") ||
                path.startsWith("/actuator/info/") ||
-               path.equals("/api/saga/health") ||
-               path.equals("/error");
+               path.equals(PublicEndpoints.SAGA_HEALTH) ||
+               path.equals(PublicEndpoints.ERROR);
     }
 
 }

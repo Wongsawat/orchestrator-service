@@ -86,13 +86,8 @@ public class SecurityConfig {
 
                 // Configure authorization rules - use requestMatchers for path-based authorization
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                        .requestMatchers(
-                                "/actuator/health/**",
-                                "/actuator/info/**",
-                                "/api/saga/health",
-                                "/error"
-                        ).permitAll()
+                        // Public endpoints - use constants from PublicEndpoints class
+                        .requestMatchers(PublicEndpoints.ALL).permitAll()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated()
