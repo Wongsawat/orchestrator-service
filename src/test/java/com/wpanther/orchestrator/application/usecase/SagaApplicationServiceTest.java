@@ -644,4 +644,90 @@ class SagaApplicationServiceTest {
         command.markAsSent();
         return List.of(command);
     }
+
+    @Nested
+    @DisplayName("Unsupported Document Type Validation")
+    class UnsupportedDocumentTypeTests {
+
+        @Test
+        void startSaga_withReceipt_throwsIllegalArgumentException() {
+            DocumentMetadata metadata = createMetadata();
+
+            assertThatThrownBy(() ->
+                service.startSaga(DocumentType.RECEIPT, "doc-001", metadata)
+            )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("RECEIPT")
+                .hasMessageContaining("not yet supported")
+                .hasMessageContaining("INVOICE, TAX_INVOICE, ABBREVIATED_TAX_INVOICE");
+
+            // Verify saga was never created
+            verify(sagaRepository, never()).save(any());
+        }
+
+        @Test
+        void startSaga_withDebitNote_throwsIllegalArgumentException() {
+            DocumentMetadata metadata = createMetadata();
+
+            assertThatThrownBy(() ->
+                service.startSaga(DocumentType.DEBIT_NOTE, "doc-002", metadata)
+            )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DEBIT_NOTE")
+                .hasMessageContaining("not yet supported");
+
+            verify(sagaRepository, never()).save(any());
+        }
+
+        @Test
+        void startSaga_withCreditNote_throwsIllegalArgumentException() {
+            DocumentMetadata metadata = createMetadata();
+
+            assertThatThrownBy(() ->
+                service.startSaga(DocumentType.CREDIT_NOTE, "doc-003", metadata)
+            )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("CREDIT_NOTE")
+                .hasMessageContaining("not yet supported");
+
+            verify(sagaRepository, never()).save(any());
+        }
+
+        @Test
+        void startSaga_withCancellationNote_throwsIllegalArgumentException() {
+            DocumentMetadata metadata = createMetadata();
+
+            assertThatThrownBy(() ->
+                service.startSaga(DocumentType.CANCELLATION_NOTE, "doc-004", metadata)
+            )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("CANCELLATION_NOTE")
+                .hasMessageContaining("not yet supported");
+
+            verify(sagaRepository, never()).save(any());
+        }
+
+        @Test
+        void startSaga_withSupportedTypes_doesNotThrow() {
+            when(sagaRepository.findByDocumentTypeAndDocumentId(any(), any()))
+                .thenReturn(Optional.empty());
+            when(sagaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+            when(commandRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            DocumentMetadata metadata = createMetadata();
+
+            // These should not throw
+            assertThatCode(() ->
+                service.startSaga(DocumentType.INVOICE, "doc-001", metadata)
+            ).doesNotThrowAnyException();
+
+            assertThatCode(() ->
+                service.startSaga(DocumentType.TAX_INVOICE, "doc-002", metadata)
+            ).doesNotThrowAnyException();
+
+            assertThatCode(() ->
+                service.startSaga(DocumentType.ABBREVIATED_TAX_INVOICE, "doc-003", metadata)
+            ).doesNotThrowAnyException();
+        }
+    }
 }

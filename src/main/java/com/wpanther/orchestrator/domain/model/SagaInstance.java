@@ -165,19 +165,10 @@ public class SagaInstance {
     /**
      * Initializes the first step based on document type.
      *
-     * @throws IllegalArgumentException if the document type is not supported
+     * @throws UnsupportedOperationException if the document type is not supported
      */
     private void initializeFirstStep() {
-        this.currentStep = switch (documentType) {
-            case INVOICE -> SagaStep.PROCESS_INVOICE;
-            case TAX_INVOICE, ABBREVIATED_TAX_INVOICE -> SagaStep.PROCESS_TAX_INVOICE;
-            default -> throw new IllegalArgumentException(
-                    "Unsupported document type: " + documentType + ". " +
-                    "Supported types are: INVOICE, TAX_INVOICE, ABBREVIATED_TAX_INVOICE. " +
-                    "Note: ABBREVIATED_TAX_INVOICE currently uses PROCESS_TAX_INVOICE step. " +
-                    "RECEIPT, DEBIT_NOTE, CREDIT_NOTE, CANCELLATION_NOTE are not yet supported."
-            );
-        };
+        this.currentStep = documentType.getInitialStep();
     }
 
     /**

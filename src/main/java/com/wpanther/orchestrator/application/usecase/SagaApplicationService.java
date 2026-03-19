@@ -67,6 +67,14 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     @Transactional
     public SagaInstance startSaga(DocumentType documentType, String documentId,
                                   DocumentMetadata metadata, String correlationId) {
+        // Validate document type is supported before creating saga
+        if (!documentType.isSupported()) {
+            throw new IllegalArgumentException(
+                "Document type '" + documentType + "' is not yet supported. " +
+                "Supported types: INVOICE, TAX_INVOICE, ABBREVIATED_TAX_INVOICE"
+            );
+        }
+
         log.info("Starting saga for document type {} with ID {}", documentType, documentId);
 
         // Check if saga already exists for this document
