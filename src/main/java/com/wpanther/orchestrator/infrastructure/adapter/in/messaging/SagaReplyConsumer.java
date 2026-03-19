@@ -26,10 +26,17 @@ public class SagaReplyConsumer {
     private final HandleSagaReplyUseCase handleSagaReplyUseCase;
 
     /**
-     * Extracts the step name from the topic name for logging.
+     * Prefix for all saga reply topics.
      * Topics follow the pattern: saga.reply.{step-name}
      */
-    private static final Pattern TOPIC_NAME_EXTRACTOR = Pattern.compile("saga\\.reply\\.(.+)");
+    private static final String REPLY_TOPIC_PREFIX = "saga.reply.";
+
+    /**
+     * Regex pattern to extract the step name from a topic name.
+     * Uses Pattern.quote() to safely escape the topic prefix.
+     */
+    private static final Pattern TOPIC_NAME_EXTRACTOR =
+            Pattern.compile(Pattern.quote(REPLY_TOPIC_PREFIX) + "(.+)");
 
     /**
      * Unified handler for all saga reply topics.
