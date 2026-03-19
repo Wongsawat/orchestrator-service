@@ -7,7 +7,9 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -77,8 +79,12 @@ public class SagaInstance {
 
     /**
      * History of commands sent for this saga.
+     * Excludes Lombok-generated setter to ensure all modifications go through addCommand().
+     * Getter returns an unmodifiable view to prevent external mutation.
      */
     @Builder.Default
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
     private List<SagaCommandRecord> commandHistory = new ArrayList<>();
 
     /**
@@ -293,6 +299,7 @@ public class SagaInstance {
 
     /**
      * Adds a command to the history.
+     * This is the only way to modify command history, ensuring controlled mutation.
      */
     public void addCommand(SagaCommandRecord command) {
         this.commandHistory.add(command);
@@ -301,6 +308,12 @@ public class SagaInstance {
 
     /**
      * Returns an unmodifiable view of the command history.
+     * <p>
+     * The returned list cannot be modified externally. All additions must go
+     * through {@link #addCommand(SagaCommandRecord)} to ensure proper state
+     * management and audit trail integrity.
+     *
+     * @return an unmodifiable list of command records
      */
     public List<SagaCommandRecord> getCommandHistory() {
         return Collections.unmodifiableList(commandHistory);
