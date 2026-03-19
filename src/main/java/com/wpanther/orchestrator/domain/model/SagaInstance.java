@@ -153,7 +153,7 @@ public class SagaInstance {
      */
     public static SagaInstance create(DocumentType documentType, String documentId,
                                       DocumentMetadata metadata) {
-        return create(documentType, documentId, metadata, 3);
+        return create(documentType, documentId, metadata, DEFAULT_MAX_RETRIES);
     }
 
     /**
