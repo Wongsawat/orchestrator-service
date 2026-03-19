@@ -120,13 +120,8 @@ public class SagaReplyConsumer {
      * PdfSigningReplyEvent) and passes it to handleReply for metadata propagation.
      */
     private void processReply(SagaReply reply) {
-        if (reply == null) {
-            log.warn("Received null saga reply, ignoring");
-            return;
-        }
-
-        if (reply.getSagaId() == null || reply.getSagaId().isBlank()) {
-            log.warn("Received reply without sagaId, ignoring: {}", reply);
+        if (reply == null || reply.getSagaId() == null || reply.getSagaId().isBlank()) {
+            log.warn("Received invalid saga reply, ignoring");
             return;
         }
 
