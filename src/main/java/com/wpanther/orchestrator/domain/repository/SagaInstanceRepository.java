@@ -73,4 +73,18 @@ public interface SagaInstanceRepository {
      * @return The total count
      */
     long count();
+
+    /**
+     * Finds multiple saga instances by their IDs.
+     * Uses batch loading to avoid N+1 queries.
+     * <p>
+     * <b>Performance Note:</b> This method loads all sagas and their command
+     * history in exactly 2 database queries, regardless of the number of IDs.
+     * Use this instead of calling {@link #findById(String)} in a loop.
+     * </p>
+     *
+     * @param ids The saga instance IDs
+     * @return List of saga instances (empty if none found)
+     */
+    List<SagaInstance> findByIdIn(List<String> ids);
 }

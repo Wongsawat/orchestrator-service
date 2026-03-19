@@ -82,4 +82,13 @@ public class JpaSagaInstanceRepository implements SagaInstanceRepository {
     public long count() {
         return springRepository.count();
     }
+
+    @Override
+    public List<SagaInstance> findByIdIn(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        List<SagaInstanceEntity> entities = springRepository.findAllById(ids);
+        return mapper.toDomainBatch(entities);
+    }
 }
