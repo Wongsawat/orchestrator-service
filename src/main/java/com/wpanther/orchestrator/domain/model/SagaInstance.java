@@ -109,9 +109,11 @@ public class SagaInstance {
 
     /**
      * Default step flow strategy used for determining next and compensation steps.
-     * This can be overridden by injecting a custom strategy in the application layer.
+     * A new instance is created per SagaInstance for better testability.
+     * Using @Builder.Default ensures this is initialized when using the builder pattern.
      */
-    private static final com.wpanther.orchestrator.domain.service.SagaStepFlowStrategy DEFAULT_FLOW_STRATEGY =
+    @Builder.Default
+    private com.wpanther.orchestrator.domain.service.SagaStepFlowStrategy flowStrategy =
             new com.wpanther.orchestrator.domain.service.DefaultSagaStepFlowStrategy();
 
     /**
@@ -245,25 +247,48 @@ public class SagaInstance {
 
     /**
      * Gets the next step in the saga flow.
-     * Uses the default step flow strategy to determine the next step based on
+     * Uses the configured step flow strategy to determine the next step based on
      * the current step and document type.
      *
      * @return the next saga step, or null if the saga is complete
      * @throws IllegalStateException if the current step is unknown
      */
     public SagaStep getNextStep() {
-        return DEFAULT_FLOW_STRATEGY.getNextStep(currentStep, documentType);
+        return flowStrategy.getNextStep(currentStep, documentType);
+    }
+
+    /**
+     * Gets the next step in the saga flow using a specific strategy.
+     * This overload is provided for testing purposes to allow injecting mock strategies.
+     *
+     * @param strategy the strategy to use for determining the next step
+     * @return the next saga step, or null if the saga is complete
+     * @throws IllegalStateException if the current step is unknown
+     */
+    public SagaStep getNextStep(com.wpanther.orchestrator.domain.service.SagaStepFlowStrategy strategy) {
+        return strategy.getNextStep(currentStep, documentType);
     }
 
     /**
      * Gets the compensation step for the current step.
-     * Uses the default step flow strategy to determine the compensation step based on
+     * Uses the configured step flow strategy to determine the compensation step based on
      * the current step and document type.
      *
      * @return the compensation step, or null if no compensation is available
      */
     public SagaStep getCompensationStep() {
-        return DEFAULT_FLOW_STRATEGY.getCompensationStep(currentStep, documentType);
+        return flowStrategy.getCompensationStep(currentStep, documentType);
+    }
+
+    /**
+     * Gets the compensation step for the current step using a specific strategy.
+     * This overload is provided for testing purposes to allow injecting mock strategies.
+     *
+     * @param strategy the strategy to use for determining the compensation step
+     * @return the compensation step, or null if no compensation is available
+     */
+    public SagaStep getCompensationStep(com.wpanther.orchestrator.domain.service.SagaStepFlowStrategy strategy) {
+        return strategy.getCompensationStep(currentStep, documentType);
     }
 
     /**
