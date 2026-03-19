@@ -13,8 +13,9 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
 
     @Override
     public SagaStep getNextStep(SagaStep currentStep, DocumentType documentType) {
-        boolean isInvoice = documentType == DocumentType.INVOICE;
-        boolean isTaxInvoice = documentType == DocumentType.TAX_INVOICE || documentType == DocumentType.ABBREVIATED_TAX_INVOICE;
+        boolean isInvoice = DocumentType.INVOICE.equals(documentType);
+        boolean isTaxInvoice = DocumentType.TAX_INVOICE.equals(documentType)
+                || DocumentType.ABBREVIATED_TAX_INVOICE.equals(documentType);
 
         return switch (currentStep) {
             case PROCESS_INVOICE -> SagaStep.SIGN_XML;
@@ -35,8 +36,9 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
 
     @Override
     public SagaStep getCompensationStep(SagaStep currentStep, DocumentType documentType) {
-        boolean isInvoice = documentType == DocumentType.INVOICE;
-        boolean isTaxInvoice = documentType == DocumentType.TAX_INVOICE || documentType == DocumentType.ABBREVIATED_TAX_INVOICE;
+        boolean isInvoice = DocumentType.INVOICE.equals(documentType);
+        boolean isTaxInvoice = DocumentType.TAX_INVOICE.equals(documentType)
+                || DocumentType.ABBREVIATED_TAX_INVOICE.equals(documentType);
 
         return switch (currentStep) {
             case SEND_EBMS -> SagaStep.STORE_DOCUMENT;

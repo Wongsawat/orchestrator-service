@@ -297,7 +297,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
      */
     private void sendCommandForStep(SagaInstance instance, String correlationId) {
         SagaStep step = instance.getCurrentStep();
-        boolean isInvoice = instance.getDocumentType() == DocumentType.INVOICE;
+        boolean isInvoice = DocumentType.INVOICE.equals(instance.getDocumentType());
 
         // Create command record
         String commandPayload = createCommandPayload(instance, step);
