@@ -174,7 +174,7 @@ public class SagaEventPublisher {
     public void publishSagaFailed(SagaInstance saga, SagaStep failedStep, String errorMessage,
                                   String correlationId, String invoiceNumber) {
         long durationMs = java.time.Duration.between(saga.getCreatedAt(), saga.getUpdatedAt()).toMillis();
-        boolean compensating = saga.getStatus() == SagaStatus.COMPENSATING;
+        boolean compensating = SagaStatus.COMPENSATING.equals(saga.getStatus());
 
         SagaFailedEvent event = new SagaFailedEvent(
             saga.getId(),

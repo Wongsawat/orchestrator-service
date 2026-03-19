@@ -208,7 +208,7 @@ public class SagaInstance {
      * This method is idempotent - calling it multiple times has no additional effect.
      */
     public void complete() {
-        if (this.status == SagaStatus.COMPLETED) {
+        if (SagaStatus.COMPLETED.equals(this.status)) {
             return; // Already completed, idempotent
         }
         if (this.status != SagaStatus.IN_PROGRESS) {
