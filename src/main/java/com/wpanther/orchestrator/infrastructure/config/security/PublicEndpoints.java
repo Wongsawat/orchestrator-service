@@ -19,12 +19,26 @@ public final class PublicEndpoints {
     }
 
     /**
-     * Actuator health endpoint for health checks.
+     * Base path for actuator health endpoint.
+     * Used by ApiKeyAuthenticationFilter for granular path matching.
+     */
+    public static final String ACTUATOR_HEALTH_BASE = "/actuator/health";
+
+    /**
+     * Actuator health endpoint for health checks (with wildcard pattern).
+     * Used by SecurityConfig for requestMatchers.
      */
     public static final String ACTUATOR_HEALTH = "/actuator/health/**";
 
     /**
-     * Actuator info endpoint for application information.
+     * Base path for actuator info endpoint.
+     * Used by ApiKeyAuthenticationFilter for granular path matching.
+     */
+    public static final String ACTUATOR_INFO_BASE = "/actuator/info";
+
+    /**
+     * Actuator info endpoint for application information (with wildcard pattern).
+     * Used by SecurityConfig for requestMatchers.
      */
     public static final String ACTUATOR_INFO = "/actuator/info/**";
 

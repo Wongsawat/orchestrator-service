@@ -158,12 +158,12 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
      * @return true if the path is public, false otherwise
      */
     private boolean isPublicEndpoint(String path) {
-        return path.equals("/actuator/health") ||
-               path.equals("/actuator/health/") ||
-               path.startsWith("/actuator/health/") ||
-               path.equals("/actuator/info") ||
-               path.equals("/actuator/info/") ||
-               path.startsWith("/actuator/info/") ||
+        return path.equals(PublicEndpoints.ACTUATOR_HEALTH_BASE) ||
+               path.equals(PublicEndpoints.ACTUATOR_HEALTH_BASE + "/") ||
+               path.startsWith(PublicEndpoints.ACTUATOR_HEALTH_BASE + "/") ||
+               path.equals(PublicEndpoints.ACTUATOR_INFO_BASE) ||
+               path.equals(PublicEndpoints.ACTUATOR_INFO_BASE + "/") ||
+               path.startsWith(PublicEndpoints.ACTUATOR_INFO_BASE + "/") ||
                path.equals(PublicEndpoints.SAGA_HEALTH) ||
                path.equals(PublicEndpoints.ERROR);
     }
