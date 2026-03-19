@@ -114,6 +114,12 @@ app:
     max-retries: 3
     retry-delay-seconds: 5
     compensation-timeout-seconds: 300
+    # Timeout protection
+    # Marks sagas as FAILED if they remain in IN_PROGRESS status too long
+    timeout-minutes: 30
+    timeout-check-enabled: true
+    timeout-check-interval-seconds: 60
+    timeout-check-initial-delay-seconds: 30
 
   # Security configuration
   admin:
