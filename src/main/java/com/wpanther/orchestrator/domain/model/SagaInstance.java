@@ -309,4 +309,24 @@ public class SagaInstance {
     public List<SagaCommandRecord> getCommandHistory() {
         return Collections.unmodifiableList(commandHistory);
     }
+
+    /**
+     * Checks if this saga has expired based on the given timeout duration.
+     * A saga is considered expired if it has been in IN_PROGRESS status
+     * longer than the specified timeout since its last update.
+     *
+     * @param timeoutMinutes the timeout duration in minutes
+     * @return true if the saga has expired, false otherwise
+     */
+    public boolean isExpired(int timeoutMinutes) {
+        if (timeoutMinutes <= 0) {
+            return false; // Timeout disabled
+        }
+        if (status != SagaStatus.IN_PROGRESS) {
+            return false; // Only IN_PROGRESS sagas can expire
+        }
+        long timeoutMs = timeoutMinutes * 60L * 1000L;
+        long elapsedMs = Instant.now().toEpochMilli() - updatedAt.toEpochMilli();
+        return elapsedMs > timeoutMs;
+    }
 }

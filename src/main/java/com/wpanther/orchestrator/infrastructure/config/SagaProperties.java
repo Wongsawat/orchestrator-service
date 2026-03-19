@@ -27,4 +27,18 @@ public class SagaProperties {
      * Timeout for compensation operations in seconds.
      */
     private int compensationTimeoutSeconds = 300;
+
+    /**
+     * Timeout for saga execution in minutes.
+     * If a saga remains in IN_PROGRESS status longer than this duration,
+     * it will be marked as failed and compensation will be initiated.
+     * Set to 0 to disable timeout checking.
+     */
+    private int timeoutMinutes = 30;
+
+    /**
+     * Whether timeout checking is enabled.
+     * If false, the scheduled timeout checker will not run.
+     */
+    private boolean timeoutCheckEnabled = true;
 }
