@@ -19,8 +19,12 @@ import java.util.Map;
  * Mapper for converting between SagaInstance domain model and SagaInstanceEntity JPA entity.
  * <p>
  * <b>Coding Standard:</b> This class uses {@code List.of()} for empty collections instead
- * of {@code Collections.emptyList()}. This is consistent across the entire codebase and
- * leverages the modern Java 9+ immutable collection factory methods.
+ * of {@code Collections.emptyList()}, leveraging the modern Java 9+ immutable collection
+ * factory methods.
+ * <p>
+ * <b>Note:</b> For returning read-only views of mutable internal lists (e.g., in domain models),
+ * {@code Collections.unmodifiableList()} is still used to provide a defensive wrapper that
+ * reflects future modifications to the underlying collection.
  */
 @Component
 @RequiredArgsConstructor
