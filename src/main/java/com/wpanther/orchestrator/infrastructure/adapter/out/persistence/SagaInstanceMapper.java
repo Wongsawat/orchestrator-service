@@ -78,58 +78,15 @@ public class SagaInstanceMapper {
 
     /**
      * Converts JPA entity to domain model.
+     * Loads command history from the repository.
      */
     public SagaInstance toDomain(SagaInstanceEntity entity) {
         if (entity == null) {
             return null;
         }
-
-        var builder = SagaInstance.builder()
-                .id(entity.getId())
-                .documentType(entity.getDocumentType())
-                .documentId(entity.getDocumentId())
-                .currentStep(entity.getCurrentStep())
-                .status(entity.getStatus())
-                .createdAt(entity.getCreatedAt())
-                .updatedAt(entity.getUpdatedAt())
-                .completedAt(entity.getCompletedAt())
-                .errorMessage(entity.getErrorMessage())
-                .correlationId(entity.getCorrelationId())
-                .retryCount(entity.getRetryCount() != null ? entity.getRetryCount() : 0)
-                .maxRetries(entity.getMaxRetries() != null ? entity.getMaxRetries() : DEFAULT_MAX_RETRIES);
-
-        // Map DocumentMetadata if present
-        if (entity.getFilePath() != null || entity.getXmlContent() != null
-                || entity.getMetadata() != null) {
-            DocumentMetadata.DocumentMetadataBuilder metadataBuilder = DocumentMetadata.builder()
-                    .filePath(entity.getFilePath())
-                    .xmlContent(entity.getXmlContent())
-                    .fileSize(entity.getFileSize())
-                    .mimeType(entity.getMimeType())
-                    .checksum(entity.getChecksum());
-
-            // Parse metadata JSON string
-            if (entity.getMetadata() != null && !entity.getMetadata().isEmpty()) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> metadataMap = objectMapper.readValue(
-                            entity.getMetadata(),
-                            java.util.Map.class
-                    );
-                    metadataBuilder.metadata(metadataMap);
-                } catch (JsonProcessingException e) {
-                    log.warn("Failed to deserialize metadata for saga {}", entity.getId(), e);
-                }
-            }
-
-            builder.documentMetadata(metadataBuilder.build());
-        }
-
-        // Load command history
+        // Load command history and delegate to the common mapping method
         List<SagaCommandRecord> commands = commandRepository.findBySagaId(entity.getId());
-        builder.commandHistory(new ArrayList<>(commands));
-
-        return builder.build();
+        return toDomainWithCommands(entity, commands);
     }
 
     /**
