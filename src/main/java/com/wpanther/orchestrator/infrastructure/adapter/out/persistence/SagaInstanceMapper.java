@@ -1,6 +1,7 @@
 package com.wpanther.orchestrator.infrastructure.adapter.out.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaCommandRecord;
@@ -151,10 +152,9 @@ public class SagaInstanceMapper {
             // Parse metadata JSON string
             if (entity.getMetadata() != null && !entity.getMetadata().isEmpty()) {
                 try {
-                    @SuppressWarnings("unchecked")
-                    java.util.Map<String, Object> metadataMap = objectMapper.readValue(
+                    Map<String, Object> metadataMap = objectMapper.readValue(
                             entity.getMetadata(),
-                            java.util.Map.class
+                            new TypeReference<Map<String, Object>>() {}
                     );
                     metadataBuilder.metadata(metadataMap);
                 } catch (JsonProcessingException e) {
