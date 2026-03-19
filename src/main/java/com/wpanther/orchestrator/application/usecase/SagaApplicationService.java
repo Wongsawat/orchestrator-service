@@ -142,7 +142,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         // Update the command record
         List<SagaCommandRecord> commands = commandRepository.findBySagaId(sagaId);
         SagaCommandRecord lastCommand = commands.stream()
-                .filter(c -> c.getTargetStep() == completedStep)
+                .filter(c -> completedStep.equals(c.getTargetStep()))
                 .filter(c -> SagaCommandRecord.CommandStatus.SENT.equals(c.getStatus()))
                 .reduce((a, b) -> b) // Get the last one
                 .orElse(null);
