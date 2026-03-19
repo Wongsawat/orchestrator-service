@@ -115,9 +115,10 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
 
         // Merge result data into saga metadata for subsequent steps to use
+        // withMetadataValue() handles null metadata maps internally
         if (resultData != null && !resultData.isEmpty() && success) {
             DocumentMetadata metadata = instance.getDocumentMetadata();
-            if (metadata != null && metadata.getMetadata() != null) {
+            if (metadata != null) {
                 // Apply all resultData entries immutably using withMetadataValue pattern
                 DocumentMetadata updatedMetadata = metadata;
                 for (Map.Entry<String, Object> entry : resultData.entrySet()) {
@@ -126,15 +127,6 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 instance.setDocumentMetadata(updatedMetadata);
                 log.debug("Merged {} result data fields into saga {} metadata: {}",
                         resultData.size(), sagaId, resultData.keySet());
-            } else if (metadata != null) {
-                // Metadata exists but map is null - initialize with result data
-                DocumentMetadata updatedMetadata = metadata;
-                for (Map.Entry<String, Object> entry : resultData.entrySet()) {
-                    updatedMetadata = updatedMetadata.withMetadataValue(entry.getKey(), entry.getValue());
-                }
-                instance.setDocumentMetadata(updatedMetadata);
-                log.debug("Initialized metadata with {} result data fields for saga {}",
-                        resultData.size(), sagaId);
             }
         }
 
