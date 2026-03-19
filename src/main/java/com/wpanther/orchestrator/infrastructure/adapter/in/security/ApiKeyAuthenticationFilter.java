@@ -1,22 +1,20 @@
 package com.wpanther.orchestrator.infrastructure.adapter.in.security;
 
+import com.wpanther.orchestrator.infrastructure.config.security.ApiKeyProperties;
 import com.wpanther.orchestrator.infrastructure.config.security.PublicEndpoints;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.env.Environment;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.util.Collections;
-
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -59,24 +57,20 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * List of valid API keys.
-     * Loaded from orchestrator.admin.api-keys property or ORCHESTRATOR_API_KEYS env var.
+     * Loaded from ApiKeyProperties which reads orchestrator.admin.api-keys property.
      */
     private final List<String> validApiKeys;
 
     /**
      * Creates a new API key authentication filter.
-     * Reads API keys from the Spring Environment.
      *
-     * @param environment the Spring environment for reading properties
+     * @param properties the API key configuration properties
      * @throws IllegalStateException if no API keys are configured
      */
-    public ApiKeyAuthenticationFilter(Environment environment) {
-        String apiKeys = environment.getProperty("orchestrator.admin.api-keys", "");
-        if (apiKeys != null && !apiKeys.isBlank()) {
-            this.validApiKeys = Arrays.stream(apiKeys.split(","))
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .toList();
+    public ApiKeyAuthenticationFilter(ApiKeyProperties properties) {
+        List<String> apiKeys = properties.getApiKeys();
+        if (apiKeys != null && !apiKeys.isEmpty()) {
+            this.validApiKeys = apiKeys;
             log.debug("Loaded {} valid API key(s) for admin access", this.validApiKeys.size());
         } else {
             // Fail fast if no API keys configured - security risk in production

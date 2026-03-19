@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -33,11 +32,11 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 public class SecurityConfig {
 
     private final CorsProperties corsProperties;
-    private final Environment environment;
+    private final ApiKeyProperties apiKeyProperties;
 
-    public SecurityConfig(CorsProperties corsProperties, Environment environment) {
+    public SecurityConfig(CorsProperties corsProperties, ApiKeyProperties apiKeyProperties) {
         this.corsProperties = corsProperties;
-        this.environment = environment;
+        this.apiKeyProperties = apiKeyProperties;
     }
 
     /**
@@ -45,7 +44,7 @@ public class SecurityConfig {
      */
     @Bean
     public ApiKeyAuthenticationFilter apiKeyAuthenticationFilter() {
-        return new ApiKeyAuthenticationFilter(environment);
+        return new ApiKeyAuthenticationFilter(apiKeyProperties);
     }
 
     /**
