@@ -7,6 +7,7 @@ import com.wpanther.orchestrator.domain.event.SagaFailedEvent;
 import com.wpanther.orchestrator.domain.event.SagaStartedEvent;
 import com.wpanther.orchestrator.domain.event.SagaStepCompletedEvent;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
+import com.wpanther.orchestrator.infrastructure.metrics.SagaMetrics;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.infrastructure.outbox.OutboxService;
@@ -33,6 +34,7 @@ public class SagaEventPublisher {
 
     private final OutboxService outboxService;
     private final ObjectMapper objectMapper;
+    private final SagaMetrics sagaMetrics;
 
     @Value("${app.kafka.topics.saga-lifecycle-started:saga.lifecycle.started}")
     private String sagaStartedTopic;
@@ -60,6 +62,9 @@ public class SagaEventPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSagaStarted(SagaInstance saga, String correlationId, String invoiceNumber) {
+        // Record metric
+        sagaMetrics.recordSagaStarted(saga.getDocumentType());
+
         SagaStartedEvent event = new SagaStartedEvent(
             saga.getId(),
             correlationId,
@@ -94,6 +99,9 @@ public class SagaEventPublisher {
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSagaStepCompleted(SagaInstance saga, SagaStep completedStep,
                                          String correlationId) {
+        // Record metric
+        sagaMetrics.recordStepCompleted(saga.getDocumentType(), completedStep);
+
         SagaStep nextStep = saga.getNextStep();
 
         SagaStepCompletedEvent event = new SagaStepCompletedEvent(
@@ -129,6 +137,9 @@ public class SagaEventPublisher {
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSagaCompleted(SagaInstance saga, String correlationId, String invoiceNumber) {
         long durationMs = java.time.Duration.between(saga.getCreatedAt(), saga.getCompletedAt()).toMillis();
+
+        // Record metric
+        sagaMetrics.recordSagaCompleted(saga.getDocumentType(), durationMs);
 
         SagaCompletedEvent event = new SagaCompletedEvent(
             saga.getId(),
@@ -175,6 +186,12 @@ public class SagaEventPublisher {
                                   String correlationId, String invoiceNumber) {
         long durationMs = java.time.Duration.between(saga.getCreatedAt(), saga.getUpdatedAt()).toMillis();
         boolean compensating = SagaStatus.COMPENSATING.equals(saga.getStatus());
+
+        // Record metrics
+        sagaMetrics.recordSagaFailed(saga.getDocumentType(), durationMs, compensating);
+        if (failedStep != null) {
+            sagaMetrics.recordStepFailed(saga.getDocumentType(), failedStep);
+        }
 
         SagaFailedEvent event = new SagaFailedEvent(
             saga.getId(),

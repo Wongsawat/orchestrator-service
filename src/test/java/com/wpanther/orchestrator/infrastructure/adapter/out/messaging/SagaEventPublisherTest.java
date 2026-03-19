@@ -1,10 +1,10 @@
 package com.wpanther.orchestrator.infrastructure.adapter.out.messaging;
 
-import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaEventPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
+import com.wpanther.orchestrator.infrastructure.metrics.SagaMetrics;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.infrastructure.outbox.OutboxService;
@@ -29,11 +29,13 @@ class SagaEventPublisherTest {
 
     @Mock private OutboxService outboxService;
 
+    @Mock private SagaMetrics sagaMetrics;
+
     private SagaEventPublisher publisher;
 
     @BeforeEach
     void setUp() {
-        publisher = new SagaEventPublisher(outboxService, new ObjectMapper());
+        publisher = new SagaEventPublisher(outboxService, new ObjectMapper(), sagaMetrics);
         ReflectionTestUtils.setField(publisher, "sagaStartedTopic", "saga.lifecycle.started");
         ReflectionTestUtils.setField(publisher, "sagaStepCompletedTopic", "saga.lifecycle.step-completed");
         ReflectionTestUtils.setField(publisher, "sagaCompletedTopic", "saga.lifecycle.completed");
