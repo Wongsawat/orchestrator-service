@@ -60,23 +60,13 @@ public class DocumentMetadata {
     }
 
     /**
-     * Adds a metadata value.
-     * <p><b>Warning:</b> This method mutates the DocumentMetadata instance.
-     * Use {@link #withMetadataValue(String, Object)} for immutable updates instead.
-     * This method is retained for internal use within saga orchestration where
-     * performance is critical and the instance is not shared across threads.</p>
-     */
-    public void addMetadataValue(String key, Object value) {
-        if (this.metadata == null) {
-            this.metadata = new java.util.HashMap<>();
-        }
-        this.metadata.put(key, value);
-    }
-
-    /**
      * Returns a new DocumentMetadata instance with an additional metadata value.
      * <p>This method creates a new instance without modifying the current one,
      * making it safe for use in concurrent scenarios or when immutability is desired.</p>
+     * <p><b>Note:</b> This is the recommended way to add metadata values. The mutable
+     * {@code addMetadataValue()} method is kept package-private for internal use
+     * within saga orchestration where performance is critical and the instance
+     * is not shared across threads.</p>
      *
      * @param key   the metadata key
      * @param value the metadata value
@@ -95,5 +85,22 @@ public class DocumentMetadata {
                 .mimeType(this.mimeType)
                 .checksum(this.checksum)
                 .build();
+    }
+
+    /**
+     * Adds a metadata value to this instance (mutable operation).
+     * <p><b>Warning:</b> This method mutates the DocumentMetadata instance.
+     * Use {@link #withMetadataValue(String, Object)} for immutable updates instead.
+     * This method is package-private for internal use within saga orchestration where
+     * performance is critical and the instance is not shared across threads.</p>
+     *
+     * @param key   the metadata key
+     * @param value the metadata value
+     */
+    void addMetadataValue(String key, Object value) {
+        if (this.metadata == null) {
+            this.metadata = new java.util.HashMap<>();
+        }
+        this.metadata.put(key, value);
     }
 }
