@@ -170,6 +170,8 @@ public class SagaInstanceMapper {
         }
 
         // Use pre-loaded command history
+        // Defensive copy: commands may be an unmodifiable view from SagaInstance.getCommandHistory(),
+        // but the builder requires a mutable list. This also prevents shared mutable state.
         builder.commandHistory(new ArrayList<>(commands));
 
         return builder.build();
