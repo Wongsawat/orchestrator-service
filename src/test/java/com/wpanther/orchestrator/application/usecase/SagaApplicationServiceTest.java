@@ -166,7 +166,7 @@ class SagaApplicationServiceTest {
                 "doc-001",
                 "/path/to/file.xml",
                 "<Invoice/>",
-                Map.of("invoiceNumber", "INV-001"),
+                Map.of("documentNumber", "INV-001"),
                 1024L,
                 "application/xml",
                 "abc123"
@@ -177,7 +177,7 @@ class SagaApplicationServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.getDocumentMetadata().getFilePath()).isEqualTo("/path/to/file.xml");
             assertThat(result.getDocumentMetadata().getXmlContent()).isEqualTo("<Invoice/>");
-            assertThat(result.getDocumentMetadata().getMetadata()).containsEntry("invoiceNumber", "INV-001");
+            assertThat(result.getDocumentMetadata().getMetadata()).containsEntry("documentNumber", "INV-001");
             assertThat(result.getDocumentMetadata().getFileSize()).isEqualTo(1024L);
             assertThat(result.getDocumentMetadata().getMimeType()).isEqualTo("application/xml");
             assertThat(result.getDocumentMetadata().getChecksum()).isEqualTo("abc123");

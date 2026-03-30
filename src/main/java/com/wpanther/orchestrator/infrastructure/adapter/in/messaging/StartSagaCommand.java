@@ -24,10 +24,10 @@ public class StartSagaCommand extends InboundCommand {
     private static final long serialVersionUID = 1L;
 
     /**
-     * The invoice/tax invoice number from the document.
+     * The document number from the document.
      */
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     /**
      * The full XML content of the document.
@@ -41,15 +41,15 @@ public class StartSagaCommand extends InboundCommand {
      *
      * @param documentId    ID of the IncomingDocument that triggered this saga
      * @param documentType  Type of document (TAX_INVOICE, INVOICE, RECEIPT, etc.)
-     * @param invoiceNumber The invoice/tax invoice number from the document
+     * @param documentNumber The document number from the document
      * @param xmlContent    The full XML content of the document
      * @param correlationId Correlation ID for tracing the request across all services
      * @param source        Source of the document (API, KAFKA, etc.)
      */
-    public StartSagaCommand(String documentId, String documentType, String invoiceNumber,
+    public StartSagaCommand(String documentId, String documentType, String documentNumber,
                             String xmlContent, String correlationId, String source) {
         super(documentId, source, correlationId, documentType);
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.xmlContent = xmlContent;
     }
 
@@ -66,16 +66,16 @@ public class StartSagaCommand extends InboundCommand {
             @JsonProperty("source") String source,
             @JsonProperty("correlationId") String correlationId,
             @JsonProperty("documentType") String documentType,
-            @JsonProperty("invoiceNumber") String invoiceNumber,
+            @JsonProperty("documentNumber") String documentNumber,
             @JsonProperty("xmlContent") String xmlContent) {
         super(eventId, occurredAt, eventType, version, documentId, source, correlationId, documentType);
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
         this.xmlContent = xmlContent;
     }
 
     // Getters for additional fields
-    public String getInvoiceNumber() {
-        return invoiceNumber;
+    public String getDocumentNumber() {
+        return documentNumber;
     }
 
     public String getXmlContent() {

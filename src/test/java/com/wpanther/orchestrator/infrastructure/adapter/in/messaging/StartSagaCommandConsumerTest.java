@@ -37,7 +37,7 @@ class StartSagaCommandConsumerTest {
     }
 
     private StartSagaCommand createCommand(String documentType) {
-        // Constructor order: (eventId, occurredAt, eventType, version, documentId, source, correlationId, documentType, invoiceNumber, xmlContent)
+        // Constructor order: (eventId, occurredAt, eventType, version, documentId, source, correlationId, documentType, documentNumber, xmlContent)
         return new StartSagaCommand(
                 UUID.randomUUID(),
                 java.time.Instant.now(),

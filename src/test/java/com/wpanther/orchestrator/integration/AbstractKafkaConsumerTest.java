@@ -337,7 +337,7 @@ public abstract class AbstractKafkaConsumerTest {
         return DocumentMetadata.builder()
             .filePath("/test/path/" + documentId + ".xml")
             .xmlContent("<test>content</test>")
-            .metadata(java.util.Map.of("invoiceNumber", "INV-" + documentId))
+            .metadata(java.util.Map.of("documentNumber", "INV-" + documentId))
             .fileSize(1024L)
             .mimeType("application/xml")
             .checksum("abc123")

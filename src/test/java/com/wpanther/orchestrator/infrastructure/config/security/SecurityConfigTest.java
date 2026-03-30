@@ -176,7 +176,7 @@ class SecurityConfigTest {
             mockMvc.perform(post("/api/saga/start")
                             .header("X-API-Key", VALID_API_KEY)
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content("{\"documentType\":\"INVOICE\",\"documentId\":\"doc-123\",\"invoiceNumber\":\"INV-001\",\"xmlContent\":\"<test></test>\"}"))
+                            .content("{\"documentType\":\"INVOICE\",\"documentId\":\"doc-123\",\"documentNumber\":\"INV-001\",\"xmlContent\":\"<test></test>\"}"))
                     .andExpect(result -> {
                         int status = result.getResponse().getStatus();
                         // 400 is acceptable (validation error), but 401/403 means auth failed

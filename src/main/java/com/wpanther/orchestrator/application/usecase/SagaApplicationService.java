@@ -103,8 +103,8 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         SagaInstance saved = sagaRepository.save(instance);
 
         // Publish saga started event
-        String invoiceNumber = extractInvoiceNumber(metadata);
-        eventPublisher.publishSagaStarted(saved, correlationId, invoiceNumber);
+        String documentNumber = extractDocumentNumber(metadata);
+        eventPublisher.publishSagaStarted(saved, correlationId, documentNumber);
 
         // Create and send first command via outbox
         sendCommandForStep(saved, correlationId);
@@ -182,9 +182,9 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 sagaRepository.save(instance);
 
                 // Publish saga failed event
-                String invoiceNumber = extractInvoiceNumber(instance.getDocumentMetadata());
+                String documentNumber = extractDocumentNumber(instance.getDocumentMetadata());
                 eventPublisher.publishSagaFailed(instance, completedStep, errorMessage,
-                    correlationId, invoiceNumber);
+                    correlationId, documentNumber);
 
                 sendCompensationCommand(instance, completedStep, correlationId);
                 return instance;
@@ -204,8 +204,8 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 sagaRepository.save(instance);
 
                 // Publish saga completed event
-                String invoiceNumber = extractInvoiceNumber(instance.getDocumentMetadata());
-                eventPublisher.publishSagaCompleted(instance, correlationId, invoiceNumber);
+                String documentNumber = extractDocumentNumber(instance.getDocumentMetadata());
+                eventPublisher.publishSagaCompleted(instance, correlationId, documentNumber);
 
                 log.info("Saga {} completed successfully", sagaId);
             }
@@ -414,12 +414,12 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     }
 
     /**
-     * Extracts invoice number from metadata.
+     * Extracts document number from metadata.
      */
-    private String extractInvoiceNumber(DocumentMetadata metadata) {
+    private String extractDocumentNumber(DocumentMetadata metadata) {
         if (metadata != null && metadata.getMetadata() != null) {
-            Object invoiceNumber = metadata.getMetadata().get("invoiceNumber");
-            return invoiceNumber != null ? invoiceNumber.toString() : null;
+            Object documentNumber = metadata.getMetadata().get("documentNumber");
+            return documentNumber != null ? documentNumber.toString() : null;
         }
         return null;
     }
