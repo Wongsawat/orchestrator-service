@@ -169,7 +169,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // Given - command with invalid document type (but valid JSON)
             String documentId = "INVALID-" + UUID.randomUUID();
             String commandJson = String.format(
-                "{\"documentId\":\"%s\",\"documentType\":\"INVALID_TYPE\",\"invoiceNumber\":\"INV-123\","
+                "{\"documentId\":\"%s\",\"documentType\":\"INVALID_TYPE\",\"documentNumber\":\"INV-123\","
                 + "\"xmlContent\":\"<test/>\",\"correlationId\":\"%s\",\"source\":\"TEST\"}",
                 documentId, UUID.randomUUID());
 

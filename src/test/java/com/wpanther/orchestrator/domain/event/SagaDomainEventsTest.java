@@ -33,7 +33,7 @@ class SagaDomainEventsTest {
             assertThat(event.getDocumentType()).isEqualTo("INVOICE");
             assertThat(event.getDocumentId()).isEqualTo("doc-001");
             assertThat(event.getCurrentStep()).isEqualTo("process-invoice");
-            assertThat(event.getInvoiceNumber()).isEqualTo("INV-001");
+            assertThat(event.getDocumentNumber()).isEqualTo("INV-001");
         }
 
         @Test
@@ -45,7 +45,7 @@ class SagaDomainEventsTest {
 
             assertThat(event.getSagaId()).isEqualTo("saga-002");
             assertThat(event.getCurrentStep()).isNull();
-            assertThat(event.getInvoiceNumber()).isNull();
+            assertThat(event.getDocumentNumber()).isNull();
         }
     }
 
@@ -98,7 +98,7 @@ class SagaDomainEventsTest {
             assertThat(event.getCorrelationId()).isEqualTo("corr-001");
             assertThat(event.getDocumentType()).isEqualTo("INVOICE");
             assertThat(event.getDocumentId()).isEqualTo("doc-001");
-            assertThat(event.getInvoiceNumber()).isEqualTo("INV-001");
+            assertThat(event.getDocumentNumber()).isEqualTo("INV-001");
             assertThat(event.getStepsExecuted()).isEqualTo(7);
             assertThat(event.getStartedAt()).isEqualTo(startedAt);
             assertThat(event.getCompletedAt()).isEqualTo(completedAt);
@@ -126,7 +126,7 @@ class SagaDomainEventsTest {
             assertThat(event.getCorrelationId()).isEqualTo("corr-001");
             assertThat(event.getDocumentType()).isEqualTo("INVOICE");
             assertThat(event.getDocumentId()).isEqualTo("doc-001");
-            assertThat(event.getInvoiceNumber()).isEqualTo("INV-001");
+            assertThat(event.getDocumentNumber()).isEqualTo("INV-001");
             assertThat(event.getFailedStep()).isEqualTo("sign-xml");
             assertThat(event.getErrorMessage()).isEqualTo("Signing service unavailable");
             assertThat(event.getRetryCount()).isEqualTo(3);
@@ -148,7 +148,7 @@ class SagaDomainEventsTest {
             );
 
             assertThat(event.getFailedStep()).isNull();
-            assertThat(event.getInvoiceNumber()).isNull();
+            assertThat(event.getDocumentNumber()).isNull();
             assertThat(event.getCompensationInitiated()).isFalse();
         }
     }
@@ -166,7 +166,7 @@ class SagaDomainEventsTest {
 
             assertThat(command.getDocumentId()).isEqualTo("doc-001");
             assertThat(command.getDocumentType()).isEqualTo("TAX_INVOICE");
-            assertThat(command.getInvoiceNumber()).isEqualTo("TAX-001");
+            assertThat(command.getDocumentNumber()).isEqualTo("TAX-001");
             assertThat(command.getXmlContent()).isEqualTo("<xml/>");
             assertThat(command.getCorrelationId()).isEqualTo("corr-001");
             assertThat(command.getSource()).isEqualTo("document-intake");

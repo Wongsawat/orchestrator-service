@@ -60,7 +60,7 @@ class SagaCommandPublisherTest {
 
     private SagaInstance createInvoiceSaga() {
         Map<String, Object> meta = new HashMap<>();
-        meta.put("invoiceNumber", "INV-001");
+        meta.put("documentNumber", "INV-001");
         meta.put("invoiceId", "uuid-001");
         DocumentMetadata dm = DocumentMetadata.builder()
                 .xmlContent("<xml/>").metadata(meta).build();
@@ -71,7 +71,7 @@ class SagaCommandPublisherTest {
 
     private SagaInstance createTaxInvoiceSaga() {
         Map<String, Object> meta = new HashMap<>();
-        meta.put("invoiceNumber", "TAX-001");
+        meta.put("documentNumber", "TAX-001");
         meta.put("taxInvoiceId", "tax-uuid-001");
         DocumentMetadata dm = DocumentMetadata.builder()
                 .xmlContent("<xml/>").metadata(meta).build();

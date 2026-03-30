@@ -34,21 +34,21 @@ public class SagaStartedEvent extends TraceEvent {
     private final String currentStep;
 
     /**
-     * Invoice/tax invoice number for reference.
+     * Document number for reference.
      */
-    @JsonProperty("invoiceNumber")
-    private final String invoiceNumber;
+    @JsonProperty("documentNumber")
+    private final String documentNumber;
 
     /**
      * Convenience constructor for creating a new SagaStartedEvent.
      */
     public SagaStartedEvent(String sagaId, String correlationId, String documentType,
-                            String documentId, String currentStep, String invoiceNumber) {
+                            String documentId, String currentStep, String documentNumber) {
         super(sagaId, correlationId, "orchestrator", "SAGA_STARTED", null);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
     }
 
     /**
@@ -68,12 +68,12 @@ public class SagaStartedEvent extends TraceEvent {
             @JsonProperty("documentType") String documentType,
             @JsonProperty("documentId") String documentId,
             @JsonProperty("currentStep") String currentStep,
-            @JsonProperty("invoiceNumber") String invoiceNumber) {
+            @JsonProperty("documentNumber") String documentNumber) {
         super(eventId, occurredAt, eventType, version, sagaId, correlationId, source, traceType, context);
         this.documentType = documentType;
         this.documentId = documentId;
         this.currentStep = currentStep;
-        this.invoiceNumber = invoiceNumber;
+        this.documentNumber = documentNumber;
     }
 
     // Getters for additional fields
@@ -89,7 +89,7 @@ public class SagaStartedEvent extends TraceEvent {
         return currentStep;
     }
 
-    public String getInvoiceNumber() {
-        return invoiceNumber;
+    public String getDocumentNumber() {
+        return documentNumber;
     }
 }

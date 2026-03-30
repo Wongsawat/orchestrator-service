@@ -67,7 +67,7 @@ public class StartSagaCommandConsumer {
 
             // Create metadata map
             Map<String, Object> metadataMap = new HashMap<>();
-            metadataMap.put("invoiceNumber", command.getInvoiceNumber());
+            metadataMap.put("documentNumber", command.getDocumentNumber());
             metadataMap.put("source", command.getSource());
             metadataMap.put("eventId", command.getEventId().toString());
 

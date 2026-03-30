@@ -61,7 +61,7 @@ public class SagaEventPublisher {
      * Publishes a SagaStartedEvent when a new saga is created.
      */
     @Transactional(propagation = Propagation.MANDATORY)
-    public void publishSagaStarted(SagaInstance saga, String correlationId, String invoiceNumber) {
+    public void publishSagaStarted(SagaInstance saga, String correlationId, String documentNumber) {
         // Record metric
         sagaMetrics.recordSagaStarted(saga.getDocumentType());
 
@@ -71,7 +71,7 @@ public class SagaEventPublisher {
             saga.getDocumentType().name(),
             saga.getDocumentId(),
             saga.getCurrentStep() != null ? saga.getCurrentStep().getCode() : null,
-            invoiceNumber
+            documentNumber
         );
 
         Map<String, String> headers = new HashMap<>();
@@ -135,7 +135,7 @@ public class SagaEventPublisher {
      * Publishes a SagaCompletedEvent when a saga completes successfully.
      */
     @Transactional(propagation = Propagation.MANDATORY)
-    public void publishSagaCompleted(SagaInstance saga, String correlationId, String invoiceNumber) {
+    public void publishSagaCompleted(SagaInstance saga, String correlationId, String documentNumber) {
         long durationMs = java.time.Duration.between(saga.getCreatedAt(), saga.getCompletedAt()).toMillis();
 
         // Record metric
@@ -146,7 +146,7 @@ public class SagaEventPublisher {
             correlationId,
             saga.getDocumentType().name(),
             saga.getDocumentId(),
-            invoiceNumber,
+            documentNumber,
             saga.getCommandHistory().size(),
             saga.getCreatedAt(),
             saga.getCompletedAt(),
@@ -183,7 +183,7 @@ public class SagaEventPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSagaFailed(SagaInstance saga, SagaStep failedStep, String errorMessage,
-                                  String correlationId, String invoiceNumber) {
+                                  String correlationId, String documentNumber) {
         long durationMs = java.time.Duration.between(saga.getCreatedAt(), saga.getUpdatedAt()).toMillis();
         boolean compensating = SagaStatus.COMPENSATING.equals(saga.getStatus());
 
@@ -198,7 +198,7 @@ public class SagaEventPublisher {
             correlationId,
             saga.getDocumentType().name(),
             saga.getDocumentId(),
-            invoiceNumber,
+            documentNumber,
             failedStep != null ? failedStep.getCode() : null,
             errorMessage,
             saga.getRetryCount(),

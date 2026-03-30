@@ -20,10 +20,10 @@ class DocumentMetadataTest {
         @DisplayName("returns value when key exists in metadata")
         void returnsValueForExistingKey() {
             Map<String, Object> meta = new HashMap<>();
-            meta.put("invoiceNumber", "INV-001");
+            meta.put("documentNumber", "INV-001");
             DocumentMetadata dm = DocumentMetadata.builder().metadata(meta).build();
 
-            assertThat(dm.getMetadataValue("invoiceNumber")).isEqualTo("INV-001");
+            assertThat(dm.getMetadataValue("documentNumber")).isEqualTo("INV-001");
         }
 
         @Test
