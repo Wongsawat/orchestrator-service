@@ -1,4 +1,4 @@
-# Rename invoiceNumber to documentNumber — Implementation Plan
+ # Rename invoiceNumber to documentNumber — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -6,9 +6,34 @@
 
 **Architecture:** Pure refactor — no behavior change. Rename Java fields, methods, `@JsonProperty` annotations, and metadata map keys in 8 source files and 8 test files. SagaCommandPublisher.java requires targeted edits to avoid colliding with `taxInvoiceNumber`.
 
-**Tech Stack:** Java 21, Spring Boot 3.2.5, Jackson `@JsonProperty`, MapStruct, JUnit 5, AssertJ, Mockito
+**Tech Stack:** Java 21, Spring Boot 3.2.5, Jackson `@JsonProperty`, MapStruct, Lombok, JUnit 5, AssertJ, Mockito
+
+**Branch:** `refactor/rename-invoice-number-to-document-number` (created via worktree)
+
+**Build command:** `mvn clean test` — always use `clean` to avoid Lombok stale compilation artifacts
 
 **Design spec:** `docs/superpowers/specs/2026-03-30-rename-invoice-number-to-document-number-design.md`
+
+---
+
+### Task 0: Create worktree and branch
+
+- [ ] **Step 1: Create a worktree with a new branch**
+
+```bash
+cd /home/wpanther/projects/etax/invoice-microservices/services/orchestrator-service
+git worktree add ../.claude/worktrees/rename-document-number -b refactor/rename-invoice-number-to-document-number
+```
+
+- [ ] **Step 2: Verify worktree is ready**
+
+```bash
+cd ../.claude/worktrees/rename-document-number && git log --oneline -1
+```
+
+Expected: Shows latest commit on the new branch.
+
+All subsequent tasks work in the worktree at `../.claude/worktrees/rename-document-number`.
 
 ---
 
@@ -175,10 +200,10 @@ Batch all 8 edits in parallel.
 - [ ] **Step 1: Run unit tests**
 
 ```bash
-cd /home/wpanther/projects/etax/invoice-microservices/services/orchestrator-service && mvn clean test
+cd /home/wpanther/projects/etax/invoice-microservices/services/.claude/worktrees/rename-document-number && mvn clean test
 ```
 
-Expected: All tests PASS.
+Expected: All tests PASS. Use `mvn clean test` (not `mvn test`) to avoid Lombok stale compilation artifacts.
 
 - [ ] **Step 2: Verify no remaining `invoiceNumber`**
 
@@ -188,7 +213,7 @@ grep -rn 'invoiceNumber' src/ --include='*.java' | grep -v 'taxInvoiceNumber' | 
 
 Expected: No output (all `invoiceNumber` occurrences renamed, except the intentional exclusions).
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Commit on the new branch**
 
 ```bash
 git add src/
