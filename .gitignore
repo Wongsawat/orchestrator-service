@@ -45,3 +45,7 @@ AGENTS.md
 # CLAUDE.md
 CLAUDE.md
 .worktrees/
+
+# Documentation plans and specs (local only)
+docs/superpowers/
+docs/plans/
