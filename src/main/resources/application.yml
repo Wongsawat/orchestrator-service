@@ -24,9 +24,7 @@ spring:
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        # Note: KafkaConfig.java explicitly sets trusted packages to specific allowlist
-        # This YAML default is overridden by code-level configuration for security
+      # Note: KafkaConfig.java explicitly sets trusted packages via code-level configuration
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -121,17 +119,16 @@ app:
     timeout-check-interval-seconds: 60
     timeout-check-initial-delay-seconds: 30
 
-  # Security configuration
-  admin:
-    # API keys for admin access to REST endpoints
-    # Comma-separated list of valid API keys
-    # REQUIRED: Set via ORCHESTRATOR_API_KEYS environment variable
-    # Service will fail to start if no API keys are configured
-    # Example: "prod-admin-key-abc123,ops-key-xyz789"
-    api-keys: ${ORCHESTRATOR_API_KEYS}
   cors:
     # Allowed CORS origins (comma-separated)
     allowed-origins: http://localhost:3000,http://localhost:8080,http://localhost:4200
+
+# API key authentication — prefix must match ApiKeyProperties @ConfigurationProperties(prefix = "orchestrator.admin")
+orchestrator:
+  admin:
+    # Comma-separated list of valid API keys for admin access
+    # REQUIRED: Set via ORCHESTRATOR_API_KEYS environment variable in production
+    api-keys: ${ORCHESTRATOR_API_KEYS:dev-local-key-123}
 
 logging:
   level:
