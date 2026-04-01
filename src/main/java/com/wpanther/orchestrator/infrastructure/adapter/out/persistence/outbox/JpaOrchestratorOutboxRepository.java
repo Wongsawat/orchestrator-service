@@ -6,7 +6,6 @@ import com.wpanther.saga.domain.outbox.OutboxStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,8 +17,9 @@ import java.util.UUID;
  * <p>
  * Each service provides its own implementation to ensure the outbox table
  * resides in the service's own database for transactional consistency.
+ * <p>
+ * Registered as a bean by {@link com.wpanther.orchestrator.infrastructure.config.outbox.OrchestratorOutboxConfig}.
  */
-@Component
 public class JpaOrchestratorOutboxRepository implements OutboxEventRepository {
 
     private static final Logger log = LoggerFactory.getLogger(JpaOrchestratorOutboxRepository.class);
