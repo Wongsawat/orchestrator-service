@@ -24,7 +24,7 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
             case SIGNEDXML_STORAGE -> isInvoice
                     ? SagaStep.GENERATE_INVOICE_PDF
                     : SagaStep.GENERATE_TAX_INVOICE_PDF;
-            case GENERATE_INVOICE_PDF -> SagaStep.SIGN_PDF;
+            case GENERATE_INVOICE_PDF -> SagaStep.PDF_STORAGE;
             case GENERATE_TAX_INVOICE_PDF -> SagaStep.PDF_STORAGE;
             case PDF_STORAGE -> SagaStep.SIGN_PDF;
             case SIGN_PDF -> SagaStep.STORE_DOCUMENT;

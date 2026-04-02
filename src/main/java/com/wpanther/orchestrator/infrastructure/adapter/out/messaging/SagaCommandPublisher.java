@@ -282,13 +282,12 @@ public class SagaCommandPublisher {
 
     /**
      * Publishes a ProcessPdfSigningCommand to the pdf-signing-service.
-     * For tax invoice, the PDF URL comes from the PDF_STORAGE step reply (storedDocumentUrl).
-     * For invoice, the PDF URL comes from the GENERATE_INVOICE_PDF step reply (pdfUrl).
+     * The PDF URL comes from the PDF_STORAGE step reply (storedDocumentUrl).
+     * Falls back to pdfUrl for backwards compatibility.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSignPdfCommand(SagaInstance saga, String correlationId) {
-        // Tax invoice: URL from PDF_STORAGE step (storedDocumentUrl)
-        // Invoice: URL from GENERATE_INVOICE_PDF step (pdfUrl)
+        // PDF URL from PDF_STORAGE step (storedDocumentUrl)
         String pdfUrl = getMetadataValue(saga, "storedDocumentUrl");
         if (pdfUrl == null) {
             pdfUrl = getMetadataValue(saga, "pdfUrl");

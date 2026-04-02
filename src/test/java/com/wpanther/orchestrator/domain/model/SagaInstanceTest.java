@@ -280,7 +280,11 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
-            // GENERATE_INVOICE_PDF -> SIGN_PDF
+            // GENERATE_INVOICE_PDF -> PDF_STORAGE (same as tax invoice)
+            assertThat(saga.getNextStep()).isEqualTo(SagaStep.PDF_STORAGE);
+
+            saga.advanceTo(SagaStep.PDF_STORAGE);
+            // PDF_STORAGE -> SIGN_PDF
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_PDF);
 
             saga.advanceTo(SagaStep.SIGN_PDF);
