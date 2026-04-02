@@ -2,6 +2,9 @@ package com.wpanther.orchestrator.infrastructure.adapter.out.persistence;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
+import org.hibernate.annotations.JdbcTypeCode;
+
+import java.sql.Types;
 import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import jakarta.persistence.*;
@@ -61,9 +64,11 @@ public class SagaInstanceEntity {
     @Column(name = "file_path", length = 500)
     private String filePath;
 
+    @JdbcTypeCode(Types.VARCHAR)
     @Column(name = "xml_content", columnDefinition = "TEXT")
     private String xmlContent;
 
+    @JdbcTypeCode(Types.VARCHAR)
     @Column(name = "metadata", columnDefinition = "TEXT")
     private String metadata;
 

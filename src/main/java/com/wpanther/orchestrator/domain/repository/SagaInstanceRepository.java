@@ -28,6 +28,16 @@ public interface SagaInstanceRepository {
     Optional<SagaInstance> findById(String id);
 
     /**
+     * Finds a saga instance by ID, loading only non-CLOB columns.
+     * This avoids PostgreSQL JDBC LOB API issues when the saga has large TEXT columns.
+     * The returned instance will have null for xmlContent and metadata.
+     *
+     * @param id The saga instance ID
+     * @return Optional containing the saga instance (without CLOB data) if found
+     */
+    Optional<SagaInstance> findByIdWithoutClob(String id);
+
+    /**
      * Finds a saga instance by document type and document ID.
      *
      * @param documentType The document type

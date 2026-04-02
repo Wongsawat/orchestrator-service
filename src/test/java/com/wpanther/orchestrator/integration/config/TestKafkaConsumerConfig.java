@@ -18,7 +18,7 @@ import java.util.Properties;
  * Provides consumers to verify messages published via Debezium CDC.
  */
 @Configuration
-@Profile({ "cdc-test", "consumer-test" })
+@Profile({ "cdc-test", "consumer-test", "saga-flow-test" })
 public class TestKafkaConsumerConfig {
 
     @Value("${app.kafka.bootstrap-servers:localhost:9093}")
@@ -50,13 +50,35 @@ public class TestKafkaConsumerConfig {
     public void createTopics() {
         try (AdminClient adminClient = AdminClient.create(kafkaAdminProperties())) {
             List<NewTopic> topics = List.of(
+                // Lifecycle topics
                 new NewTopic("saga.lifecycle.started", 1, (short) 1),
                 new NewTopic("saga.lifecycle.step-completed", 1, (short) 1),
                 new NewTopic("saga.lifecycle.completed", 1, (short) 1),
                 new NewTopic("saga.lifecycle.failed", 1, (short) 1),
+                // Orchestrator input topic
                 new NewTopic("saga.commands.orchestrator", 1, (short) 1),
+                // Reply topics (services → orchestrator)
                 new NewTopic("saga.reply.invoice", 1, (short) 1),
-                new NewTopic("saga.reply.tax-invoice", 1, (short) 1)
+                new NewTopic("saga.reply.tax-invoice", 1, (short) 1),
+                new NewTopic("saga.reply.xml-signing", 1, (short) 1),
+                new NewTopic("saga.reply.signedxml-storage", 1, (short) 1),
+                new NewTopic("saga.reply.invoice-pdf", 1, (short) 1),
+                new NewTopic("saga.reply.tax-invoice-pdf", 1, (short) 1),
+                new NewTopic("saga.reply.pdf-storage", 1, (short) 1),
+                new NewTopic("saga.reply.pdf-signing", 1, (short) 1),
+                new NewTopic("saga.reply.document-storage", 1, (short) 1),
+                new NewTopic("saga.reply.ebms-sending", 1, (short) 1),
+                // Command topics (orchestrator → services, via Debezium CDC)
+                new NewTopic("saga.command.invoice", 1, (short) 1),
+                new NewTopic("saga.command.tax-invoice", 1, (short) 1),
+                new NewTopic("saga.command.xml-signing", 1, (short) 1),
+                new NewTopic("saga.command.signedxml-storage", 1, (short) 1),
+                new NewTopic("saga.command.invoice-pdf", 1, (short) 1),
+                new NewTopic("saga.command.tax-invoice-pdf", 1, (short) 1),
+                new NewTopic("saga.command.pdf-storage", 1, (short) 1),
+                new NewTopic("saga.command.pdf-signing", 1, (short) 1),
+                new NewTopic("saga.command.document-storage", 1, (short) 1),
+                new NewTopic("saga.command.ebms-sending", 1, (short) 1)
             );
             adminClient.createTopics(topics).all().get();
         } catch (Exception e) {

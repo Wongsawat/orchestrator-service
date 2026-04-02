@@ -35,6 +35,12 @@ public class JpaSagaInstanceRepository implements SagaInstanceRepository {
     }
 
     @Override
+    public Optional<SagaInstance> findByIdWithoutClob(String id) {
+        return springRepository.findByIdWithoutClob(id)
+                .map(mapper::toDomainSimple);
+    }
+
+    @Override
     public Optional<SagaInstance> findByDocumentTypeAndDocumentId(DocumentType documentType, String documentId) {
         return springRepository.findByDocumentTypeAndDocumentId(documentType, documentId)
                 .map(mapper::toDomain);

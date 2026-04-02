@@ -108,6 +108,13 @@ public class SagaInstance {
     private int maxRetries = DEFAULT_MAX_RETRIES;
 
     /**
+     * Optimistic locking version. Incremented by JPA on each update.
+     * Initial value 0 matches the database default.
+     */
+    @Builder.Default
+    private Integer version = 0;
+
+    /**
      * Default maximum number of retry attempts per saga step.
      * This value should match the default in SagaProperties.
      */

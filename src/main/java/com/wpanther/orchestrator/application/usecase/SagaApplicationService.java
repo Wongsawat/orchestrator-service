@@ -16,9 +16,14 @@ import com.wpanther.saga.domain.enums.SagaStatus;
 import com.wpanther.saga.domain.enums.SagaStep;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 
@@ -38,6 +43,17 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     private final SagaEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
     private final SagaProperties sagaProperties;
+    /**
+     * Default max retries when loading from database with null value.
+     * Matches the default in SagaProperties and SagaInstance.DEFAULT_MAX_RETRIES.
+     */
+    private static final int DEFAULT_MAX_RETRIES = 3;
+    /**
+     * JdbcTemplate for loading saga data without JPA CLOB handling.
+     * Used in {@code handleReply} to avoid PostgreSQL JDBC LOB API issues when loading
+     * large TEXT columns (xml_content, metadata) from saga_instances.
+     */
+    private final JdbcTemplate jdbcTemplate;
 
     /**
      * Starts a saga from a DTO request.
@@ -119,11 +135,44 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                                      String errorMessage, Map<String, Object> resultData) {
         log.debug("Handling reply for saga {}, step {}, success: {}", sagaId, step, success);
 
-        SagaInstance instance = sagaRepository.findById(sagaId)
-                .orElseThrow(() -> new IllegalArgumentException("Saga not found: " + sagaId));
+        // Use JdbcTemplate directly to avoid PostgreSQL JDBC LOB API issues when loading
+        // large TEXT columns (xml_content, metadata) via JPA/Hibernate.
+        // This query selects only non-CLOB columns from saga_instances.
+        SagaInstance instance = jdbcTemplate.queryForObject(
+                "SELECT id, document_type, document_id, current_step, status, "
+                        + "created_at, updated_at, completed_at, error_message, "
+                        + "correlation_id, retry_count, max_retries, version "
+                        + "FROM saga_instances WHERE id = ?",
+                (rs, rowNum) -> SagaInstance.builder()
+                        .id(rs.getString("id"))
+                        .documentType(DocumentType.valueOf(rs.getString("document_type")))
+                        .documentId(rs.getString("document_id"))
+                        .currentStep(com.wpanther.saga.domain.enums.SagaStep.valueOf(
+                                rs.getString("current_step")))
+                        .status(SagaStatus.valueOf(rs.getString("status")))
+                        .createdAt(rs.getTimestamp("created_at").toInstant())
+                        .updatedAt(rs.getTimestamp("updated_at").toInstant())
+                        .completedAt(rs.getTimestamp("completed_at") != null
+                                ? rs.getTimestamp("completed_at").toInstant() : null)
+                        .errorMessage(rs.getString("error_message"))
+                        .correlationId(rs.getString("correlation_id"))
+                        .retryCount(rs.getObject("retry_count", Integer.class) != null
+                                ? rs.getObject("retry_count", Integer.class) : 0)
+                        .maxRetries(rs.getObject("max_retries", Integer.class) != null
+                                ? rs.getObject("max_retries", Integer.class) : DEFAULT_MAX_RETRIES)
+                        .version(rs.getObject("version", Integer.class) != null
+                                ? rs.getObject("version", Integer.class) : 0)
+                        .build(),
+                sagaId
+        );
 
-        // Merge result data into saga metadata for subsequent steps to use
-        // withMetadataValue() handles null metadata maps internally
+        if (instance == null) {
+            throw new IllegalArgumentException("Saga not found: " + sagaId);
+        }
+
+        // Merge result data into saga metadata for subsequent steps to use.
+        // If documentMetadata is null (loaded without CLOB columns), skip merging.
+        // withMetadataValue() handles null metadata maps internally.
         if (resultData != null && !resultData.isEmpty() && success) {
             DocumentMetadata metadata = instance.getDocumentMetadata();
             if (metadata != null) {
@@ -171,7 +220,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 if (!instance.hasExceededMaxRetries()) {
                     log.info("Retrying step {} for saga {} (attempt {})",
                             step, sagaId, instance.getRetryCount());
-                    sagaRepository.save(instance);
+                    updateSagaViaJdbc(instance);
                     sendCommandForStep(instance, correlationId);
                     return instance;
                 }
@@ -179,7 +228,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 // Max retries exceeded, initiate compensation
                 instance.fail(errorMessage);
                 instance.startCompensation();
-                sagaRepository.save(instance);
+                updateSagaViaJdbc(instance);
 
                 // Publish saga failed event
                 String documentNumber = extractDocumentNumber(instance.getDocumentMetadata());
@@ -196,12 +245,12 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
             SagaStep nextStep = instance.getNextStep();
             if (nextStep != null) {
                 instance.advanceTo(nextStep);
-                sagaRepository.save(instance);
+                updateSagaViaJdbc(instance);
                 sendCommandForStep(instance, correlationId);
             } else {
                 // Saga completed
                 instance.complete();
-                sagaRepository.save(instance);
+                updateSagaViaJdbc(instance);
 
                 // Publish saga completed event
                 String documentNumber = extractDocumentNumber(instance.getDocumentMetadata());
@@ -422,6 +471,40 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
             return documentNumber != null ? documentNumber.toString() : null;
         }
         return null;
+    }
+
+    /**
+     * Updates a saga instance using JdbcTemplate to avoid JPA caching and
+     * optimistic locking issues when saga was loaded via JdbcTemplate.
+     * This bypasses the persistence context entirely.
+     *
+     * @param instance the saga instance to update (version is incremented atomically)
+     */
+    private void updateSagaViaJdbc(SagaInstance instance) {
+        int updated = jdbcTemplate.update("""
+                UPDATE saga_instances
+                SET current_step = ?, status = ?, updated_at = ?, completed_at = ?,
+                    error_message = ?, correlation_id = ?, retry_count = ?,
+                    version = version + 1
+                WHERE id = ?
+                """,
+                instance.getCurrentStep().name(),
+                instance.getStatus().name(),
+                Timestamp.from(instance.getUpdatedAt()),
+                instance.getCompletedAt() != null
+                        ? Timestamp.from(instance.getCompletedAt()) : null,
+                instance.getErrorMessage(),
+                instance.getCorrelationId(),
+                instance.getRetryCount(),
+                instance.getId()
+        );
+        if (updated == 0) {
+            log.warn("Saga {} was not updated (may not exist)", instance.getId());
+        } else {
+            // Increment the domain object's version to keep it in sync
+            instance.setVersion(instance.getVersion() + 1);
+            log.trace("Updated saga {} via JdbcTemplate, new version: {}", instance.getId(), instance.getVersion());
+        }
     }
 
     /**

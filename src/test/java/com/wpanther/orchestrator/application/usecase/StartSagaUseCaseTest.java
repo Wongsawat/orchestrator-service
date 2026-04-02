@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Optional;
 
@@ -34,6 +35,7 @@ class StartSagaUseCaseTest {
     @Mock private SagaCommandPublisher commandPublisher;
     @Mock private SagaEventPublisher eventPublisher;
     @Mock private SagaProperties sagaProperties;
+    @Mock private JdbcTemplate jdbcTemplate;
 
     private SagaApplicationService service;
 
@@ -42,7 +44,8 @@ class StartSagaUseCaseTest {
         lenient().when(sagaProperties.getMaxRetries()).thenReturn(3);
         service = new SagaApplicationService(
             sagaRepository, commandRepository,
-            commandPublisher, eventPublisher, new ObjectMapper(), sagaProperties
+            commandPublisher, eventPublisher, new ObjectMapper(), sagaProperties,
+            jdbcTemplate
         );
     }
 

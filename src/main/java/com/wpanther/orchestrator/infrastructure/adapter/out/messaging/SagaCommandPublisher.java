@@ -106,7 +106,7 @@ public class SagaCommandPublisher {
             SagaStep.PROCESS_INVOICE,
             correlationId,
             saga.getDocumentId(),
-            saga.getDocumentMetadata().getXmlContent(),
+            getXmlContent(saga),
             getDocumentNumber(saga)
         );
 
@@ -126,7 +126,7 @@ public class SagaCommandPublisher {
             SagaStep.PROCESS_TAX_INVOICE,
             correlationId,
             saga.getDocumentId(),
-            saga.getDocumentMetadata().getXmlContent(),
+            getXmlContent(saga),
             getDocumentNumber(saga)
         );
 
@@ -196,7 +196,7 @@ public class SagaCommandPublisher {
             SagaStep.SIGN_XML,
             correlationId,
             saga.getDocumentId(),
-            saga.getDocumentMetadata().getXmlContent(),
+            getXmlContent(saga),
             getDocumentNumber(saga),
             saga.getDocumentType().getCode()
         );
@@ -470,6 +470,27 @@ public class SagaCommandPublisher {
             log.warn("Failed to serialize headers to JSON", e);
             return null;
         }
+    }
+
+    /**
+     * Helper method to safely extract a metadata value from a saga instance.
+     * Handles null DocumentMetadata and null metadata map gracefully.
+     *
+     * @param saga the saga instance
+     * @param key the metadata key to extract
+     * @return the metadata value as a String, or null if not found
+     */
+    /**
+     * Helper method to safely extract the XML content from a saga instance.
+     * Handles null DocumentMetadata gracefully.
+     *
+     * @param saga the saga instance
+     * @return the XML content, or null if DocumentMetadata is null
+     */
+    private String getXmlContent(SagaInstance saga) {
+        return saga.getDocumentMetadata() != null
+                ? saga.getDocumentMetadata().getXmlContent()
+                : null;
     }
 
     /**

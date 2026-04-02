@@ -39,7 +39,6 @@ public class SagaCommandEntity {
     @Column(name = "target_step", nullable = false, length = 50)
     private SagaStep targetStep;
 
-    @Lob
     @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 

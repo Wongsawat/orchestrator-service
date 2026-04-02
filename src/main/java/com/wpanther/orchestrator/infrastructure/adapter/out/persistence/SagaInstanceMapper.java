@@ -60,7 +60,8 @@ public class SagaInstanceMapper {
                 .errorMessage(domain.getErrorMessage())
                 .correlationId(domain.getCorrelationId())
                 .retryCount(domain.getRetryCount())
-                .maxRetries(domain.getMaxRetries());
+                .maxRetries(domain.getMaxRetries())
+                .version(domain.getVersion());
 
         // Map DocumentMetadata if present
         if (domain.getDocumentMetadata() != null) {
@@ -122,6 +123,36 @@ public class SagaInstanceMapper {
         return entities.stream()
                 .map(entity -> toDomainWithCommands(entity, commandsBySagaId.getOrDefault(entity.getId(), List.of())))
                 .toList();
+    }
+
+    /**
+     * Converts a projection (without CLOB columns) to a domain model.
+     * Used by {@code SagaInstanceRepository.findByIdWithoutClob()} to avoid
+     * PostgreSQL JDBC LOB API issues when loading large TEXT columns.
+     *
+     * @param projection The projection loaded without CLOB columns
+     * @return Domain model with null DocumentMetadata (CLOB data excluded)
+     */
+    public SagaInstance toDomainSimple(SagaInstanceSimple projection) {
+        if (projection == null) {
+            return null;
+        }
+
+        return SagaInstance.builder()
+                .id(projection.getId())
+                .documentType(projection.getDocumentType())
+                .documentId(projection.getDocumentId())
+                .currentStep(projection.getCurrentStep())
+                .status(projection.getStatus())
+                .createdAt(projection.getCreatedAt())
+                .updatedAt(projection.getUpdatedAt())
+                .completedAt(projection.getCompletedAt())
+                .errorMessage(projection.getErrorMessage())
+                .correlationId(projection.getCorrelationId())
+                .retryCount(projection.getRetryCount() != null ? projection.getRetryCount() : 0)
+                .maxRetries(projection.getMaxRetries() != null ? projection.getMaxRetries() : DEFAULT_MAX_RETRIES)
+                // documentMetadata intentionally omitted — CLOB columns excluded
+                .build();
     }
 
     /**

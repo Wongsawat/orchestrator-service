@@ -56,4 +56,15 @@ interface SpringDataSagaInstanceRepository extends JpaRepository<SagaInstanceEnt
             @Param("statuses") List<SagaStatus> statuses,
             @Param("timeout") Instant timeout
     );
+
+    /**
+     * Finds a saga instance by ID using a projection that excludes CLOB columns.
+     * This avoids PostgreSQL JDBC LOB API issues when loading large TEXT columns
+     * (xml_content, metadata) by not selecting them at all.
+     */
+    @Query("SELECT s.id, s.documentType, s.documentId, s.currentStep, s.status, "
+            + "s.createdAt, s.updatedAt, s.completedAt, s.errorMessage, "
+            + "s.correlationId, s.retryCount, s.maxRetries "
+            + "FROM SagaInstanceEntity s WHERE s.id = :id")
+    Optional<SagaInstanceSimple> findByIdWithoutClob(@Param("id") String id);
 }

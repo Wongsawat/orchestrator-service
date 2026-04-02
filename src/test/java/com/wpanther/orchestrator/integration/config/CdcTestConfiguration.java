@@ -3,7 +3,6 @@ package com.wpanther.orchestrator.integration.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
@@ -17,7 +16,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-import static org.mockito.Mockito.mock;
 
 /**
  * Test configuration for CDC integration tests.
@@ -25,7 +23,7 @@ import static org.mockito.Mockito.mock;
  * This configuration:
  * - Excludes Kafka auto-configuration to prevent application consumers from starting
  * - Loads JPA repositories for database access
- * - Mocks Kafka producers to avoid needing actual downstream services
+ * - Uses real SagaCommandPublisher and SagaEventPublisher (write to outbox via CDC)
  * - Tests verify CDC flow by consuming from Kafka directly via TestKafkaConsumerConfig
  * <p>
  * For consumption tests, additionally import TestKafkaProducerConfig.
@@ -53,15 +51,6 @@ import static org.mockito.Mockito.mock;
 @EnableTransactionManagement
 @Import(TestKafkaConsumerConfig.class)
 public class CdcTestConfiguration {
-
-    /**
-     * Mock SagaCommandPublisher to avoid sending actual Kafka commands during tests.
-     * We only test CDC publishing via outbox table.
-     */
-    @Bean
-    public SagaCommandPublisher sagaCommandPublisher() {
-        return mock(SagaCommandPublisher.class);
-    }
 
     /**
      * ObjectMapper for JSON parsing in tests.
