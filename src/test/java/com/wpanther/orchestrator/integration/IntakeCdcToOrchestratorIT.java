@@ -32,14 +32,12 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 
 /**
  * Integration test: verifies the complete CDC path from intake_db → Debezium → saga.commands.orchestrator
@@ -57,6 +55,9 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.NONE,
     properties = {
+        "spring.datasource.url=jdbc:postgresql://localhost:5433/orchestrator_db",
+        "spring.datasource.username=postgres",
+        "spring.datasource.password=postgres",
         "spring.kafka.bootstrap-servers=localhost:9093",
         "KAFKA_BROKERS=localhost:9093"
     }
@@ -132,7 +133,7 @@ class IntakeCdcToOrchestratorIT {
         jdbcTemplate.update("DELETE FROM saga_instances");
 
         // Create a fresh spy consumer subscribed to saga.commands.orchestrator.
-        // Uses "latest" offset so only messages published after subscribe() are visible.
+        // Seeks to end so only messages published after this point are visible.
         spyConsumer = createSpyConsumer();
     }
 
@@ -197,12 +198,19 @@ class IntakeCdcToOrchestratorIT {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "spy-intake-cdc-" + UUID.randomUUID());
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props);
         consumer.subscribe(List.of(TOPIC_SAGA_COMMANDS));
-        // Initial poll to trigger partition assignment and advance to latest offset
-        consumer.poll(Duration.ofMillis(500));
+        // Poll until partition assignment completes
+        while (consumer.assignment().isEmpty()) {
+            consumer.poll(Duration.ofMillis(200));
+        }
+        // Seek to end so we only receive messages published after this point
+        var endOffsets = consumer.endOffsets(consumer.assignment());
+        for (var tp : consumer.assignment()) {
+            consumer.seek(tp, endOffsets.get(tp));
+        }
         return consumer;
     }
 
@@ -214,7 +222,16 @@ class IntakeCdcToOrchestratorIT {
         await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(500))
             .until(() -> {
                 ConsumerRecords<String, String> records = spyConsumer.poll(Duration.ofMillis(200));
+                var assignment = spyConsumer.assignment();
+                for (var tp : assignment) {
+                    long beginning = spyConsumer.beginningOffsets(List.of(tp)).get(tp);
+                    long end = spyConsumer.endOffsets(List.of(tp)).get(tp);
+                    System.out.println("[SPY] topic=" + tp.topic() + " partition=" + tp.partition()
+                        + " beginning=" + beginning + " end=" + end);
+                }
+                System.out.println("[SPY] poll returned " + records.count() + " record(s), partitions=" + assignment);
                 for (ConsumerRecord<String, String> r : records) {
+                    System.out.println("[SPY]   key=" + r.key() + " topic=" + r.topic() + " partition=" + r.partition() + " offset=" + r.offset());
                     if (key.equals(r.key())) found.add(r);
                 }
                 return !found.isEmpty();
@@ -244,8 +261,118 @@ class IntakeCdcToOrchestratorIT {
             .pollInterval(Duration.ofSeconds(2));
     }
 
-    // ── Placeholder methods — filled in Tasks 2, 3, 4 ───────────────────────
+    // ── Test Cases ─────────────────────────────────────────────────────────────
 
-    // TC-1, TC-2, TC-3 added in subsequent tasks
+    @Test
+    @DisplayName("TC-1: Should deliver StartSagaCommand from intake_db outbox to saga.commands.orchestrator via CDC")
+    void shouldDeliverStartSagaCommandViaCdcToKafka() throws Exception {
+        // Given
+        String documentId   = UUID.randomUUID().toString();
+        String correlationId = UUID.randomUUID().toString();
+
+        // Spy consumer is already created and positioned at "latest" offset in @BeforeEach.
+        // When — insert outbox row into intake_db (Debezium picks it up and publishes)
+        insertIntakeOutboxRow(documentId, correlationId, "TAX_INVOICE", "TIV-TEST-001", "<test/>");
+
+        // Then — spy consumer receives message with correlationId as key
+        ConsumerRecord<String, String> record = awaitSpyMessage(correlationId);
+
+        // Log raw value for investigation
+        System.out.println("=== TC-1 Raw CDC payload ===");
+        System.out.println("Key:   " + record.key());
+        System.out.println("Value: " + record.value());
+        System.out.println("============================");
+
+        // Parse and assert payload fields
+        JsonNode payload = objectMapper.readTree(record.value());
+
+        assertThat(record.key()).isEqualTo(correlationId);
+        assertThat(payload.get("documentId").asText()).isEqualTo(documentId);
+        assertThat(payload.get("documentType").asText()).isEqualTo("TAX_INVOICE");
+        assertThat(payload.get("correlationId").asText()).isEqualTo(correlationId);
+        // Debezium's expand.json.payload re-serializes JSON, omitting null fields.
+        // sagaId/sagaStep are null in the DB payload but absent from the Kafka message.
+        assertThat(payload.has("sagaId")).isFalse();
+        assertThat(payload.has("sagaStep")).isFalse();
+    }
+
+    @Test
+    @DisplayName("TC-2: Should create saga instance in orchestrator_db from CDC message")
+    void shouldOrchestratorConsumerCreateSagaFromCdcMessage() {
+        // Given
+        String documentId   = UUID.randomUUID().toString();
+        String correlationId = UUID.randomUUID().toString();
+
+        // When — insert outbox row into intake_db
+        insertIntakeOutboxRow(documentId, correlationId, "TAX_INVOICE", "TIV-TEST-002", "<test/>");
+
+        // Then — wait for saga instance to appear in orchestrator_db
+        await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofSeconds(1))
+            .until(() -> {
+                try {
+                    jdbcTemplate.queryForMap(
+                        "SELECT id FROM saga_instances WHERE document_type = 'TAX_INVOICE' AND document_id = ?",
+                        documentId);
+                    return true;
+                } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+                    return false;
+                }
+            });
+
+        // Verify saga instance details
+        Map<String, Object> saga = jdbcTemplate.queryForMap(
+            "SELECT id, document_type, document_id, current_step, status, correlation_id "
+            + "FROM saga_instances WHERE document_id = ?", documentId);
+
+        assertThat(saga.get("document_type")).isEqualTo("TAX_INVOICE");
+        assertThat(saga.get("current_step")).isEqualTo("PROCESS_TAX_INVOICE");
+        assertThat(saga.get("status")).isEqualTo("IN_PROGRESS");
+        assertThat(saga.get("correlation_id")).isEqualTo(correlationId);
+
+        System.out.println("=== TC-2 Saga created ===");
+        System.out.println("sagaId=" + saga.get("id"));
+        System.out.println("documentId=" + saga.get("document_id"));
+        System.out.println("status=" + saga.get("status"));
+        System.out.println("currentStep=" + saga.get("current_step"));
+        System.out.println("===========================");
+    }
+
+    @Test
+    @DisplayName("TC-3: Should deserializable raw CDC payload by orchestrator JsonDeserializer")
+    void shouldRawCdcPayloadBeDeserializableByOrchestratorConsumer() throws Exception {
+        // Given
+        String documentId   = UUID.randomUUID().toString();
+        String correlationId = UUID.randomUUID().toString();
+
+        // When — insert outbox row into intake_db
+        insertIntakeOutboxRow(documentId, correlationId, "TAX_INVOICE", "TIV-TEST-003", "<test-xml/>");
+
+        // Capture raw CDC message via spy consumer
+        ConsumerRecord<String, String> record = awaitSpyMessage(correlationId);
+
+        // Then — deserialize using same JsonDeserializer as KafkaConfig
+        JsonDeserializer<StartSagaCommand> deserializer = new JsonDeserializer<>(
+            StartSagaCommand.class, objectMapper, false);
+        deserializer.addTrustedPackages("com.wpanther.orchestrator.infrastructure.adapter.in.messaging");
+
+        StartSagaCommand command = deserializer.deserialize(
+            "saga.commands.orchestrator",
+            record.headers(),
+            record.value().getBytes(StandardCharsets.UTF_8));
+
+        assertThat(command).isNotNull();
+        assertThat(command.getDocumentId()).isEqualTo(documentId);
+        assertThat(command.getDocumentType()).isEqualTo("TAX_INVOICE");
+        assertThat(command.getCorrelationId()).isEqualTo(correlationId);
+        assertThat(command.getXmlContent()).isNotNull();
+        assertThat(command.getDocumentNumber()).isEqualTo("TIV-TEST-003");
+
+        System.out.println("=== TC-3 Deserialization OK ===");
+        System.out.println("documentId=" + command.getDocumentId());
+        System.out.println("documentType=" + command.getDocumentType());
+        System.out.println("correlationId=" + command.getCorrelationId());
+        System.out.println("xmlContent=" + command.getXmlContent());
+        System.out.println("================================");
+    }
 
 }
