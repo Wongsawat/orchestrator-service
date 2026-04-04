@@ -81,6 +81,17 @@ public class SagaInstanceMapper {
                     builder.metadata(null);
                 }
             }
+
+            // Also extract and store documentNumber for easy access
+            if (metadata.getMetadata() != null && metadata.getMetadata().containsKey("documentNumber")) {
+                Object docNum = metadata.getMetadata().get("documentNumber");
+                builder.documentNumber(docNum != null ? docNum.toString() : null);
+            }
+        }
+
+        // Map documentNumber from domain (may be set separately from metadata)
+        if (domain.getDocumentNumber() != null) {
+            builder.documentNumber(domain.getDocumentNumber());
         }
 
         return builder.build();
@@ -168,6 +179,7 @@ public class SagaInstanceMapper {
                 .id(entity.getId())
                 .documentType(entity.getDocumentType())
                 .documentId(entity.getDocumentId())
+                .documentNumber(entity.getDocumentNumber())
                 .currentStep(entity.getCurrentStep())
                 .status(entity.getStatus())
                 .createdAt(entity.getCreatedAt())

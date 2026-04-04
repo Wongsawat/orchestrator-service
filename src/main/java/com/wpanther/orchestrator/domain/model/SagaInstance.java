@@ -43,6 +43,12 @@ public class SagaInstance {
     private String documentId;
 
     /**
+     * Document number from the original XML (e.g., tax invoice number).
+     * Stored separately from documentMetadata for easy access without loading CLOB columns.
+     */
+    private String documentNumber;
+
+    /**
      * Current step in the saga execution.
      */
     private SagaStep currentStep;

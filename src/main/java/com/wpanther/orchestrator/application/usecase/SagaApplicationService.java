@@ -113,14 +113,15 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         int maxRetries = sagaProperties.getMaxRetries();
         SagaInstance instance = SagaInstance.create(documentType, documentId, metadata, maxRetries);
         instance.setCorrelationId(correlationId);
+        // Store documentNumber separately for easy access without loading CLOB columns
+        instance.setDocumentNumber(extractDocumentNumber(metadata));
         instance.start();
 
         // Save saga instance
         SagaInstance saved = sagaRepository.save(instance);
 
         // Publish saga started event
-        String documentNumber = extractDocumentNumber(metadata);
-        eventPublisher.publishSagaStarted(saved, correlationId, documentNumber);
+        eventPublisher.publishSagaStarted(saved, correlationId, instance.getDocumentNumber());
 
         // Create and send first command via outbox
         sendCommandForStep(saved, correlationId);
@@ -138,10 +139,11 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         // Use JdbcTemplate directly to avoid PostgreSQL JDBC LOB API issues when loading
         // large TEXT columns (xml_content, metadata) via JPA/Hibernate.
         // This query selects only non-CLOB columns from saga_instances.
+        // document_number is a VARCHAR column, not a CLOB, so it's safe to include.
         SagaInstance instance = jdbcTemplate.queryForObject(
                 "SELECT id, document_type, document_id, current_step, status, "
                         + "created_at, updated_at, completed_at, error_message, "
-                        + "correlation_id, retry_count, max_retries, version "
+                        + "correlation_id, retry_count, max_retries, version, document_number "
                         + "FROM saga_instances WHERE id = ?",
                 (rs, rowNum) -> SagaInstance.builder()
                         .id(rs.getString("id"))
@@ -162,6 +164,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                                 ? rs.getObject("max_retries", Integer.class) : DEFAULT_MAX_RETRIES)
                         .version(rs.getObject("version", Integer.class) != null
                                 ? rs.getObject("version", Integer.class) : 0)
+                        .documentNumber(rs.getString("document_number"))
                         .build(),
                 sagaId
         );
@@ -231,9 +234,9 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 updateSagaViaJdbc(instance);
 
                 // Publish saga failed event
-                String documentNumber = extractDocumentNumber(instance.getDocumentMetadata());
+                // Use documentNumber loaded directly from database column (avoids CLOB issues)
                 eventPublisher.publishSagaFailed(instance, completedStep, errorMessage,
-                    correlationId, documentNumber);
+                    correlationId, instance.getDocumentNumber());
 
                 sendCompensationCommand(instance, completedStep, correlationId);
                 return instance;
@@ -253,8 +256,8 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 updateSagaViaJdbc(instance);
 
                 // Publish saga completed event
-                String documentNumber = extractDocumentNumber(instance.getDocumentMetadata());
-                eventPublisher.publishSagaCompleted(instance, correlationId, documentNumber);
+                // Use documentNumber loaded directly from database column (avoids CLOB issues)
+                eventPublisher.publishSagaCompleted(instance, correlationId, instance.getDocumentNumber());
 
                 log.info("Saga {} completed successfully", sagaId);
             }
