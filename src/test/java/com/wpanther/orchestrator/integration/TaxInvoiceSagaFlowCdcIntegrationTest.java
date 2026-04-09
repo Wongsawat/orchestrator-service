@@ -48,13 +48,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <pre>
  * TC-01  saga.commands.orchestrator          → saga.command.tax-invoice       (PROCESS_TAX_INVOICE)
  * TC-02  saga.reply.tax-invoice (SUCCESS)    → saga.command.xml-signing        (SIGN_XML)
- * TC-03  saga.reply.xml-signing (SUCCESS)    → saga.command.signedxml-storage  (SIGNEDXML_STORAGE)
- * TC-04  saga.reply.signedxml-storage        → saga.command.tax-invoice-pdf    (GENERATE_TAX_INVOICE_PDF)
- * TC-05  saga.reply.tax-invoice-pdf          → saga.command.pdf-storage        (PDF_STORAGE)
- * TC-06  saga.reply.pdf-storage              → saga.command.pdf-signing        (SIGN_PDF)
- * TC-07  saga.reply.pdf-signing              → saga.command.document-storage   (STORE_DOCUMENT)
- * TC-08  saga.reply.document-storage         → saga.command.ebms-sending       (SEND_EBMS)
- * TC-09  saga.reply.ebms-sending (SUCCESS)   → saga.lifecycle.completed
+ * TC-03  saga.reply.xml-signing (SUCCESS)    → saga.command.tax-invoice-pdf    (GENERATE_TAX_INVOICE_PDF)
+ * TC-04  saga.reply.tax-invoice-pdf (SUCCESS) → saga.command.pdf-storage        (PDF_STORAGE)
+ * TC-05  saga.reply.pdf-storage (SUCCESS)   → saga.command.pdf-signing        (SIGN_PDF)
+ * TC-06  saga.reply.pdf-signing (SUCCESS)    → saga.command.document-storage   (STORE_DOCUMENT)
+ * TC-07  saga.reply.document-storage (SUCCESS) → saga.command.ebms-sending     (SEND_EBMS)
+ * TC-08  saga.reply.ebms-sending (SUCCESS)   → saga.lifecycle.completed
  * </pre>
  *
  * <p><b>Preconditions:</b>
@@ -266,11 +265,12 @@ class TaxInvoiceSagaFlowCdcIntegrationTest {
 
     /**
      * TC-03: A SUCCESS reply from xml-signing-service (carrying signedXmlUrl) causes the
-     * orchestrator to advance to SIGNEDXML_STORAGE and publish a command via CDC.
+     * orchestrator to advance directly to GENERATE_TAX_INVOICE_PDF (skipping SIGNEDXML_STORAGE)
+     * and publish a ProcessTaxInvoicePdfCommand via CDC.
      */
     @Test
-    @DisplayName("TC-03: saga.reply.xml-signing SUCCESS → saga.command.signedxml-storage (SIGNEDXML_STORAGE) via CDC")
-    void tc03_xmlSigningReplySuccessCreatesSignedXmlStorageCommandViaCdc() throws Exception {
+    @DisplayName("TC-03: saga.reply.xml-signing SUCCESS → saga.command.tax-invoice-pdf (GENERATE_TAX_INVOICE_PDF) via CDC")
+    void tc03_taxInvoicePdfGenerationFromSignXmlViaCdc() throws Exception {
         // Given — saga positioned at SIGN_XML
         String documentId = "TC03-" + UUID.randomUUID();
         SagaInstance saga = createSagaAt(documentId, SagaStep.SIGN_XML);
@@ -283,36 +283,6 @@ class TaxInvoiceSagaFlowCdcIntegrationTest {
                 Map.of("signedXmlUrl", signedXmlUrl));
         sagaApplicationService.handleReply(saga.getId(), "sign-xml", true, null,
                 Map.of("signedXmlUrl", signedXmlUrl));
-
-        // Then — CDC delivers ProcessSignedXmlStorageCommand to saga.command.signedxml-storage
-        awaitCommandOnTopic(TOPIC_CMD_SIGNEDXML_STORAGE, correlationId);
-
-        ConsumerRecord<String, String> record = getFirstCommandFromTopic(TOPIC_CMD_SIGNEDXML_STORAGE, correlationId);
-        assertThat(record.key()).isEqualTo(correlationId);
-
-        JsonNode payload = parseJson(record.value());
-        assertThat(payload.get("sagaId").asText()).isEqualTo(saga.getId());
-        assertThat(payload.get("sagaStep").asText()).isEqualTo("signedxml-storage");
-
-        awaitCurrentStep(saga.getId(), SagaStep.SIGNEDXML_STORAGE);
-    }
-
-    /**
-     * TC-04: A SUCCESS reply from document-storage-service (signed XML stored) causes the
-     * orchestrator to advance to GENERATE_TAX_INVOICE_PDF and publish a command via CDC.
-     */
-    @Test
-    @DisplayName("TC-04: saga.reply.signedxml-storage SUCCESS → saga.command.tax-invoice-pdf (GENERATE_TAX_INVOICE_PDF) via CDC")
-    void tc04_signedXmlStorageReplySuccessCreatesTaxInvoicePdfCommandViaCdc() throws Exception {
-        // Given — saga positioned at SIGNEDXML_STORAGE
-        String documentId = "TC04-" + UUID.randomUUID();
-        SagaInstance saga = createSagaAt(documentId, SagaStep.SIGNEDXML_STORAGE);
-        String correlationId = saga.getCorrelationId();
-
-        // When — document-storage-service sends SUCCESS reply for signed-XML storage
-        // (SagaReplyConsumer is not loaded in CDC test config, call handleReply directly)
-        sendReply(TOPIC_REPLY_SIGNEDXML_STORAGE, saga.getId(), "signedxml-storage", true, null);
-        sagaApplicationService.handleReply(saga.getId(), "signedxml-storage", true, null, null);
 
         // Then — CDC delivers ProcessTaxInvoicePdfCommand to saga.command.tax-invoice-pdf
         awaitCommandOnTopic(TOPIC_CMD_TAX_INVOICE_PDF, correlationId);
@@ -328,16 +298,16 @@ class TaxInvoiceSagaFlowCdcIntegrationTest {
     }
 
     /**
-     * TC-05: A SUCCESS reply from taxinvoice-pdf-generation-service (carrying pdfUrl and
+     * TC-04: A SUCCESS reply from taxinvoice-pdf-generation-service (carrying pdfUrl and
      * pdfSize) causes the orchestrator to advance to PDF_STORAGE and publish a command
      * via CDC.  PDF_STORAGE stores the unsigned PDF from MinIO into document-storage-service
      * to provide a stable URL for the pdf-signing-service.
      */
     @Test
-    @DisplayName("TC-05: saga.reply.tax-invoice-pdf SUCCESS → saga.command.pdf-storage (PDF_STORAGE) via CDC")
-    void tc05_taxInvoicePdfReplySuccessCreatesPdfStorageCommandViaCdc() throws Exception {
+    @DisplayName("TC-04: saga.reply.tax-invoice-pdf SUCCESS → saga.command.pdf-storage (PDF_STORAGE) via CDC")
+    void tc04_taxInvoicePdfReplySuccessCreatesPdfStorageCommandViaCdc() throws Exception {
         // Given — saga positioned at GENERATE_TAX_INVOICE_PDF
-        String documentId = "TC05-" + UUID.randomUUID();
+        String documentId = "TC04-" + UUID.randomUUID();
         SagaInstance saga = createSagaAt(documentId, SagaStep.GENERATE_TAX_INVOICE_PDF);
         String correlationId = saga.getCorrelationId();
 
@@ -363,15 +333,15 @@ class TaxInvoiceSagaFlowCdcIntegrationTest {
     }
 
     /**
-     * TC-06: A SUCCESS reply from document-storage-service (unsigned PDF stored, carrying
+     * TC-05: A SUCCESS reply from document-storage-service (unsigned PDF stored, carrying
      * storedDocumentUrl) causes the orchestrator to advance to SIGN_PDF and publish a
      * ProcessPdfSigningCommand via CDC.
      */
     @Test
-    @DisplayName("TC-06: saga.reply.pdf-storage SUCCESS → saga.command.pdf-signing (SIGN_PDF) via CDC")
-    void tc06_pdfStorageReplySuccessCreatesSignPdfCommandViaCdc() throws Exception {
+    @DisplayName("TC-05: saga.reply.pdf-storage SUCCESS → saga.command.pdf-signing (SIGN_PDF) via CDC")
+    void tc05_pdfStorageReplySuccessCreatesSignPdfCommandViaCdc() throws Exception {
         // Given — saga positioned at PDF_STORAGE
-        String documentId = "TC06-" + UUID.randomUUID();
+        String documentId = "TC05-" + UUID.randomUUID();
         SagaInstance saga = createSagaAt(documentId, SagaStep.PDF_STORAGE);
         String correlationId = saga.getCorrelationId();
 
@@ -397,14 +367,14 @@ class TaxInvoiceSagaFlowCdcIntegrationTest {
     }
 
     /**
-     * TC-07: A SUCCESS reply from pdf-signing-service (carrying signedPdfUrl) causes the
+     * TC-06: A SUCCESS reply from pdf-signing-service (carrying signedPdfUrl) causes the
      * orchestrator to advance to STORE_DOCUMENT and publish a StoreDocumentCommand via CDC.
      */
     @Test
-    @DisplayName("TC-07: saga.reply.pdf-signing SUCCESS → saga.command.document-storage (STORE_DOCUMENT) via CDC")
-    void tc07_pdfSigningReplySuccessCreatesDocumentStorageCommandViaCdc() throws Exception {
+    @DisplayName("TC-06: saga.reply.pdf-signing SUCCESS → saga.command.document-storage (STORE_DOCUMENT) via CDC")
+    void tc06_pdfSigningReplySuccessCreatesDocumentStorageCommandViaCdc() throws Exception {
         // Given — saga positioned at SIGN_PDF
-        String documentId = "TC07-" + UUID.randomUUID();
+        String documentId = "TC06-" + UUID.randomUUID();
         SagaInstance saga = createSagaAt(documentId, SagaStep.SIGN_PDF);
         String correlationId = saga.getCorrelationId();
 
@@ -430,14 +400,14 @@ class TaxInvoiceSagaFlowCdcIntegrationTest {
     }
 
     /**
-     * TC-08: A SUCCESS reply from document-storage-service (final signed PDF stored) causes
+     * TC-07: A SUCCESS reply from document-storage-service (final signed PDF stored) causes
      * the orchestrator to advance to SEND_EBMS and publish a SendEbmsCommand via CDC.
      */
     @Test
-    @DisplayName("TC-08: saga.reply.document-storage SUCCESS → saga.command.ebms-sending (SEND_EBMS) via CDC")
-    void tc08_documentStorageReplySuccessCreatesEbmsSendingCommandViaCdc() throws Exception {
+    @DisplayName("TC-07: saga.reply.document-storage SUCCESS → saga.command.ebms-sending (SEND_EBMS) via CDC")
+    void tc07_documentStorageReplySuccessCreatesEbmsSendingCommandViaCdc() throws Exception {
         // Given — saga positioned at STORE_DOCUMENT
-        String documentId = "TC08-" + UUID.randomUUID();
+        String documentId = "TC07-" + UUID.randomUUID();
         SagaInstance saga = createSagaAt(documentId, SagaStep.STORE_DOCUMENT);
         String correlationId = saga.getCorrelationId();
 
@@ -460,15 +430,15 @@ class TaxInvoiceSagaFlowCdcIntegrationTest {
     }
 
     /**
-     * TC-09: A SUCCESS reply from ebms-sending-service (document submitted to Thailand Revenue
+     * TC-08: A SUCCESS reply from ebms-sending-service (document submitted to Thailand Revenue
      * Department) causes the orchestrator to complete the saga.  A SagaCompletedEvent must
      * be published to saga.lifecycle.completed via CDC.
      */
     @Test
-    @DisplayName("TC-09: saga.reply.ebms-sending SUCCESS → saga.lifecycle.completed via CDC")
-    void tc09_ebmsSendingReplySuccessCompletesTheSagaViaCdc() throws Exception {
+    @DisplayName("TC-08: saga.reply.ebms-sending SUCCESS → saga.lifecycle.completed via CDC")
+    void tc08_ebmsSendingReplySuccessCompletesTheSagaViaCdc() throws Exception {
         // Given — saga positioned at SEND_EBMS
-        String documentId = "TC09-" + UUID.randomUUID();
+        String documentId = "TC08-" + UUID.randomUUID();
         SagaInstance saga = createSagaAt(documentId, SagaStep.SEND_EBMS);
 
         // When — ebms-sending-service sends SUCCESS reply
