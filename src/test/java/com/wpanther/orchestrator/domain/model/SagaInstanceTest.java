@@ -309,11 +309,7 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_XML);
 
             saga.advanceTo(SagaStep.SIGN_XML);
-            // SIGN_XML -> SIGNEDXML_STORAGE
-            assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
-
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
-            // SIGNEDXML_STORAGE -> GENERATE_TAX_INVOICE_PDF (different from invoice)
+            // SIGN_XML -> GENERATE_TAX_INVOICE_PDF (tax invoice skips SIGNEDXML_STORAGE)
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);

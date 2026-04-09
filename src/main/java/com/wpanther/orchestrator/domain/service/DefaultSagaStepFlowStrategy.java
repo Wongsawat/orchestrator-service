@@ -20,7 +20,9 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
         return switch (currentStep) {
             case PROCESS_INVOICE -> SagaStep.SIGN_XML;
             case PROCESS_TAX_INVOICE -> SagaStep.SIGN_XML;
-            case SIGN_XML -> SagaStep.SIGNEDXML_STORAGE;
+            case SIGN_XML -> isInvoice
+                    ? SagaStep.SIGNEDXML_STORAGE
+                    : SagaStep.GENERATE_TAX_INVOICE_PDF;
             case SIGNEDXML_STORAGE -> isInvoice
                     ? SagaStep.GENERATE_INVOICE_PDF
                     : SagaStep.GENERATE_TAX_INVOICE_PDF;
@@ -46,8 +48,11 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
             case SIGN_PDF -> isInvoice
                     ? SagaStep.GENERATE_INVOICE_PDF
                     : SagaStep.PDF_STORAGE;
-            case PDF_STORAGE -> SagaStep.GENERATE_TAX_INVOICE_PDF;
-            case GENERATE_INVOICE_PDF, GENERATE_TAX_INVOICE_PDF -> SagaStep.SIGNEDXML_STORAGE;
+            case PDF_STORAGE -> isInvoice
+                    ? SagaStep.GENERATE_INVOICE_PDF
+                    : SagaStep.GENERATE_TAX_INVOICE_PDF;
+            case GENERATE_INVOICE_PDF -> SagaStep.SIGNEDXML_STORAGE;
+            case GENERATE_TAX_INVOICE_PDF -> SagaStep.SIGN_XML;
             case SIGNEDXML_STORAGE -> SagaStep.SIGN_XML;
             case SIGN_XML -> isInvoice
                     ? SagaStep.PROCESS_INVOICE
