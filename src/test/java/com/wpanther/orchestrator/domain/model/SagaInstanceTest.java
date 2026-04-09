@@ -272,11 +272,7 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_XML);
 
             saga.advanceTo(SagaStep.SIGN_XML);
-            // SIGN_XML -> SIGNEDXML_STORAGE
-            assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
-
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
-            // SIGNEDXML_STORAGE -> GENERATE_INVOICE_PDF
+            // SIGN_XML -> GENERATE_INVOICE_PDF (skipping SIGNEDXML_STORAGE)
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
@@ -359,23 +355,23 @@ class SagaInstanceTest {
 
         @Test
         void fromSignedXmlStorage_returnsSignXml() {
-            SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
-            saga.start();
-            saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
-
-            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
+            // SIGNEDXML_STORAGE no longer used for INVOICE — this test is obsolete
+            // INVOICE now goes: SIGN_XML -> GENERATE_INVOICE_PDF -> PDF_STORAGE -> ...
+            // Compensating from PDF_STORAGE -> GENERATE_INVOICE_PDF (not through SIGNEDXML_STORAGE)
         }
 
         @Test
         void fromGenerateInvoicePdf_returnsSignedXmlStorage() {
+            // OBSOLETE TEST — SIGNEDXML_STORAGE no longer in INVOICE path
+            // INVOICE now goes: SIGN_XML -> GENERATE_INVOICE_PDF -> PDF_STORAGE -> ...
+            // Compensation from GENERATE_INVOICE_PDF -> SIGN_XML (skipping SIGNEDXML_STORAGE)
             SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
 
-            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
+            // Compensation from GENERATE_INVOICE_PDF -> SIGN_XML (new routing)
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
         }
 
         @Test

@@ -249,6 +249,23 @@ class SagaApplicationServiceTest {
         }
 
         @Test
+        void success_signXmlForInvoice_advancesToGenerateInvoicePdf() {
+            SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-inv-001");
+            // Default document type is INVOICE (from createSaga)
+            saga.advanceTo(SagaStep.SIGN_XML);
+
+            when(jdbcTemplate.queryForObject(anyString(), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
+                    .thenReturn(saga);
+            when(commandRepository.findBySagaId("saga-inv-001")).thenReturn(createCommandRecords(saga));
+            when(commandRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            service.handleReply("saga-inv-001", SagaStep.SIGN_XML.getCode(), true, null);
+
+            // INVOICE: SIGN_XML -> GENERATE_INVOICE_PDF (skipping SIGNEDXML_STORAGE)
+            assertThat(saga.getCurrentStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
+        }
+
+        @Test
         void successOnLastStep_completesSaga() {
             SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-001");
             saga.advanceTo(SagaStep.STORE_DOCUMENT);
@@ -571,43 +588,42 @@ class SagaApplicationServiceTest {
             SagaInstance saga1 = SagaInstance.create(DocumentType.INVOICE, "doc-001", createMetadata());
             saga1.start();
             saga1.advanceTo(SagaStep.SIGN_XML);
-            saga1.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga1.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
 
-            // Compensation from GENERATE_INVOICE_PDF should go to SIGNEDXML_STORAGE
-            assertThat(saga1.getCompensationStep()).isEqualTo(SagaStep.SIGNEDXML_STORAGE);
+            // Compensation from GENERATE_INVOICE_PDF -> SIGN_XML (skipping SIGNEDXML_STORAGE)
+            assertThat(saga1.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
 
             SagaInstance saga2 = SagaInstance.create(DocumentType.INVOICE, "doc-002", createMetadata());
             saga2.start();
             saga2.advanceTo(SagaStep.SIGN_XML);
-            saga2.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga2.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga2.advanceTo(SagaStep.PDF_STORAGE);
             saga2.advanceTo(SagaStep.SIGN_PDF);
 
-            // Compensation from SIGN_PDF should go to GENERATE_INVOICE_PDF
-            assertThat(saga2.getCompensationStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
+            // Compensation from SIGN_PDF -> PDF_STORAGE
+            assertThat(saga2.getCompensationStep()).isEqualTo(SagaStep.PDF_STORAGE);
 
             SagaInstance saga3 = SagaInstance.create(DocumentType.INVOICE, "doc-003", createMetadata());
             saga3.start();
             saga3.advanceTo(SagaStep.SIGN_XML);
-            saga3.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga3.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga3.advanceTo(SagaStep.PDF_STORAGE);
             saga3.advanceTo(SagaStep.SIGN_PDF);
             saga3.advanceTo(SagaStep.STORE_DOCUMENT);
 
-            // Compensation from STORE_DOCUMENT should go to SIGN_PDF
+            // Compensation from STORE_DOCUMENT -> SIGN_PDF
             assertThat(saga3.getCompensationStep()).isEqualTo(SagaStep.SIGN_PDF);
 
             SagaInstance saga4 = SagaInstance.create(DocumentType.INVOICE, "doc-004", createMetadata());
             saga4.start();
             saga4.advanceTo(SagaStep.SIGN_XML);
-            saga4.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga4.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga4.advanceTo(SagaStep.PDF_STORAGE);
             saga4.advanceTo(SagaStep.SIGN_PDF);
             saga4.advanceTo(SagaStep.STORE_DOCUMENT);
             saga4.advanceTo(SagaStep.SEND_EBMS);
 
-            // Compensation from SEND_EBMS should go to STORE_DOCUMENT
+            // Compensation from SEND_EBMS -> STORE_DOCUMENT
             assertThat(saga4.getCompensationStep()).isEqualTo(SagaStep.STORE_DOCUMENT);
         }
 
