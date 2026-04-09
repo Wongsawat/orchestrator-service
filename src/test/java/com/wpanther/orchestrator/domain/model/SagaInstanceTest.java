@@ -383,7 +383,6 @@ class SagaInstanceTest {
             SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-456", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
             saga.advanceTo(SagaStep.PDF_STORAGE);
 
@@ -395,7 +394,6 @@ class SagaInstanceTest {
             SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-456", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
             saga.advanceTo(SagaStep.PDF_STORAGE);
             saga.advanceTo(SagaStep.SIGN_PDF);
