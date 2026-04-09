@@ -232,6 +232,23 @@ class SagaApplicationServiceTest {
         }
 
         @Test
+        void success_signXmlForTaxInvoice_advancesToGenerateTaxInvoicePdf() {
+            SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-tax-001");
+            saga.setDocumentType(DocumentType.TAX_INVOICE);
+            saga.advanceTo(SagaStep.SIGN_XML);
+
+            when(jdbcTemplate.queryForObject(anyString(), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
+                    .thenReturn(saga);
+            when(commandRepository.findBySagaId("saga-tax-001")).thenReturn(createCommandRecords(saga));
+            when(commandRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            service.handleReply("saga-tax-001", SagaStep.SIGN_XML.getCode(), true, null);
+
+            // TAX_INVOICE: SIGN_XML -> GENERATE_TAX_INVOICE_PDF (skipping SIGNEDXML_STORAGE)
+            assertThat(saga.getCurrentStep()).isEqualTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
+        }
+
+        @Test
         void successOnLastStep_completesSaga() {
             SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-001");
             saga.advanceTo(SagaStep.STORE_DOCUMENT);
