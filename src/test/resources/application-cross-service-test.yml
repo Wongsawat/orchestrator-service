@@ -1,0 +1,137 @@
+# Test profile for cross-service integration tests.
+#
+# Verifies real service-to-service communication:
+#   xml-signing-service → saga.reply.xml-signing (CDC) →
+#   orchestrator SagaReplyConsumer → saga.command.tax-invoice-pdf (CDC)
+#
+# Prerequisites:
+#   1. Start containers: ./scripts/test-containers-start.sh --with-eidas --with-debezium --auto-deploy-connectors
+#   2. Start xml-signing-service: cd services/xml-signing-service && mvn spring-boot:run -Dspring-boot.run.profiles=full-integration-test &
+#   3. Containers must be running:
+#      - PostgreSQL:     localhost:5433
+#      - Kafka:          localhost:9093
+#      - Debezium:       localhost:8083
+#      - MinIO:          localhost:9100
+#      - eidasremotesigning: localhost:9000
+#
+# Run: mvn test -Pintegration -Dtest=XmlSigningToTaxInvoicePdfCdcIntegrationTest \
+#               -Dspring.profiles.active=cross-service-test
+
+server:
+  port: 0
+
+spring:
+  application:
+    name: orchestrator-service-cross-service-test
+  main:
+    allow-bean-definition-overriding: true
+  datasource:
+    url: jdbc:postgresql://localhost:5433/orchestrator_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 0
+          fetch_size: 50
+        jdbc.lob.non_contextual_creation: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: localhost:9093
+    consumer:
+      group-id: orchestrator-cross-service-test
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+app:
+  admin:
+    api-keys: test-api-key-cross-service
+  kafka:
+    bootstrap-servers: localhost:9093
+    topics:
+      saga-commands-orchestrator: saga.commands.orchestrator
+      saga-lifecycle-started: saga.lifecycle.started
+      saga-lifecycle-step-completed: saga.lifecycle.step-completed
+      saga-lifecycle-completed: saga.lifecycle.completed
+      saga-lifecycle-failed: saga.lifecycle.failed
+      saga-command-invoice: saga.command.invoice
+      saga-command-tax-invoice: saga.command.tax-invoice
+      saga-command-xml-signing: saga.command.xml-signing
+      saga-command-signedxml-storage: saga.command.signedxml-storage
+      saga-command-invoice-pdf: saga.command.invoice-pdf
+      saga-command-tax-invoice-pdf: saga.command.tax-invoice-pdf
+      saga-command-pdf-signing: saga.command.pdf-signing
+      saga-command-document-storage: saga.command.document-storage
+      saga-command-ebms-sending: saga.command.ebms-sending
+      saga-command-pdf-storage: saga.command.pdf-storage
+  saga:
+    command:
+      invoice: saga.command.invoice
+      tax-invoice: saga.command.tax-invoice
+      xml-signing: saga.command.xml-signing
+      signedxml-storage: saga.command.signedxml-storage
+      invoice-pdf: saga.command.invoice-pdf
+      tax-invoice-pdf: saga.command.tax-invoice-pdf
+      pdf-signing: saga.command.pdf-signing
+      document-storage: saga.command.document-storage
+      ebms-sending: saga.command.ebms-sending
+      pdf-storage: saga.command.pdf-storage
+    reply:
+      invoice: saga.reply.invoice
+      tax-invoice: saga.reply.tax-invoice
+      document-storage: saga.reply.document-storage
+      xml-signing: saga.reply.xml-signing
+      signedxml-storage: saga.reply.signedxml-storage
+      invoice-pdf: saga.reply.invoice-pdf
+      tax-invoice-pdf: saga.reply.tax-invoice-pdf
+      pdf-signing: saga.reply.pdf-signing
+      ebms-sending: saga.reply.ebms-sending
+      pdf-storage: saga.reply.pdf-storage
+    compensation:
+      invoice: saga.compensation.invoice
+      tax-invoice: saga.compensation.tax-invoice
+      xml-signing: saga.compensation.xml-signing
+      signedxml-storage: saga.compensation.signedxml-storage
+      invoice-pdf: saga.compensation.invoice-pdf
+      tax-invoice-pdf: saga.compensation.tax-invoice-pdf
+      pdf-signing: saga.compensation.pdf-signing
+      document-storage: saga.compensation.document-storage
+      ebms-sending: saga.compensation.ebms-sending
+      pdf-storage: saga.compensation.pdf-storage
+    max-retries: 3
+    retry-delay-seconds: 1
+    compensation-timeout-seconds: 300
+    timeout-check-enabled: false
+
+eureka:
+  client:
+    enabled: false
+
+management:
+  endpoints:
+    enabled-by-default: false
+    web:
+      exposure:
+        include: health
+
+logging:
+  level:
+    root: WARN
+    com.wpanther.orchestrator: DEBUG
+    org.apache.kafka: WARN
+    org.springframework.kafka: WARN
+    org.hibernate.SQL: WARN

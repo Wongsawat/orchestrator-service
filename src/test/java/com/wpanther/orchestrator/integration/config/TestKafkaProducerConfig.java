@@ -24,7 +24,7 @@ import java.util.Map;
  * Only active when profile 'cdc-consumption-test' is enabled.
  */
 @Configuration
-@Profile({ "cdc-consumption-test", "consumer-test", "saga-flow-test" })
+@Profile({ "cdc-consumption-test", "consumer-test", "saga-flow-test", "cross-service-test" })
 public class TestKafkaProducerConfig {
 
     @Value("${app.kafka.bootstrap-servers:localhost:9093}")

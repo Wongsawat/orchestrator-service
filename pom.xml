@@ -268,7 +268,7 @@
                     </excludes>
                     <!-- JUnit 5 configuration -->
                     <properties>
-                        <excludeTags>integration</excludeTags>
+                        <excludeTags>integration,cross-service</excludeTags>
                     </properties>
                 </configuration>
             </plugin>
