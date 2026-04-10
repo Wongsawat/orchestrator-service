@@ -939,8 +939,8 @@ public class SagaCommandPublisher {
         @JsonProperty("taxInvoiceId")
         private final String taxInvoiceId;
 
-        @JsonProperty("taxInvoiceNumber")
-        private final String taxInvoiceNumber;
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
 
         @JsonProperty("signedXmlUrl")
         private final String signedXmlUrl;
@@ -949,12 +949,12 @@ public class SagaCommandPublisher {
         private final String taxInvoiceDataJson;
 
         public ProcessTaxInvoicePdfCommand(String sagaId, SagaStep sagaStep, String correlationId,
-                                            String documentId, String taxInvoiceId, String taxInvoiceNumber,
+                                            String documentId, String taxInvoiceId, String documentNumber,
                                             String signedXmlUrl, String taxInvoiceDataJson) {
             super(sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.taxInvoiceId = taxInvoiceId;
-            this.taxInvoiceNumber = taxInvoiceNumber;
+            this.documentNumber = documentNumber;
             this.signedXmlUrl = signedXmlUrl;
             this.taxInvoiceDataJson = taxInvoiceDataJson;
         }
@@ -970,13 +970,13 @@ public class SagaCommandPublisher {
                 @JsonProperty("correlationId") String correlationId,
                 @JsonProperty("documentId") String documentId,
                 @JsonProperty("taxInvoiceId") String taxInvoiceId,
-                @JsonProperty("taxInvoiceNumber") String taxInvoiceNumber,
+                @JsonProperty("documentNumber") String documentNumber,
                 @JsonProperty("signedXmlUrl") String signedXmlUrl,
                 @JsonProperty("taxInvoiceDataJson") String taxInvoiceDataJson) {
             super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.taxInvoiceId = taxInvoiceId;
-            this.taxInvoiceNumber = taxInvoiceNumber;
+            this.documentNumber = documentNumber;
             this.signedXmlUrl = signedXmlUrl;
             this.taxInvoiceDataJson = taxInvoiceDataJson;
         }

@@ -1,5 +1,6 @@
 package com.wpanther.orchestrator.infrastructure.adapter.out.messaging;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.wpanther.orchestrator.infrastructure.adapter.out.messaging.SagaCommandPublisher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
@@ -505,6 +506,41 @@ class SagaCommandPublisherTest {
             publisher.publishCommandForStep(saga, SagaStep.SEND_EBMS, "corr-001");
 
             verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.command.ebms-sending"), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("ProcessTaxInvoicePdfCommand DTO serialisation")
+    class ProcessTaxInvoicePdfCommandSerialisationTests {
+
+        @Test
+        @DisplayName("serialises documentNumber key (not taxInvoiceNumber) to match taxinvoice-pdf-generation-service")
+        void processTaxInvoicePdfCommand_serialisesDocumentNumberField() throws Exception {
+            // taxinvoice-pdf-generation-service deserialises @JsonProperty("documentNumber"),
+            // NOT "taxInvoiceNumber". Verify the orchestrator publishes the correct key.
+            SagaCommandPublisher.ProcessTaxInvoicePdfCommand cmd =
+                    new SagaCommandPublisher.ProcessTaxInvoicePdfCommand(
+                            "saga-001",
+                            SagaStep.GENERATE_TAX_INVOICE_PDF,
+                            "corr-001",
+                            "doc-001",
+                            "taxinv-uuid",
+                            "TIV-TEST-001",       // documentNumber
+                            "http://minio/signed.xml",
+                            "{}"
+                    );
+
+            ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+            String json = mapper.writeValueAsString(cmd);
+            JsonNode node = mapper.readTree(json);
+
+            assertThat(node.has("documentNumber"))
+                    .as("JSON must contain 'documentNumber' key (not 'taxInvoiceNumber')")
+                    .isTrue();
+            assertThat(node.get("documentNumber").asText()).isEqualTo("TIV-TEST-001");
+            assertThat(node.has("taxInvoiceNumber"))
+                    .as("JSON must NOT contain legacy 'taxInvoiceNumber' key")
+                    .isFalse();
         }
     }
 
