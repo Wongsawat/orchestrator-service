@@ -125,6 +125,10 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
 
+    // ── External service endpoints (Docker test containers) ───────────────────
+
+    private static final String MINIO_ENDPOINT = "http://localhost:9100";
+
     // ── TaxInvoice XML content (loaded once) ─────────────────────────────────
 
     private String taxInvoiceXmlContent;
@@ -172,7 +176,178 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
     // Test Cases (to be implemented in subsequent tasks)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    // TC-01 through TC-04 will be added in subsequent tasks.
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TC-01: Happy Path
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("Happy Path")
+    class HappyPath {
+
+        @Test
+        @DisplayName("TC-01: xml-signing -> orchestrator consumes reply -> publishes saga.command.tax-invoice-pdf")
+        void shouldPublishTaxInvoicePdfCommandAfterXmlSigning() throws Exception {
+            // Given -- saga positioned at SIGN_XML with valid TaxInvoice XML
+            SagaSetup saga = createSagaAtSignXml(UUID.randomUUID().toString());
+
+            // When -- publish saga.command.xml-signing to Kafka
+            // xml-signing-service consumes, signs via eidasremotesigning, stores in MinIO,
+            // and publishes saga.reply.xml-signing via CDC
+            sendXmlSigningCommand(saga.sagaId(), saga.documentId(), saga.correlationId(), taxInvoiceXmlContent);
+
+            // Then -- wait for orchestrator to process reply and publish saga.command.tax-invoice-pdf via CDC
+            awaitCommandOnTopic(TOPIC_CMD_TAX_INVOICE_PDF, saga.correlationId());
+
+            ConsumerRecord<String, String> record = getFirstCommandFromTopic(
+                    TOPIC_CMD_TAX_INVOICE_PDF, saga.correlationId());
+            assertThat(record).isNotNull();
+            assertThat(record.key()).isEqualTo(saga.correlationId());
+
+            // Verify command payload
+            JsonNode payload = parseJson(record.value());
+            assertThat(payload.get("sagaId").asText()).isEqualTo(saga.sagaId());
+            assertThat(payload.get("sagaStep").asText()).isEqualTo("generate-tax-invoice-pdf");
+            assertThat(payload.get("documentId").asText()).isEqualTo(saga.documentId());
+
+            // Verify signedXmlUrl is populated (comes from xml-signing-service reply)
+            assertThat(payload.has("signedXmlUrl")).isTrue();
+            assertThat(payload.get("signedXmlUrl").asText()).isNotBlank();
+
+            // Verify saga state in DB
+            awaitCurrentStep(saga.sagaId(), SagaStep.GENERATE_TAX_INVOICE_PDF);
+            Map<String, Object> sagaRow = getSagaRow(saga.sagaId());
+            assertThat(sagaRow.get("status")).isEqualTo("IN_PROGRESS");
+            assertThat(sagaRow.get("current_step")).isEqualTo("GENERATE_TAX_INVOICE_PDF");
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TC-02: MinIO Verification
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("MinIO Verification")
+    class MinioVerification {
+
+        @Test
+        @DisplayName("TC-02: signed XML from command is accessible in MinIO and contains XAdES signature")
+        void shouldVerifySignedXmlStoredInMinIO() throws Exception {
+            // Given -- saga positioned at SIGN_XML
+            SagaSetup saga = createSagaAtSignXml(UUID.randomUUID().toString());
+
+            // When -- publish xml-signing command
+            sendXmlSigningCommand(saga.sagaId(), saga.documentId(), saga.correlationId(), taxInvoiceXmlContent);
+
+            // Then -- wait for saga.command.tax-invoice-pdf to appear via CDC
+            awaitCommandOnTopic(TOPIC_CMD_TAX_INVOICE_PDF, saga.correlationId());
+            ConsumerRecord<String, String> record = getFirstCommandFromTopic(
+                    TOPIC_CMD_TAX_INVOICE_PDF, saga.correlationId());
+            assertThat(record).isNotNull();
+
+            JsonNode payload = parseJson(record.value());
+            String signedXmlUrl = payload.get("signedXmlUrl").asText();
+            assertThat(signedXmlUrl).isNotBlank();
+
+            // Fetch signed XML from MinIO
+            String minioPath = signedXmlUrl.replace(MINIO_ENDPOINT + "/signed-xml-documents/", "");
+            HttpRequest getRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(MINIO_ENDPOINT + "/signed-xml-documents/" + minioPath))
+                    .GET().build();
+            HttpResponse<String> getResponse = httpClient.send(getRequest, HttpResponse.BodyHandlers.ofString());
+            assertThat(getResponse.statusCode()).isEqualTo(200);
+
+            String signedXml = getResponse.body();
+            // Verify XAdES signature elements present
+            assertThat(signedXml).contains("Signature");
+            assertThat(signedXml).contains("SignedInfo");
+            assertThat(signedXml).contains("SignatureValue");
+            // Signed XML should be larger than original (signature adds content)
+            assertThat(signedXml.length()).isGreaterThan(taxInvoiceXmlContent.length());
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TC-03: Error Handling
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("Error Handling")
+    class ErrorHandling {
+
+        @Test
+        @DisplayName("TC-03: xml-signing failure does NOT advance saga to GENERATE_TAX_INVOICE_PDF")
+        void shouldNotAdvanceWhenXmlSigningFails() throws Exception {
+            // Given -- saga positioned at SIGN_XML
+            SagaSetup saga = createSagaAtSignXml(UUID.randomUUID().toString());
+
+            // When -- publish xml-signing command with invalid XML (too short, fails validation)
+            String invalidXml = "<invalid>too short to pass validation minimum</invalid>";
+            sendXmlSigningCommand(saga.sagaId(), saga.documentId(), saga.correlationId(), invalidXml);
+
+            // Then -- wait briefly and verify saga stays at SIGN_XML
+            Awaitility.await()
+                    .atMost(Duration.ofSeconds(30))
+                    .pollInterval(Duration.ofSeconds(2))
+                    .untilAsserted(() -> {
+                        Map<String, Object> sagaRow = getSagaRow(saga.sagaId());
+                        assertThat(sagaRow.get("current_step")).isEqualTo("SIGN_XML");
+                    });
+
+            // Verify saga.command.tax-invoice-pdf was NOT published
+            // Poll multiple times to ensure no message arrives
+            for (int i = 0; i < 6; i++) {
+                pollMessages();
+                Thread.sleep(2000);
+            }
+            boolean hasPdfCommand = hasMessageOnTopic(TOPIC_CMD_TAX_INVOICE_PDF, saga.correlationId());
+            assertThat(hasPdfCommand).as("saga.command.tax-invoice-pdf should NOT be published for failed signing").isFalse();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TC-04: Concurrent Sagas
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    @Nested
+    @DisplayName("Concurrency")
+    class MultipleSagas {
+
+        @Test
+        @DisplayName("TC-04: two concurrent sagas both produce saga.command.tax-invoice-pdf")
+        void shouldHandleMultipleSagasConcurrently() throws Exception {
+            // Given -- two sagas at SIGN_XML
+            SagaSetup saga1 = createSagaAtSignXml(UUID.randomUUID().toString());
+            SagaSetup saga2 = createSagaAtSignXml(UUID.randomUUID().toString());
+
+            // When -- publish both xml-signing commands
+            sendXmlSigningCommand(saga1.sagaId(), saga1.documentId(), saga1.correlationId(), taxInvoiceXmlContent);
+            sendXmlSigningCommand(saga2.sagaId(), saga2.documentId(), saga2.correlationId(), taxInvoiceXmlContent);
+
+            // Then -- both should produce saga.command.tax-invoice-pdf via CDC
+            awaitCommandOnTopic(TOPIC_CMD_TAX_INVOICE_PDF, saga1.correlationId());
+            awaitCommandOnTopic(TOPIC_CMD_TAX_INVOICE_PDF, saga2.correlationId());
+
+            // Verify saga1 command
+            ConsumerRecord<String, String> record1 = getFirstCommandFromTopic(
+                    TOPIC_CMD_TAX_INVOICE_PDF, saga1.correlationId());
+            assertThat(record1).isNotNull();
+            JsonNode payload1 = parseJson(record1.value());
+            assertThat(payload1.get("sagaId").asText()).isEqualTo(saga1.sagaId());
+            assertThat(payload1.get("documentId").asText()).isEqualTo(saga1.documentId());
+
+            // Verify saga2 command
+            ConsumerRecord<String, String> record2 = getFirstCommandFromTopic(
+                    TOPIC_CMD_TAX_INVOICE_PDF, saga2.correlationId());
+            assertThat(record2).isNotNull();
+            JsonNode payload2 = parseJson(record2.value());
+            assertThat(payload2.get("sagaId").asText()).isEqualTo(saga2.sagaId());
+            assertThat(payload2.get("documentId").asText()).isEqualTo(saga2.documentId());
+
+            // Verify both sagas advanced in DB
+            awaitCurrentStep(saga1.sagaId(), SagaStep.GENERATE_TAX_INVOICE_PDF);
+            awaitCurrentStep(saga2.sagaId(), SagaStep.GENERATE_TAX_INVOICE_PDF);
+        }
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Saga setup helpers
