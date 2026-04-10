@@ -11,7 +11,19 @@ The following must be running:
 - PostgreSQL (5433), Kafka (9093), Debezium (8083), MinIO (9100), eidasremotesigning (9000)
 - xml-signing-service (8086) with `full-integration-test` profile
 
-## Running the Tests
+## Quick Run (Single Command)
+
+```bash
+cd /home/wpanther/projects/etax/invoice-microservices
+./scripts/run-cross-service-test.sh
+```
+
+Options: `--skip-build` (skip mvn), `--skip-containers` (skip container start).
+
+The script handles: build → start containers → clean → restart Debezium connectors →
+bootstrap eidasremotesigning credentials → start xml-signing-service → run tests → cleanup.
+
+## Running the Tests Manually
 
 ### Step 1: Clean databases and Kafka topics
 
@@ -44,6 +56,18 @@ cd /home/wpanther/projects/etax/invoice-microservices
 ```
 
 This starts: PostgreSQL (5433), Kafka (9093), Debezium (8083), MinIO (9100), eidasremotesigning (9000), and deploys Debezium connectors for both orchestrator and xml-signing outbox tables.
+
+### Step 3.5: Baseline Flyway for xml-signing-service
+
+After `test-containers-clean.sh` runs, the `flyway_schema_history` table is dropped for each database.
+xml-signing-service needs Flyway to baseline the existing schema before starting:
+
+```bash
+cd /home/wpanther/projects/etax/invoice-microservices/services/xml-signing-service
+mvn flyway:baseline flyway:migrate \
+  -Dflyway.url="jdbc:postgresql://localhost:5433/xmlsigning_db" \
+  -Dflyway.user=postgres -Dflyway.password=postgres
+```
 
 ### Step 4: Start xml-signing-service
 
