@@ -68,7 +68,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         }
 )
 @ActiveProfiles("cross-service-test")
-@Import(com.wpanther.orchestrator.integration.config.TestKafkaProducerConfig.class)
+@Import({com.wpanther.orchestrator.integration.config.TestKafkaConsumerConfig.class,
+        com.wpanther.orchestrator.integration.config.TestKafkaProducerConfig.class})
 @Tag("cross-service")
 @DisplayName("Cross-Service: saga.reply.xml-signing \u2192 saga.command.tax-invoice-pdf")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -213,6 +214,22 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
             assertThat(payload.has("signedXmlUrl")).isTrue();
             assertThat(payload.get("signedXmlUrl").asText()).isNotBlank();
 
+            // ── Verify all fields required by taxinvoice-pdf-generation-service ────
+            // documentId
+            assertThat(payload.has("documentId")).isTrue();
+            assertThat(payload.get("documentId").asText()).isEqualTo(saga.documentId());
+
+            // documentNumber (seeded in createSagaAtSignXml metadata)
+            assertThat(payload.has("documentNumber")).isTrue();
+            assertThat(payload.get("documentNumber").asText()).isEqualTo(saga.documentNumber());
+
+            // taxInvoiceId (seeded in createSagaAtSignXml metadata)
+            assertThat(payload.has("taxInvoiceId")).isTrue();
+            assertThat(payload.get("taxInvoiceId").asText()).isEqualTo(saga.taxInvoiceId());
+
+            // taxInvoiceDataJson present (value may be "{}" — acceptable for TC-01)
+            assertThat(payload.has("taxInvoiceDataJson")).isTrue();
+
             // Verify saga state in DB
             awaitCurrentStep(saga.sagaId(), SagaStep.GENERATE_TAX_INVOICE_PDF);
             Map<String, Object> sagaRow = getSagaRow(saga.sagaId());
@@ -356,7 +373,8 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
     /**
      * Record holding saga data created by {@link #createSagaAtSignXml(String)}.
      */
-    record SagaSetup(String sagaId, String documentId, String correlationId) {}
+    record SagaSetup(String sagaId, String documentId, String correlationId,
+                     String taxInvoiceId, String documentNumber) {}
 
     /**
      * Creates a fresh TAX_INVOICE saga directly in the database at the SIGN_XML step.
@@ -370,39 +388,48 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
      * @return a {@link SagaSetup} record with the saga IDs
      */
     private SagaSetup createSagaAtSignXml(String documentId) {
-        String sagaId = UUID.randomUUID().toString();
+        String sagaId        = UUID.randomUUID().toString();
         String correlationId = UUID.randomUUID().toString();
-        String commandId = UUID.randomUUID().toString();
+        String commandId     = UUID.randomUUID().toString();
+        String taxInvoiceId  = UUID.randomUUID().toString();
+        String docNumber     = "TIV-TEST-" + documentId.substring(0, 8).toUpperCase();
+
+        // Seed initial metadata so the orchestrator can build a complete
+        // ProcessTaxInvoicePdfCommand after the SIGN_XML reply arrives.
+        // taxInvoiceDataJson is "{}" — empty but non-null, which is enough for TC-01.
+        String metadataJson = String.format(
+                "{\"documentNumber\":\"%s\",\"taxInvoiceId\":\"%s\",\"taxInvoiceDataJson\":\"{}\"}",
+                docNumber, taxInvoiceId);
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
 
-        // Insert saga instance — use null for TEXT columns to avoid CLOB issues
+        // Insert saga instance — use ?::jsonb cast so PostgreSQL treats the string as JSONB
         jdbcTemplate.update("""
-            INSERT INTO saga_instances
-            (id, document_type, document_id, current_step, status, created_at, updated_at,
-             xml_content, metadata, correlation_id, retry_count, max_retries, version)
-            VALUES (?, ?, ?, 'SIGN_XML', 'IN_PROGRESS', ?, ?,
-             NULL, NULL, ?, 0, 3, 0)
-            """,
-            sagaId, "TAX_INVOICE", documentId, now, now, correlationId);
+                INSERT INTO saga_instances
+                (id, document_type, document_id, current_step, status, created_at, updated_at,
+                 xml_content, metadata, correlation_id, retry_count, max_retries, version)
+                VALUES (?, ?, ?, 'SIGN_XML', 'IN_PROGRESS', ?, ?,
+                 NULL, ?::jsonb, ?, 0, 3, 0)
+                """,
+                sagaId, "TAX_INVOICE", documentId, now, now, metadataJson, correlationId);
 
         // Insert saga_data record
         jdbcTemplate.update("""
-            INSERT INTO saga_data
-            (saga_id, file_path, xml_content, metadata, created_at)
-            VALUES (?, ?, NULL, NULL, ?)
-            """,
-            sagaId, "/test/" + documentId + ".xml", now);
+                INSERT INTO saga_data
+                (saga_id, file_path, xml_content, metadata, created_at)
+                VALUES (?, ?, NULL, NULL, ?)
+                """,
+                sagaId, "/test/" + documentId + ".xml", now);
 
-        // Insert the SIGN_XML command record (status SENT, not COMPLETED)
+        // Insert the SIGN_XML command record (status SENT)
         jdbcTemplate.update("""
-            INSERT INTO saga_commands
-            (id, saga_id, command_type, target_step, payload, status, created_at, correlation_id)
-            VALUES (?, ?, 'SIGN_XML_command', 'SIGN_XML', '{}', 'SENT', ?, ?)
-            """,
-            commandId, sagaId, now, correlationId);
+                INSERT INTO saga_commands
+                (id, saga_id, command_type, target_step, payload, status, created_at, correlation_id)
+                VALUES (?, ?, 'SIGN_XML_command', 'SIGN_XML', '{}', 'SENT', ?, ?)
+                """,
+                commandId, sagaId, now, correlationId);
 
-        return new SagaSetup(sagaId, documentId, correlationId);
+        return new SagaSetup(sagaId, documentId, correlationId, taxInvoiceId, docNumber);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -528,7 +555,7 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
      */
     private void awaitCommandOnTopic(String topic, String sagaId) {
         Awaitility.await()
-                .atMost(Duration.ofMinutes(3))
+                .atMost(Duration.ofMinutes(2))
                 .pollInterval(Duration.ofSeconds(1))
                 .failFast("Debezium connector is no longer RUNNING",
                         () -> !isConnectorRunning(DEBEZIUM_CONNECTOR_ORCH))
@@ -558,7 +585,7 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
      */
     private void awaitCurrentStep(String sagaId, SagaStep expectedStep) {
         Awaitility.await()
-                .atMost(Duration.ofMinutes(3))
+                .atMost(Duration.ofMinutes(2))
                 .pollInterval(Duration.ofSeconds(1))
                 .until(() -> expectedStep.name().equals(getSagaRow(sagaId).get("current_step")));
     }
@@ -569,7 +596,7 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
      */
     private void awaitSagaStatus(String sagaId, String expectedStatus) {
         Awaitility.await()
-                .atMost(Duration.ofMinutes(3))
+                .atMost(Duration.ofMinutes(2))
                 .pollInterval(Duration.ofSeconds(1))
                 .until(() -> expectedStatus.equals(getSagaRow(sagaId).get("status")));
     }
