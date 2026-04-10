@@ -354,6 +354,32 @@ class SagaApplicationServiceTest {
         }
 
         @Test
+        @DisplayName("merges resultData into metadata even when saga documentMetadata starts as null")
+        void success_mergesResultDataWhenDocumentMetadataIsNull() {
+            // Saga is loaded from DB without documentMetadata (null — simulates JdbcTemplate partial load)
+            SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-null-meta");
+            saga.setDocumentType(DocumentType.TAX_INVOICE);
+            saga.advanceTo(SagaStep.SIGN_XML);
+            saga.setDocumentMetadata(null);   // explicitly null — the bug condition
+
+            when(jdbcTemplate.queryForObject(anyString(),
+                    any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
+                .thenReturn(saga);
+            when(commandRepository.findBySagaId("saga-null-meta")).thenReturn(createCommandRecords(saga));
+            when(commandRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            Map<String, Object> resultData = Map.of("signedXmlUrl", "http://minio/signed-xml-documents/2026/04/10/TAX_INVOICE/signed.xml");
+
+            // handleReply with 5-param form (sagaId, step, success, errorMessage, resultData)
+            service.handleReply("saga-null-meta", SagaStep.SIGN_XML.getCode(), true, null, resultData);
+
+            // The metadata must be initialised and the URL stored
+            assertThat(saga.getDocumentMetadata()).isNotNull();
+            assertThat(saga.getDocumentMetadata().getMetadataValue("signedXmlUrl"))
+                .isEqualTo("http://minio/signed-xml-documents/2026/04/10/TAX_INVOICE/signed.xml");
+        }
+
+        @Test
         void throwsException_whenSagaNotFound() {
             // JdbcTemplate returns null when no row matches
             when(jdbcTemplate.queryForObject(anyString(), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
