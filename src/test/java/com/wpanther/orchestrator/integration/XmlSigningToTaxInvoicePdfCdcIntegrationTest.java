@@ -447,7 +447,7 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
      *   "eventType": "ProcessXmlSigningCommand",
      *   "version": 1,
      *   "sagaId": "...",
-     *   "sagaStep": "SIGN_XML",
+     *   "sagaStep": "sign-xml",
      *   "correlationId": "...",
      *   "documentId": "...",
      *   "xmlContent": "...(escaped JSON string)...",
@@ -465,7 +465,7 @@ class XmlSigningToTaxInvoicePdfCdcIntegrationTest {
                                         String correlationId, String xmlContent) {
         String documentNumber = "TIV-TEST";
         String eventType = "ProcessXmlSigningCommand";
-        String sagaStep = "SIGN_XML";
+        String sagaStep = "sign-xml";
 
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");

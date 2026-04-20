@@ -1,7 +1,7 @@
 -- Add document_number column to saga_instances for storing the external document number
 -- This avoids needing to load the metadata TEXT column when handling saga replies
 ALTER TABLE saga_instances
-ADD COLUMN document_number VARCHAR(100);
+ADD COLUMN IF NOT EXISTS document_number VARCHAR(100);
 
 -- Backfill document_number from metadata JSON where present
 -- documentNumber is stored in metadata as: {"eventId":"...","documentNumber":"...","source":"..."}

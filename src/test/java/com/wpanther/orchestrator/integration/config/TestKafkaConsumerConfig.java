@@ -1,10 +1,13 @@
 package com.wpanther.orchestrator.integration.config;
 
+import jakarta.annotation.PostConstruct;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,8 +24,21 @@ import java.util.Properties;
 @Profile({ "cdc-test", "consumer-test", "saga-flow-test", "cross-service-test" })
 public class TestKafkaConsumerConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(TestKafkaConsumerConfig.class);
+
     @Value("${app.kafka.bootstrap-servers:localhost:9093}")
     private String bootstrapServers;
+
+    /**
+     * Eagerly creates Kafka topics when the Spring context starts.
+     * This runs BEFORE any Kafka consumers subscribe, avoiding the race condition
+     * where topics don't exist yet after test-containers-clean.sh deletes them.
+     */
+    @PostConstruct
+    void init() {
+        log.info("Creating Kafka topics for cross-service test (eager @PostConstruct init)");
+        createTopics();
+    }
 
     @Bean
     public Properties kafkaAdminProperties() {

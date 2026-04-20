@@ -34,7 +34,7 @@ public class KafkaConfig {
      */
     private static final int DEFAULT_CONSUMER_CONCURRENCY = 3;
 
-    @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
+    @Value("${app.kafka.bootstrap-servers:${spring.kafka.bootstrap-servers:localhost:9092}}")
     private String bootstrapServers;
 
     @Value("${spring.kafka.consumer.group-id:orchestrator-service}")
