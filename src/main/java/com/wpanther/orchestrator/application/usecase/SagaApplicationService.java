@@ -55,6 +55,20 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
      */
     private final JdbcTemplate jdbcTemplate;
 
+    // Override default interface methods so Spring CGLIB proxy opens a transaction before the
+    // delegation reaches the 4/5-arg overloads — default methods run on the real bean (not proxy).
+    @Override
+    @Transactional
+    public SagaInstance startSaga(DocumentType documentType, String documentId, DocumentMetadata metadata) {
+        return startSaga(documentType, documentId, metadata, null);
+    }
+
+    @Override
+    @Transactional
+    public SagaInstance handleReply(String sagaId, String step, boolean success, String errorMessage) {
+        return handleReply(sagaId, step, success, errorMessage, null);
+    }
+
     /**
      * Starts a saga from a DTO request.
      */
@@ -189,6 +203,19 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 updatedMetadata = updatedMetadata.withMetadataValue(entry.getKey(), entry.getValue());
             }
             instance.setDocumentMetadata(updatedMetadata);
+            // Ensure documentNumber from saga's dedicated column is preserved in metadata map
+            // (it was loaded via JdbcTemplate but not stored in the metadata JSON column)
+            if (instance.getDocumentNumber() != null && !instance.getDocumentNumber().isBlank()) {
+                updatedMetadata = updatedMetadata.withMetadataValue("documentNumber", instance.getDocumentNumber());
+                instance.setDocumentMetadata(updatedMetadata);
+            }
+            // Preserve taxInvoiceDataJson from original metadata (set by test or startSaga)
+            // This is needed by taxinvoice-pdf-generation-service and gets lost in resultData merge
+            Object originalTaxInvoiceDataJson = metadata.getMetadataValue("taxInvoiceDataJson");
+            if (originalTaxInvoiceDataJson != null) {
+                updatedMetadata = updatedMetadata.withMetadataValue("taxInvoiceDataJson", originalTaxInvoiceDataJson);
+                instance.setDocumentMetadata(updatedMetadata);
+            }
             log.debug("Merged {} result data fields into saga {} metadata: {}",
                     resultData.size(), sagaId, resultData.keySet());
         }
