@@ -2,8 +2,8 @@ package com.wpanther.orchestrator.infrastructure.config.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.ConcreteSagaReply;
+import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.saga.domain.model.SagaReply;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -76,13 +76,8 @@ public class KafkaConfig {
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        // Restrict to known safe packages for SagaReply deserialization
-        config.put(JsonDeserializer.TRUSTED_PACKAGES,
-            "com.wpanther.orchestrator.infrastructure.adapter.in.messaging," +
-            "com.wpanther.saga.domain.model");
 
         // SagaReply is abstract; map it to ConcreteSagaReply for deserialization
         ObjectMapper replyMapper = objectMapper.copy();
@@ -92,14 +87,15 @@ public class KafkaConfig {
 
         return new DefaultKafkaConsumerFactory<>(config,
                 new StringDeserializer(),
-                new JsonDeserializer<>(SagaReply.class, replyMapper, false));
+                new CdcAwareSagaReplyDeserializer(replyMapper));
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, SagaReply> sagaReplyKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, SagaReply> sagaReplyKafkaListenerContainerFactory(
+            ConsumerFactory<String, SagaReply> sagaReplyConsumerFactory) {
         ConcurrentKafkaListenerContainerFactory<String, SagaReply> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(sagaReplyConsumerFactory());
+        factory.setConsumerFactory(sagaReplyConsumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setConcurrency(DEFAULT_CONSUMER_CONCURRENCY);
         return factory;

@@ -45,26 +45,24 @@ public class SagaReplyConsumer {
      * Topics handled:
      * - saga.reply.invoice (Invoice processing)
      * - saga.reply.tax-invoice (Tax invoice processing)
-     * - saga.reply.document-storage (Document storage - final PDF)
      * - saga.reply.xml-signing (XML signing)
-     * - saga.reply.signedxml-storage (Signed XML storage)
      * - saga.reply.invoice-pdf (Invoice PDF generation)
      * - saga.reply.tax-invoice-pdf (Tax invoice PDF generation)
-     * - saga.reply.pdf-storage (Unsigned PDF storage for tax invoices)
      * - saga.reply.pdf-signing (PDF signing)
      * - saga.reply.ebms-sending (ebMS sending to Revenue Department)
      * </p>
+     * <p>Note: saga.reply.signedxml-storage, saga.reply.pdf-storage, and
+     * saga.reply.document-storage are no longer consumed — those steps
+     * (SIGNEDXML_STORAGE, PDF_STORAGE, STORE_DOCUMENT) have been removed
+     * from the saga flow.
      */
     @KafkaListener(
             topics = {
                     "${app.saga.reply.invoice:saga.reply.invoice}",
                     "${app.saga.reply.tax-invoice:saga.reply.tax-invoice}",
-                    "${app.saga.reply.document-storage:saga.reply.document-storage}",
                     "${app.saga.reply.xml-signing:saga.reply.xml-signing}",
-                    "${app.saga.reply.signedxml-storage:saga.reply.signedxml-storage}",
                     "${app.saga.reply.invoice-pdf:saga.reply.invoice-pdf}",
                     "${app.saga.reply.tax-invoice-pdf:saga.reply.tax-invoice-pdf}",
-                    "${app.saga.reply.pdf-storage:saga.reply.pdf-storage}",
                     "${app.saga.reply.pdf-signing:saga.reply.pdf-signing}",
                     "${app.saga.reply.ebms-sending:saga.reply.ebms-sending}"
             },

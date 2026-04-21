@@ -39,24 +39,18 @@ class SagaCommandPublisherTest {
         ReflectionTestUtils.setField(publisher, "invoiceCommandTopic", "saga.command.invoice");
         ReflectionTestUtils.setField(publisher, "taxInvoiceCommandTopic", "saga.command.tax-invoice");
         ReflectionTestUtils.setField(publisher, "xmlSigningCommandTopic", "saga.command.xml-signing");
-        ReflectionTestUtils.setField(publisher, "signedXmlStorageCommandTopic", "saga.command.signedxml-storage");
         ReflectionTestUtils.setField(publisher, "invoicePdfCommandTopic", "saga.command.invoice-pdf");
         ReflectionTestUtils.setField(publisher, "taxInvoicePdfCommandTopic", "saga.command.tax-invoice-pdf");
         ReflectionTestUtils.setField(publisher, "pdfSigningCommandTopic", "saga.command.pdf-signing");
-        ReflectionTestUtils.setField(publisher, "documentStorageCommandTopic", "saga.command.document-storage");
         ReflectionTestUtils.setField(publisher, "ebmsSendingCommandTopic", "saga.command.ebms-sending");
-        ReflectionTestUtils.setField(publisher, "pdfStorageCommandTopic", "saga.command.pdf-storage");
         // Compensation topics
         ReflectionTestUtils.setField(publisher, "invoiceCompensationTopic", "saga.compensation.invoice");
         ReflectionTestUtils.setField(publisher, "taxInvoiceCompensationTopic", "saga.compensation.tax-invoice");
         ReflectionTestUtils.setField(publisher, "xmlSigningCompensationTopic", "saga.compensation.xml-signing");
-        ReflectionTestUtils.setField(publisher, "signedXmlStorageCompensationTopic", "saga.compensation.signedxml-storage");
         ReflectionTestUtils.setField(publisher, "invoicePdfCompensationTopic", "saga.compensation.invoice-pdf");
         ReflectionTestUtils.setField(publisher, "taxInvoicePdfCompensationTopic", "saga.compensation.tax-invoice-pdf");
         ReflectionTestUtils.setField(publisher, "pdfSigningCompensationTopic", "saga.compensation.pdf-signing");
-        ReflectionTestUtils.setField(publisher, "documentStorageCompensationTopic", "saga.compensation.document-storage");
         ReflectionTestUtils.setField(publisher, "ebmsSendingCompensationTopic", "saga.compensation.ebms-sending");
-        ReflectionTestUtils.setField(publisher, "pdfStorageCompensationTopic", "saga.compensation.pdf-storage");
     }
 
     private SagaInstance createInvoiceSaga() {
@@ -149,47 +143,6 @@ class SagaCommandPublisherTest {
             verify(outboxService).saveWithRouting(
                     any(), eq("SagaInstance"), eq(saga.getId()),
                     eq("saga.command.xml-signing"), eq("corr-001"), any());
-        }
-    }
-
-    @Nested
-    @DisplayName("publishSignedXmlStorageCommand()")
-    class PublishSignedXmlStorageCommandTests {
-
-        @Test
-        @DisplayName("publishes with signedXmlUrl from metadata")
-        void publishesWithSignedXmlUrl() {
-            Map<String, Object> meta = new HashMap<>();
-            meta.put("signedXmlUrl", "http://storage/signed.xml");
-            SagaInstance saga = createSagaWithMetadata(DocumentType.INVOICE, meta);
-
-            publisher.publishSignedXmlStorageCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(
-                    any(), eq("SagaInstance"), eq(saga.getId()),
-                    eq("saga.command.signedxml-storage"), eq("corr-001"), any());
-        }
-
-        @Test
-        @DisplayName("publishes without signedXmlUrl when not in metadata")
-        void publishesWithoutSignedXmlUrl() {
-            SagaInstance saga = createInvoiceSaga();
-
-            publisher.publishSignedXmlStorageCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), any(), any(), any());
-        }
-
-        @Test
-        @DisplayName("publishes with null metadata")
-        void publishesWithNullMetadata() {
-            DocumentMetadata dm = DocumentMetadata.builder().xmlContent("<xml/>").build();
-            SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-null", dm);
-            saga.start();
-
-            publisher.publishSignedXmlStorageCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), any(), any(), any());
         }
     }
 
@@ -301,81 +254,6 @@ class SagaCommandPublisherTest {
     }
 
     @Nested
-    @DisplayName("publishPdfStorageCommand()")
-    class PublishPdfStorageCommandTests {
-
-        @Test
-        @DisplayName("publishes with pdfUrl and pdfSize from metadata")
-        void publishesWithFullMetadata() {
-            Map<String, Object> meta = new HashMap<>();
-            meta.put("pdfUrl", "http://minio/tax.pdf");
-            meta.put("pdfSize", "10240");
-            SagaInstance saga = createSagaWithMetadata(DocumentType.TAX_INVOICE, meta);
-
-            publisher.publishPdfStorageCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(
-                    any(), eq("SagaInstance"), eq(saga.getId()),
-                    eq("saga.command.pdf-storage"), eq("corr-001"), any());
-        }
-
-        @Test
-        @DisplayName("publishes without pdfUrl when not in metadata")
-        void publishesWithoutPdfUrl() {
-            SagaInstance saga = createTaxInvoiceSaga();
-
-            publisher.publishPdfStorageCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), any(), any(), any());
-        }
-
-        @Test
-        @DisplayName("publishes with empty metadata map (no pdfUrl or pdfSize)")
-        void publishesWithEmptyMetadata() {
-            SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-empty",
-                    DocumentMetadata.builder().xmlContent("<xml/>").metadata(new java.util.HashMap<>()).build());
-            saga.start();
-
-            publisher.publishPdfStorageCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), any(), any(), any());
-        }
-    }
-
-    @Nested
-    @DisplayName("publishStoreDocumentCommand()")
-    class PublishStoreDocumentCommandTests {
-
-        @Test
-        @DisplayName("publishes with signedPdfUrl, signedDocumentId and signatureLevel from metadata")
-        void publishesWithFullMetadata() {
-            Map<String, Object> meta = new HashMap<>();
-            meta.put("signedPdfUrl", "http://storage/signed.pdf");
-            meta.put("signedDocumentId", "signed-doc-001");
-            meta.put("signatureLevel", "PAdES-BASELINE-T");
-            SagaInstance saga = createSagaWithMetadata(DocumentType.INVOICE, meta);
-
-            publisher.publishStoreDocumentCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(
-                    any(), eq("SagaInstance"), eq(saga.getId()),
-                    eq("saga.command.document-storage"), eq("corr-001"), any());
-        }
-
-        @Test
-        @DisplayName("publishes with empty metadata map (no signedPdfUrl)")
-        void publishesWithEmptyMetadata() {
-            DocumentMetadata dm = DocumentMetadata.builder().xmlContent("<xml/>").metadata(new java.util.HashMap<>()).build();
-            SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-empty", dm);
-            saga.start();
-
-            publisher.publishStoreDocumentCommand(saga, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), any(), any(), any());
-        }
-    }
-
-    @Nested
     @DisplayName("publishSendEbmsCommand()")
     class PublishSendEbmsCommandTests {
 
@@ -439,16 +317,6 @@ class SagaCommandPublisherTest {
         }
 
         @Test
-        @DisplayName("routes SIGNEDXML_STORAGE to signedxml-storage command")
-        void routesSignedXmlStorage() {
-            SagaInstance saga = createInvoiceSaga();
-
-            publisher.publishCommandForStep(saga, SagaStep.SIGNEDXML_STORAGE, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.command.signedxml-storage"), any(), any());
-        }
-
-        @Test
         @DisplayName("routes GENERATE_INVOICE_PDF to invoice-pdf command")
         void routesGenerateInvoicePdf() {
             SagaInstance saga = createInvoiceSaga();
@@ -469,16 +337,6 @@ class SagaCommandPublisherTest {
         }
 
         @Test
-        @DisplayName("routes PDF_STORAGE to pdf-storage command")
-        void routesPdfStorage() {
-            SagaInstance saga = createTaxInvoiceSaga();
-
-            publisher.publishCommandForStep(saga, SagaStep.PDF_STORAGE, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.command.pdf-storage"), any(), any());
-        }
-
-        @Test
         @DisplayName("routes SIGN_PDF to pdf-signing command")
         void routesSignPdf() {
             SagaInstance saga = createInvoiceSaga();
@@ -486,16 +344,6 @@ class SagaCommandPublisherTest {
             publisher.publishCommandForStep(saga, SagaStep.SIGN_PDF, "corr-001");
 
             verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.command.pdf-signing"), any(), any());
-        }
-
-        @Test
-        @DisplayName("routes STORE_DOCUMENT to document-storage command")
-        void routesStoreDocument() {
-            SagaInstance saga = createInvoiceSaga();
-
-            publisher.publishCommandForStep(saga, SagaStep.STORE_DOCUMENT, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.command.document-storage"), any(), any());
         }
 
         @Test
@@ -549,16 +397,6 @@ class SagaCommandPublisherTest {
     class PublishCompensationCommandTests {
 
         @Test
-        @DisplayName("compensates STORE_DOCUMENT step")
-        void compensatesStoreDocument() {
-            SagaInstance saga = createInvoiceSaga();
-
-            publisher.publishCompensationCommand(saga, SagaStep.STORE_DOCUMENT, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.compensation.document-storage"), any(), any());
-        }
-
-        @Test
         @DisplayName("compensates PROCESS_INVOICE step")
         void compensatesProcessInvoice() {
             SagaInstance saga = createInvoiceSaga();
@@ -589,16 +427,6 @@ class SagaCommandPublisherTest {
         }
 
         @Test
-        @DisplayName("compensates SIGNEDXML_STORAGE step")
-        void compensatesSignedXmlStorage() {
-            SagaInstance saga = createInvoiceSaga();
-
-            publisher.publishCompensationCommand(saga, SagaStep.SIGNEDXML_STORAGE, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.compensation.signedxml-storage"), any(), any());
-        }
-
-        @Test
         @DisplayName("compensates GENERATE_INVOICE_PDF step")
         void compensatesGenerateInvoicePdf() {
             SagaInstance saga = createInvoiceSaga();
@@ -616,16 +444,6 @@ class SagaCommandPublisherTest {
             publisher.publishCompensationCommand(saga, SagaStep.GENERATE_TAX_INVOICE_PDF, "corr-001");
 
             verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.compensation.tax-invoice-pdf"), any(), any());
-        }
-
-        @Test
-        @DisplayName("compensates PDF_STORAGE step")
-        void compensatesPdfStorage() {
-            SagaInstance saga = createTaxInvoiceSaga();
-
-            publisher.publishCompensationCommand(saga, SagaStep.PDF_STORAGE, "corr-001");
-
-            verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.compensation.pdf-storage"), any(), any());
         }
 
         @Test

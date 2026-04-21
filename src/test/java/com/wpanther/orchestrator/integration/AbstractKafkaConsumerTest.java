@@ -375,7 +375,7 @@ public abstract class AbstractKafkaConsumerTest {
      */
     protected void completeAllInvoiceSteps(String sagaId) {
         String[] steps = {"process-invoice", "sign-xml", "generate-invoice-pdf",
-                          "sign-pdf", "store-document", "send-ebms"};
+                          "sign-pdf", "send-ebms"};
         for (String step : steps) {
             sendInvoiceReply(sagaId, step, true, null);
             try {
@@ -394,7 +394,7 @@ public abstract class AbstractKafkaConsumerTest {
      */
     protected void completeAllTaxInvoiceSteps(String sagaId) {
         String[] steps = {"process-tax-invoice", "sign-xml", "generate-tax-invoice-pdf",
-                          "sign-pdf", "store-document", "send-ebms"};
+                          "sign-pdf", "send-ebms"};
         for (String step : steps) {
             sendTaxInvoiceReply(sagaId, step, true, null);
             try {

@@ -272,23 +272,15 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_XML);
 
             saga.advanceTo(SagaStep.SIGN_XML);
-            // SIGN_XML -> GENERATE_INVOICE_PDF (skipping SIGNEDXML_STORAGE)
+            // SIGN_XML -> GENERATE_INVOICE_PDF (skipping SIGNEDXML_STORAGE, PDF_STORAGE, STORE_DOCUMENT)
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
-            // GENERATE_INVOICE_PDF -> PDF_STORAGE (same as tax invoice)
-            assertThat(saga.getNextStep()).isEqualTo(SagaStep.PDF_STORAGE);
-
-            saga.advanceTo(SagaStep.PDF_STORAGE);
-            // PDF_STORAGE -> SIGN_PDF
+            // GENERATE_INVOICE_PDF -> SIGN_PDF (storage steps removed)
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_PDF);
 
             saga.advanceTo(SagaStep.SIGN_PDF);
-            // SIGN_PDF -> STORE_DOCUMENT
-            assertThat(saga.getNextStep()).isEqualTo(SagaStep.STORE_DOCUMENT);
-
-            saga.advanceTo(SagaStep.STORE_DOCUMENT);
-            // STORE_DOCUMENT -> SEND_EBMS
+            // SIGN_PDF -> SEND_EBMS
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SEND_EBMS);
 
             saga.advanceTo(SagaStep.SEND_EBMS);
@@ -305,23 +297,15 @@ class SagaInstanceTest {
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_XML);
 
             saga.advanceTo(SagaStep.SIGN_XML);
-            // SIGN_XML -> GENERATE_TAX_INVOICE_PDF (tax invoice skips SIGNEDXML_STORAGE)
+            // SIGN_XML -> GENERATE_TAX_INVOICE_PDF (tax invoice skips SIGNEDXML_STORAGE, PDF_STORAGE, STORE_DOCUMENT)
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
 
             saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
-            // GENERATE_TAX_INVOICE_PDF -> PDF_STORAGE (tax invoice has extra storage step)
-            assertThat(saga.getNextStep()).isEqualTo(SagaStep.PDF_STORAGE);
-
-            saga.advanceTo(SagaStep.PDF_STORAGE);
-            // PDF_STORAGE -> SIGN_PDF
+            // GENERATE_TAX_INVOICE_PDF -> SIGN_PDF (storage steps removed)
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SIGN_PDF);
 
             saga.advanceTo(SagaStep.SIGN_PDF);
-            // SIGN_PDF -> STORE_DOCUMENT
-            assertThat(saga.getNextStep()).isEqualTo(SagaStep.STORE_DOCUMENT);
-
-            saga.advanceTo(SagaStep.STORE_DOCUMENT);
-            // STORE_DOCUMENT -> SEND_EBMS
+            // SIGN_PDF -> SEND_EBMS
             assertThat(saga.getNextStep()).isEqualTo(SagaStep.SEND_EBMS);
 
             saga.advanceTo(SagaStep.SEND_EBMS);
@@ -354,74 +338,62 @@ class SagaInstanceTest {
         }
 
         @Test
-        void fromSignedXmlStorage_returnsSignXml() {
-            // SIGNEDXML_STORAGE no longer used for INVOICE — this test is obsolete
-            // INVOICE now goes: SIGN_XML -> GENERATE_INVOICE_PDF -> PDF_STORAGE -> ...
-            // Compensating from PDF_STORAGE -> GENERATE_INVOICE_PDF (not through SIGNEDXML_STORAGE)
-        }
-
-        @Test
-        void fromGenerateInvoicePdf_returnsSignedXmlStorage() {
-            // OBSOLETE TEST — SIGNEDXML_STORAGE no longer in INVOICE path
-            // INVOICE now goes: SIGN_XML -> GENERATE_INVOICE_PDF -> PDF_STORAGE -> ...
-            // Compensation from GENERATE_INVOICE_PDF -> SIGN_XML (skipping SIGNEDXML_STORAGE)
+        void fromGenerateInvoicePdf_returnsSignXml() {
+            // COMPENSATION: GENERATE_INVOICE_PDF -> SIGN_XML (PDF_STORAGE and STORE_DOCUMENT removed)
             SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
 
-            // Compensation from GENERATE_INVOICE_PDF -> SIGN_XML (new routing)
             assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
         }
 
         @Test
-        void fromPdfStorage_returnsGenerateTaxInvoicePdf() {
+        void fromGenerateTaxInvoicePdf_returnsSignXml() {
+            // COMPENSATION: GENERATE_TAX_INVOICE_PDF -> SIGN_XML (PDF_STORAGE and STORE_DOCUMENT removed)
             SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-456", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
             saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
-            saga.advanceTo(SagaStep.PDF_STORAGE);
+
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_XML);
+        }
+
+        @Test
+        void fromSignPdf_returnsGenerateInvoicePdfForInvoice() {
+            // COMPENSATION: SIGN_PDF -> GENERATE_INVOICE_PDF (invoice path)
+            SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
+            saga.start();
+            saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
+            saga.advanceTo(SagaStep.SIGN_PDF);
+
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
+        }
+
+        @Test
+        void fromSignPdf_returnsGenerateTaxInvoicePdfForTaxInvoice() {
+            // COMPENSATION: SIGN_PDF -> GENERATE_TAX_INVOICE_PDF (tax invoice path)
+            SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-456", createTestMetadata());
+            saga.start();
+            saga.advanceTo(SagaStep.SIGN_XML);
+            saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
+            saga.advanceTo(SagaStep.SIGN_PDF);
 
             assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
         }
 
         @Test
-        void fromSignPdf_returnsPdfStorageForTaxInvoice() {
-            SagaInstance saga = SagaInstance.create(DocumentType.TAX_INVOICE, "doc-456", createTestMetadata());
-            saga.start();
-            saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.GENERATE_TAX_INVOICE_PDF);
-            saga.advanceTo(SagaStep.PDF_STORAGE);
-            saga.advanceTo(SagaStep.SIGN_PDF);
-
-            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.PDF_STORAGE);
-        }
-
-        @Test
-        void fromStoreDocument_returnsSignPdf() {
+        void fromSendEbms_returnsSignPdf() {
+            // COMPENSATION: SEND_EBMS -> SIGN_PDF (STORE_DOCUMENT removed)
             SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
             saga.start();
             saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
             saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
             saga.advanceTo(SagaStep.SIGN_PDF);
-            saga.advanceTo(SagaStep.STORE_DOCUMENT);
-
-            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_PDF);
-        }
-
-        @Test
-        void fromSendEbms_returnsStoreDocument() {
-            SagaInstance saga = SagaInstance.create(DocumentType.INVOICE, "doc-123", createTestMetadata());
-            saga.start();
-            saga.advanceTo(SagaStep.SIGN_XML);
-            saga.advanceTo(SagaStep.SIGNEDXML_STORAGE);
-            saga.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
-            saga.advanceTo(SagaStep.SIGN_PDF);
-            saga.advanceTo(SagaStep.STORE_DOCUMENT);
             saga.advanceTo(SagaStep.SEND_EBMS);
 
-            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.STORE_DOCUMENT);
+            assertThat(saga.getCompensationStep()).isEqualTo(SagaStep.SIGN_PDF);
         }
 
         @Test

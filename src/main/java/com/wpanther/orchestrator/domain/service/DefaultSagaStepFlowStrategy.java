@@ -19,12 +19,11 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
             case SIGN_XML -> DocumentType.INVOICE.equals(documentType)
                     ? SagaStep.GENERATE_INVOICE_PDF
                     : SagaStep.GENERATE_TAX_INVOICE_PDF;
-            case GENERATE_INVOICE_PDF -> SagaStep.PDF_STORAGE;
-            case GENERATE_TAX_INVOICE_PDF -> SagaStep.PDF_STORAGE;
-            case PDF_STORAGE -> SagaStep.SIGN_PDF;
-            case SIGN_PDF -> SagaStep.STORE_DOCUMENT;
-            case STORE_DOCUMENT -> SagaStep.SEND_EBMS;
+            case GENERATE_INVOICE_PDF -> SagaStep.SIGN_PDF;
+            case GENERATE_TAX_INVOICE_PDF -> SagaStep.SIGN_PDF;
+            case SIGN_PDF -> SagaStep.SEND_EBMS;
             case SEND_EBMS -> null; // Saga complete
+            // SIGNEDXML_STORAGE, PDF_STORAGE, STORE_DOCUMENT removed from flow
             default -> throw new IllegalStateException("Unknown current step: " + currentStep);
         };
     }
@@ -32,10 +31,8 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
     @Override
     public SagaStep getCompensationStep(SagaStep currentStep, DocumentType documentType) {
         return switch (currentStep) {
-            case SEND_EBMS -> SagaStep.STORE_DOCUMENT;
-            case STORE_DOCUMENT -> SagaStep.SIGN_PDF;
-            case SIGN_PDF -> SagaStep.PDF_STORAGE;
-            case PDF_STORAGE -> DocumentType.INVOICE.equals(documentType)
+            case SEND_EBMS -> SagaStep.SIGN_PDF;
+            case SIGN_PDF -> DocumentType.INVOICE.equals(documentType)
                     ? SagaStep.GENERATE_INVOICE_PDF
                     : SagaStep.GENERATE_TAX_INVOICE_PDF;
             case GENERATE_INVOICE_PDF -> SagaStep.SIGN_XML;
@@ -43,7 +40,8 @@ public class DefaultSagaStepFlowStrategy implements SagaStepFlowStrategy {
             case SIGN_XML -> DocumentType.INVOICE.equals(documentType)
                     ? SagaStep.PROCESS_INVOICE
                     : SagaStep.PROCESS_TAX_INVOICE;
-            default -> null; // No compensation available for PROCESS_* steps (first step in flow)
+            // SIGNEDXML_STORAGE, PDF_STORAGE, STORE_DOCUMENT removed from flow
+            default -> null; // No compensation available for early steps
         };
     }
 }

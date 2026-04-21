@@ -248,7 +248,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // Given
             String sagaId = startTestSaga(DocumentType.INVOICE, "COMPLETE-TEST");
 
-            // When - complete all 6 steps
+            // When - complete all 5 steps
             completeAllInvoiceSteps(sagaId);
 
             // Then
@@ -260,7 +260,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
 
             // Verify all commands completed
             List<Map<String, Object>> commands = getCommandHistory(sagaId);
-            assertThat(commands).hasSize(6);
+            assertThat(commands).hasSize(5);
             assertThat(commands).allMatch(c -> "COMPLETED".equals(c.get("status")));
         }
 
@@ -426,7 +426,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // Given
             String sagaId = startTestSaga(DocumentType.TAX_INVOICE, "TAX-COMPLETE");
 
-            // When - complete all 6 steps
+            // When - complete all 5 steps
             completeAllTaxInvoiceSteps(sagaId);
 
             // Then
@@ -437,7 +437,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
 
             // Verify all commands completed
             List<Map<String, Object>> commands = getCommandHistory(sagaId);
-            assertThat(commands).hasSize(6);
+            assertThat(commands).hasSize(5);
             assertThat(commands).allMatch(c -> "COMPLETED".equals(c.get("status")));
         }
 
@@ -524,7 +524,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // Verify initial state
             assertThat(SagaStep.valueOf((String) getSagaInstance(sagaId).get("current_step"))).isEqualTo(SagaStep.PROCESS_INVOICE);
 
-            // When - complete all 6 steps via replies
+            // When - complete all 5 steps via replies
             completeAllInvoiceSteps(sagaId);
 
             // Then
@@ -532,7 +532,7 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
 
             // Verify all commands marked completed
             List<Map<String, Object>> commands = getCommandHistory(sagaId);
-            assertThat(commands).hasSize(6);
+            assertThat(commands).hasSize(5);
             assertThat(commands).allMatch(c -> "COMPLETED".equals(c.get("status")));
 
             // Verify outbox events

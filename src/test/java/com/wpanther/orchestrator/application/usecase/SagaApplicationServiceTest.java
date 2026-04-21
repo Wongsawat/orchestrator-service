@@ -623,34 +623,30 @@ class SagaApplicationServiceTest {
             saga2.start();
             saga2.advanceTo(SagaStep.SIGN_XML);
             saga2.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
-            saga2.advanceTo(SagaStep.PDF_STORAGE);
             saga2.advanceTo(SagaStep.SIGN_PDF);
 
-            // Compensation from SIGN_PDF -> PDF_STORAGE
-            assertThat(saga2.getCompensationStep()).isEqualTo(SagaStep.PDF_STORAGE);
+            // Compensation from SIGN_PDF -> GENERATE_INVOICE_PDF (PDF_STORAGE and STORE_DOCUMENT removed)
+            assertThat(saga2.getCompensationStep()).isEqualTo(SagaStep.GENERATE_INVOICE_PDF);
 
             SagaInstance saga3 = SagaInstance.create(DocumentType.INVOICE, "doc-003", createMetadata());
             saga3.start();
             saga3.advanceTo(SagaStep.SIGN_XML);
             saga3.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
-            saga3.advanceTo(SagaStep.PDF_STORAGE);
             saga3.advanceTo(SagaStep.SIGN_PDF);
-            saga3.advanceTo(SagaStep.STORE_DOCUMENT);
+            saga3.advanceTo(SagaStep.SEND_EBMS);
 
-            // Compensation from STORE_DOCUMENT -> SIGN_PDF
+            // Compensation from SEND_EBMS -> SIGN_PDF (STORE_DOCUMENT removed)
             assertThat(saga3.getCompensationStep()).isEqualTo(SagaStep.SIGN_PDF);
 
             SagaInstance saga4 = SagaInstance.create(DocumentType.INVOICE, "doc-004", createMetadata());
             saga4.start();
             saga4.advanceTo(SagaStep.SIGN_XML);
             saga4.advanceTo(SagaStep.GENERATE_INVOICE_PDF);
-            saga4.advanceTo(SagaStep.PDF_STORAGE);
             saga4.advanceTo(SagaStep.SIGN_PDF);
-            saga4.advanceTo(SagaStep.STORE_DOCUMENT);
             saga4.advanceTo(SagaStep.SEND_EBMS);
 
-            // Compensation from SEND_EBMS -> STORE_DOCUMENT
-            assertThat(saga4.getCompensationStep()).isEqualTo(SagaStep.STORE_DOCUMENT);
+            // Compensation from SEND_EBMS -> SIGN_PDF (STORE_DOCUMENT removed)
+            assertThat(saga4.getCompensationStep()).isEqualTo(SagaStep.SIGN_PDF);
         }
 
         @Test
