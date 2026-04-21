@@ -76,20 +76,20 @@ class OrchestratorCdcIntegrationTest extends AbstractCdcIntegrationTest {
     }
 
     /**
-     * Complete all invoice steps: process-invoice -> sign-xml -> generate-invoice-pdf -> sign-pdf -> store-document -> send-ebms
+     * Complete all invoice steps matching current flow: process-invoice -> sign-xml -> generate-invoice-pdf -> sign-pdf -> send-ebms
      */
     private void completeAllInvoiceSteps(String sagaId) {
-        String[] steps = {"process-invoice", "sign-xml", "generate-invoice-pdf", "sign-pdf", "store-document", "send-ebms"};
+        String[] steps = {"process-invoice", "sign-xml", "generate-invoice-pdf", "sign-pdf", "send-ebms"};
         for (String step : steps) {
             sagaApplicationService.handleReply(sagaId, step, true, null);
         }
     }
 
     /**
-     * Complete all tax invoice steps: process-tax-invoice -> sign-xml -> generate-tax-invoice-pdf -> sign-pdf -> store-document -> send-ebms
+     * Complete all tax invoice steps matching current flow: process-tax-invoice -> sign-xml -> generate-tax-invoice-pdf -> sign-pdf -> send-ebms
      */
     private void completeAllTaxInvoiceSteps(String sagaId) {
-        String[] steps = {"process-tax-invoice", "sign-xml", "generate-tax-invoice-pdf", "sign-pdf", "store-document", "send-ebms"};
+        String[] steps = {"process-tax-invoice", "sign-xml", "generate-tax-invoice-pdf", "sign-pdf", "send-ebms"};
         for (String step : steps) {
             sagaApplicationService.handleReply(sagaId, step, true, null);
         }
