@@ -535,17 +535,11 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             assertThat(commands).hasSize(5);
             assertThat(commands).allMatch(c -> "COMPLETED".equals(c.get("status")));
 
-            // Verify outbox events
-            List<Map<String, Object>> events = getOutboxEvents(sagaId);
-
-            // Should have: SagaStartedEvent + 6 SagaStepCompletedEvent + SagaCompletedEvent
-            assertThat(events).anyMatch(e -> "SagaStartedEvent".equals(e.get("event_type")));
-            assertThat(events).anyMatch(e -> "SagaCompletedEvent".equals(e.get("event_type")));
-
-            long stepCompletedCount = events.stream()
-                .filter(e -> "SagaStepCompletedEvent".equals(e.get("event_type")))
-                .count();
-            assertThat(stepCompletedCount).isEqualTo(6);
+            // Verify final DB state (SagaEventPublisher is mocked in consumer-test profile;
+            // outbox/CDC assertions belong in OrchestratorCdcIntegrationTest)
+            Map<String, Object> completedSaga = getSagaInstance(sagaId);
+            assertThat(completedSaga.get("status")).isEqualTo("COMPLETED");
+            assertThat(completedSaga.get("completed_at")).isNotNull();
         }
 
         @Test
