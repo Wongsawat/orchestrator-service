@@ -2,7 +2,6 @@ package com.wpanther.orchestrator.integration;
 
 import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
-import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.saga.domain.enums.SagaStep;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -105,20 +104,12 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // Then - wait for saga to be created first
             String sagaId = awaitSagaByDocumentId(DocumentType.INVOICE, documentId);
 
-            // Now wait for outbox event
-            awaitOutboxEvent(sagaId, "SagaStartedEvent");
-
-            // Verify event details
-            List<Map<String, Object>> events = getOutboxEvents(sagaId);
-            Map<String, Object> startedEvent = events.stream()
-                .filter(e -> "SagaStartedEvent".equals(e.get("event_type")))
-                .findFirst()
-                .orElseThrow();
-
-            assertThat(startedEvent.get("aggregate_type")).isEqualTo("SagaInstance");
-            assertThat(startedEvent.get("aggregate_id")).isEqualTo(sagaId);
-            assertThat(startedEvent.get("topic")).isEqualTo("saga.lifecycle.started");
-            assertThat(startedEvent.get("status")).isEqualTo("PENDING");
+            // Verify saga DB state (SagaEventPublisher is @MockBean in consumer-test profile;
+            // outbox/CDC assertions belong in OrchestratorCdcIntegrationTest)
+            Map<String, Object> saga = getSagaInstance(sagaId);
+            assertThat(saga.get("status")).isEqualTo("IN_PROGRESS");
+            assertThat(saga.get("current_step")).isEqualTo("PROCESS_INVOICE");
+            assertThat(saga.get("created_at")).isNotNull();
         }
 
         @Test
@@ -229,17 +220,12 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // When
             sendInvoiceReply(sagaId, "process-invoice", true, null);
 
-            // Then
-            awaitOutboxEvent(sagaId, "SagaStepCompletedEvent");
+            // Then - verify saga advanced to next step (SagaEventPublisher is @MockBean in
+            // consumer-test profile; outbox/CDC assertions belong in OrchestratorCdcIntegrationTest)
+            awaitCurrentStep(sagaId, SagaStep.SIGN_XML);
 
-            // Verify event details
-            List<Map<String, Object>> events = getOutboxEvents(sagaId);
-            Map<String, Object> stepEvent = events.stream()
-                .filter(e -> "SagaStepCompletedEvent".equals(e.get("event_type")))
-                .findFirst()
-                .orElseThrow();
-
-            assertThat(stepEvent.get("topic")).isEqualTo("saga.lifecycle.step-completed");
+            Map<String, Object> saga = getSagaInstance(sagaId);
+            assertThat(saga.get("current_step")).isEqualTo("SIGN_XML");
         }
 
         @Test
@@ -273,23 +259,13 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // When
             completeAllInvoiceSteps(sagaId);
 
-            // Then
+            // Then - verify saga completed in DB (SagaEventPublisher is @MockBean in
+            // consumer-test profile; outbox/CDC assertions belong in OrchestratorCdcIntegrationTest)
             awaitSagaStatus(sagaId, "COMPLETED");
-            awaitOutboxEvent(sagaId, "SagaCompletedEvent");
 
-            // Verify event has durationMs
-            List<Map<String, Object>> events = getOutboxEvents(sagaId);
-            Map<String, Object> completedEvent = events.stream()
-                .filter(e -> "SagaCompletedEvent".equals(e.get("event_type")))
-                .findFirst()
-                .orElseThrow();
-
-            assertThat(completedEvent.get("topic")).isEqualTo("saga.lifecycle.completed");
-
-            // Parse payload to verify durationMs field
-            String payload = (String) completedEvent.get("payload");
-            // JSON parsing shows durationMs is present
-            assertThat(payload).contains("durationMs");
+            Map<String, Object> completedSaga = getSagaInstance(sagaId);
+            assertThat(completedSaga.get("status")).isEqualTo("COMPLETED");
+            assertThat(completedSaga.get("completed_at")).isNotNull();
         }
 
         @Test
@@ -450,17 +426,12 @@ class KafkaConsumerIntegrationTest extends AbstractKafkaConsumerTest {
             // When
             sendTaxInvoiceReply(sagaId, "process-tax-invoice", true, null);
 
-            // Then
-            awaitOutboxEvent(sagaId, "SagaStepCompletedEvent");
+            // Then - verify saga advanced to next step (SagaEventPublisher is @MockBean in
+            // consumer-test profile; outbox/CDC assertions belong in OrchestratorCdcIntegrationTest)
+            awaitCurrentStep(sagaId, SagaStep.SIGN_XML);
 
-            // Verify event details
-            List<Map<String, Object>> events = getOutboxEvents(sagaId);
-            Map<String, Object> stepEvent = events.stream()
-                .filter(e -> "SagaStepCompletedEvent".equals(e.get("event_type")))
-                .findFirst()
-                .orElseThrow();
-
-            assertThat(stepEvent.get("topic")).isEqualTo("saga.lifecycle.step-completed");
+            Map<String, Object> saga = getSagaInstance(sagaId);
+            assertThat(saga.get("current_step")).isEqualTo("SIGN_XML");
         }
 
         @Test
