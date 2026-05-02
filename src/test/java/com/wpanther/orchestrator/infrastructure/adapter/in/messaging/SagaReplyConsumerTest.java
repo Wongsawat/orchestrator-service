@@ -127,19 +127,6 @@ class SagaReplyConsumerTest {
         }
 
         @Test
-        @DisplayName("handles document storage reply")
-        void handlesDocumentStorageReply() {
-            when(mockReply.getSagaId()).thenReturn("saga-003");
-            when(mockReply.getSagaStep()).thenReturn(SagaStep.STORE_DOCUMENT);
-            when(mockReply.isSuccess()).thenReturn(true);
-
-            consumer.handleSagaReply(mockReply, "saga.reply.document-storage", 0, 0L, acknowledgment);
-
-            verify(handleSagaReplyUseCase).handleReply("saga-003", "store-document", true, null, null);
-            verify(acknowledgment).acknowledge();
-        }
-
-        @Test
         @DisplayName("handles XML signing reply")
         void handlesXmlSigningReply() {
             when(mockReply.getSagaId()).thenReturn("saga-004");
@@ -149,19 +136,6 @@ class SagaReplyConsumerTest {
             consumer.handleSagaReply(mockReply, "saga.reply.xml-signing", 0, 0L, acknowledgment);
 
             verify(handleSagaReplyUseCase).handleReply("saga-004", "sign-xml", true, null, null);
-            verify(acknowledgment).acknowledge();
-        }
-
-        @Test
-        @DisplayName("handles signed XML storage reply")
-        void handlesSignedXmlStorageReply() {
-            when(mockReply.getSagaId()).thenReturn("saga-005");
-            when(mockReply.getSagaStep()).thenReturn(SagaStep.SIGNEDXML_STORAGE);
-            when(mockReply.isSuccess()).thenReturn(true);
-
-            consumer.handleSagaReply(mockReply, "saga.reply.signedxml-storage", 0, 0L, acknowledgment);
-
-            verify(handleSagaReplyUseCase).handleReply("saga-005", "signedxml-storage", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 
@@ -188,19 +162,6 @@ class SagaReplyConsumerTest {
             consumer.handleSagaReply(mockReply, "saga.reply.tax-invoice-pdf", 0, 0L, acknowledgment);
 
             verify(handleSagaReplyUseCase).handleReply("saga-007", "generate-tax-invoice-pdf", true, null, null);
-            verify(acknowledgment).acknowledge();
-        }
-
-        @Test
-        @DisplayName("handles PDF storage reply")
-        void handlesPdfStorageReply() {
-            when(mockReply.getSagaId()).thenReturn("saga-008");
-            when(mockReply.getSagaStep()).thenReturn(SagaStep.PDF_STORAGE);
-            when(mockReply.isSuccess()).thenReturn(true);
-
-            consumer.handleSagaReply(mockReply, "saga.reply.pdf-storage", 0, 0L, acknowledgment);
-
-            verify(handleSagaReplyUseCase).handleReply("saga-008", "pdf-storage", true, null, null);
             verify(acknowledgment).acknowledge();
         }
 

@@ -94,9 +94,9 @@ class ConcreteSagaReplyTest {
         }
 
         @Test
-        @DisplayName("stores storedDocumentUrl from pdf-storage step")
+        @DisplayName("stores storedDocumentUrl from any step")
         void storesStoredDocumentUrl() {
-            ConcreteSagaReply reply = createReply("saga-001", SagaStep.PDF_STORAGE, ReplyStatus.SUCCESS);
+            ConcreteSagaReply reply = createReply("saga-001", SagaStep.SIGN_PDF, ReplyStatus.SUCCESS);
 
             reply.setAdditionalData("storedDocumentUrl", "http://storage/unsigned.pdf");
 

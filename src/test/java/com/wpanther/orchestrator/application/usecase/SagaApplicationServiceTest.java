@@ -267,7 +267,6 @@ class SagaApplicationServiceTest {
         @Test
         void successOnLastStep_completesSaga() {
             SagaInstance saga = createSaga(SagaStatus.IN_PROGRESS, "saga-001");
-            saga.advanceTo(SagaStep.STORE_DOCUMENT);
             saga.advanceTo(SagaStep.SEND_EBMS);
 
             when(jdbcTemplate.queryForObject(anyString(), any(org.springframework.jdbc.core.RowMapper.class), any(Object[].class)))
