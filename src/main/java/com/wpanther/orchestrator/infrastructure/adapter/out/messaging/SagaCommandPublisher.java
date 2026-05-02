@@ -8,6 +8,7 @@ import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.domain.model.SagaCommand;
 import com.wpanther.saga.infrastructure.outbox.OutboxService;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,9 +18,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 /**
  * Publisher for saga commands to processing services via the outbox pattern.
@@ -77,6 +80,30 @@ public class SagaCommandPublisher {
 
     @Value("${app.saga.compensation.ebms-sending:saga.compensation.ebms-sending}")
     private String ebmsSendingCompensationTopic;
+
+    private Map<SagaStep, BiConsumer<SagaInstance, String>> commandRouter =
+            new EnumMap<>(SagaStep.class);
+    private Map<SagaStep, String> compensationRouter =
+            new EnumMap<>(SagaStep.class);
+
+    @PostConstruct
+    void initRouters() {
+        commandRouter.put(SagaStep.PROCESS_INVOICE, this::publishProcessInvoiceCommand);
+        commandRouter.put(SagaStep.PROCESS_TAX_INVOICE, this::publishProcessTaxInvoiceCommand);
+        commandRouter.put(SagaStep.SIGN_XML, this::publishSignXmlCommand);
+        commandRouter.put(SagaStep.GENERATE_INVOICE_PDF, this::publishGenerateInvoicePdfCommand);
+        commandRouter.put(SagaStep.GENERATE_TAX_INVOICE_PDF, this::publishGenerateTaxInvoicePdfCommand);
+        commandRouter.put(SagaStep.SIGN_PDF, this::publishSignPdfCommand);
+        commandRouter.put(SagaStep.SEND_EBMS, this::publishSendEbmsCommand);
+
+        compensationRouter.put(SagaStep.PROCESS_INVOICE, invoiceCompensationTopic);
+        compensationRouter.put(SagaStep.PROCESS_TAX_INVOICE, taxInvoiceCompensationTopic);
+        compensationRouter.put(SagaStep.SIGN_XML, xmlSigningCompensationTopic);
+        compensationRouter.put(SagaStep.GENERATE_INVOICE_PDF, invoicePdfCompensationTopic);
+        compensationRouter.put(SagaStep.GENERATE_TAX_INVOICE_PDF, taxInvoicePdfCompensationTopic);
+        compensationRouter.put(SagaStep.SIGN_PDF, pdfSigningCompensationTopic);
+        compensationRouter.put(SagaStep.SEND_EBMS, ebmsSendingCompensationTopic);
+    }
 
     /**
      * Publishes a ProcessInvoiceCommand to the invoice processing service.
@@ -243,32 +270,12 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishCommandForStep(SagaInstance saga, SagaStep step, String correlationId) {
-        switch (step) {
-            case PROCESS_INVOICE:
-                publishProcessInvoiceCommand(saga, correlationId);
-                break;
-            case PROCESS_TAX_INVOICE:
-                publishProcessTaxInvoiceCommand(saga, correlationId);
-                break;
-            case SIGN_XML:
-                publishSignXmlCommand(saga, correlationId);
-                break;
-            case GENERATE_INVOICE_PDF:
-                publishGenerateInvoicePdfCommand(saga, correlationId);
-                break;
-            case GENERATE_TAX_INVOICE_PDF:
-                publishGenerateTaxInvoicePdfCommand(saga, correlationId);
-                break;
-            case SIGN_PDF:
-                publishSignPdfCommand(saga, correlationId);
-                break;
-            case SEND_EBMS:
-                publishSendEbmsCommand(saga, correlationId);
-                break;
-            // SIGNEDXML_STORAGE, PDF_STORAGE, STORE_DOCUMENT removed from flow
-            default:
-                log.warn("No command publisher configured for step {}", step);
+        BiConsumer<SagaInstance, String> handler = commandRouter.get(step);
+        if (handler == null) {
+            log.warn("No command publisher configured for step {}", step);
+            return;
         }
+        handler.accept(saga, correlationId);
     }
 
     /**
@@ -276,20 +283,11 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishCompensationCommand(SagaInstance saga, SagaStep stepToCompensate, String correlationId) {
-        String compensationTopic = switch (stepToCompensate) {
-            case PROCESS_INVOICE -> invoiceCompensationTopic;
-            case PROCESS_TAX_INVOICE -> taxInvoiceCompensationTopic;
-            case SIGN_XML -> xmlSigningCompensationTopic;
-            case GENERATE_INVOICE_PDF -> invoicePdfCompensationTopic;
-            case GENERATE_TAX_INVOICE_PDF -> taxInvoicePdfCompensationTopic;
-            case SIGN_PDF -> pdfSigningCompensationTopic;
-            case SEND_EBMS -> ebmsSendingCompensationTopic;
-            // SIGNEDXML_STORAGE, PDF_STORAGE, STORE_DOCUMENT removed from flow
-            default -> {
-                boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
-                yield isInvoice ? invoiceCompensationTopic : taxInvoiceCompensationTopic;
-            }
-        };
+        String compensationTopic = compensationRouter.get(stepToCompensate);
+        if (compensationTopic == null) {
+            boolean isInvoice = saga.getDocumentType().name().equals("INVOICE");
+            compensationTopic = isInvoice ? invoiceCompensationTopic : taxInvoiceCompensationTopic;
+        }
 
         CompensationCommand command = new CompensationCommand(
             saga.getId(),

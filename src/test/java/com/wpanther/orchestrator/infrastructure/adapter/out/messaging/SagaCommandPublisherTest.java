@@ -51,6 +51,7 @@ class SagaCommandPublisherTest {
         ReflectionTestUtils.setField(publisher, "taxInvoicePdfCompensationTopic", "saga.compensation.tax-invoice-pdf");
         ReflectionTestUtils.setField(publisher, "pdfSigningCompensationTopic", "saga.compensation.pdf-signing");
         ReflectionTestUtils.setField(publisher, "ebmsSendingCompensationTopic", "saga.compensation.ebms-sending");
+        ReflectionTestUtils.invokeMethod(publisher, "initRouters");
     }
 
     private SagaInstance createInvoiceSaga() {
@@ -464,6 +465,48 @@ class SagaCommandPublisherTest {
             publisher.publishCompensationCommand(saga, SagaStep.SEND_EBMS, "corr-001");
 
             verify(outboxService).saveWithRouting(any(), any(), any(), eq("saga.compensation.ebms-sending"), any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("publishCommandForStep() registry dispatch")
+    class RegistryDispatchTests {
+
+        @Test
+        @DisplayName("PROCESS_INVOICE step routes via commandRouter to invoice topic")
+        void processInvoice_routesViaRegistry() {
+            SagaInstance saga = createInvoiceSaga();
+
+            publisher.publishCommandForStep(saga, SagaStep.PROCESS_INVOICE, "corr-1");
+
+            verify(outboxService).saveWithRouting(
+                    any(), eq("SagaInstance"), eq(saga.getId()),
+                    eq("saga.command.invoice"), eq("corr-1"), any());
+        }
+
+        @Test
+        @DisplayName("SIGN_PDF step routes via commandRouter to pdf-signing topic")
+        void signPdf_routesViaRegistry() {
+            Map<String, Object> meta = new HashMap<>();
+            meta.put("documentNumber", "TAX-001");
+            meta.put("pdfUrl", "minio://bucket/file.pdf");
+            SagaInstance saga = createSagaWithMetadata(DocumentType.TAX_INVOICE, meta);
+
+            publisher.publishCommandForStep(saga, SagaStep.SIGN_PDF, "corr-1");
+
+            verify(outboxService).saveWithRouting(
+                    any(), any(), any(),
+                    eq("saga.command.pdf-signing"), any(), any());
+        }
+
+        @Test
+        @DisplayName("Unknown step logs warning and returns")
+        void unknownStep_logsWarning() {
+            SagaInstance saga = createInvoiceSaga();
+
+            publisher.publishCommandForStep(saga, SagaStep.RECEIVE_DOCUMENT, "corr-1");
+
+            verify(outboxService, never()).saveWithRouting(any(), any(), any(), any(), any(), any());
         }
     }
 }
