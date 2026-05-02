@@ -65,7 +65,7 @@ The service follows hexagonal (ports and adapters) architecture:
 com.wpanther.orchestrator/
 ├── domain/
 │   ├── model/       # SagaInstance (aggregate root), DocumentMetadata, SagaCommandRecord
-│   │   └── enums/   # DocumentType (INVOICE, TAX_INVOICE, ABBREVIATED_TAX_INVOICE)
+│   │   └── enums/   # DocumentType (INVOICE, TAX_INVOICE, ABBREVIATED_TAX_INVOICE, RECEIPT, CANCELLATION_NOTE, DEBIT_NOTE, CREDIT_NOTE)
 │   ├── repository/  # Repository interfaces (ports)
 │   ├── service/     # Domain services: SagaStepFlowStrategy
 │   └── event/       # Domain events: SagaStartedEvent, SagaCompletedEvent, SagaFailedEvent, SagaStepCompletedEvent
@@ -104,15 +104,39 @@ STARTED → IN_PROGRESS → COMPLETED
 
 ### Document Type Flows
 
+All document types follow a simplified 5-step flow:
+
 **Invoice:**
 ```
-PROCESS_INVOICE → SIGN_XML → SIGNEDXML_STORAGE → GENERATE_INVOICE_PDF → SIGN_PDF → STORE_DOCUMENT → SEND_EBMS
+PROCESS_INVOICE → SIGN_XML → GENERATE_INVOICE_PDF → SIGN_PDF → SEND_EBMS
 ```
 
-**Tax Invoice / Abbreviated Tax Invoice:**
+**Tax Invoice:**
 ```
-PROCESS_TAX_INVOICE → SIGN_XML → SIGNEDXML_STORAGE → GENERATE_TAX_INVOICE_PDF → PDF_STORAGE → SIGN_PDF → STORE_DOCUMENT → SEND_EBMS
+PROCESS_TAX_INVOICE → SIGN_XML → GENERATE_TAX_INVOICE_PDF → SIGN_PDF → SEND_EBMS
 ```
+
+**Abbreviated Tax Invoice:**
+```
+PROCESS_ABBREVIATED_TAX_INVOICE → SIGN_XML → GENERATE_ABBREVIATED_TAX_INVOICE_PDF → SIGN_PDF → SEND_EBMS
+```
+
+**Receipt:**
+```
+PROCESS_RECEIPT → SIGN_XML → GENERATE_RECEIPT_PDF → SIGN_PDF → SEND_EBMS
+```
+
+**Cancellation Note:**
+```
+PROCESS_CANCELLATION_NOTE → SIGN_XML → GENERATE_CANCELLATION_NOTE_PDF → SIGN_PDF → SEND_EBMS
+```
+
+**Debit Note / Credit Note:**
+```
+PROCESS_DEBIT_CREDIT_NOTE → SIGN_XML → GENERATE_DEBIT_CREDIT_NOTE_PDF → SIGN_PDF → SEND_EBMS
+```
+
+The step ordering is defined declaratively in `DocumentType.FLOW` (a `Map<DocumentType, List<SagaStep>>` in the enum), which serves as the single source of truth for all routing logic.
 
 ## REST API
 
@@ -216,8 +240,8 @@ mvn flyway:migrate
 ### Unit Tests
 
 ```bash
-# Run all unit tests
-mvn test
+# Run all unit tests (always use 'clean' to avoid Lombok stale compilation)
+mvn clean test
 
 # Run specific test class
 mvn test -Dtest=SagaInstanceTest
@@ -225,7 +249,7 @@ mvn test -Dtest=SagaInstanceTest
 # Run specific test method
 mvn test -Dtest=SagaInstanceTest#testCreateSaga
 
-# Run with coverage verification (80% requirement)
+# Run with coverage verification (80% line coverage requirement)
 mvn verify
 ```
 
@@ -238,11 +262,8 @@ Integration tests require running containers:
 cd /home/wpanther/projects/etax/invoice-microservices
 ./scripts/test-containers-start.sh --with-debezium --auto-deploy-connectors
 
-# Run CDC integration tests
-mvn test -Pintegration -Dspring.profiles.active=cdc-test
-
-# Run consumer behavior tests
-mvn test -Pintegration -Dspring.profiles.active=consumer-test
+# Run integration tests (requires running test containers)
+mvn clean test -Pintegration -Dspring.profiles.active=cdc-test
 
 # Stop containers
 ./scripts/test-containers-stop.sh
@@ -269,10 +290,10 @@ curl http://localhost:8093/actuator/health
 ### Adding New Saga Steps
 
 1. Add step to `SagaStep` enum (in saga-commons)
-2. Add command/reply/compensation topics to `application.yml`
-3. Update `DefaultSagaStepFlowStrategy` for routing
-4. Add consumer method in `SagaReplyConsumer`
-5. Add command class in `SagaCommandPublisher`
+2. Add command/reply/compensation topics to `application.yml` under `app.saga.command.*`, `app.saga.reply.*`, and `app.saga.compensation.*`
+3. Add `DocumentType.FLOW` entry in `DocumentType` enum (key: document type → value: ordered `List<SagaStep>`)
+4. Register routing in `SagaCommandPublisher.initRouters()` (command and compensation registries)
+5. Add reply topic to `SagaReplyConsumer` @KafkaListener annotation
 
 ## License
 
