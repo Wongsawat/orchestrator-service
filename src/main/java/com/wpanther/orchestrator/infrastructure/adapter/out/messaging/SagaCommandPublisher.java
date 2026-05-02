@@ -45,6 +45,18 @@ public class SagaCommandPublisher {
     @Value("${app.kafka.topics.saga-command-tax-invoice:saga.command.tax-invoice}")
     private String taxInvoiceCommandTopic;
 
+    @Value("${app.kafka.topics.saga-command-abbreviated-tax-invoice:saga.command.abbreviated-tax-invoice}")
+    private String abbreviatedTaxInvoiceCommandTopic;
+
+    @Value("${app.kafka.topics.saga-command-receipt:saga.command.receipt}")
+    private String receiptCommandTopic;
+
+    @Value("${app.kafka.topics.saga-command-cancellation-note:saga.command.cancellation-note}")
+    private String cancellationNoteCommandTopic;
+
+    @Value("${app.kafka.topics.saga-command-debit-credit-note:saga.command.debit-credit-note}")
+    private String debitCreditNoteCommandTopic;
+
     @Value("${app.kafka.topics.saga-command-xml-signing:saga.command.xml-signing}")
     private String xmlSigningCommandTopic;
 
@@ -53,6 +65,18 @@ public class SagaCommandPublisher {
 
     @Value("${app.kafka.topics.saga-command-tax-invoice-pdf:saga.command.tax-invoice-pdf}")
     private String taxInvoicePdfCommandTopic;
+
+    @Value("${app.kafka.topics.saga-command-abbreviated-tax-invoice-pdf:saga.command.abbreviated-tax-invoice-pdf}")
+    private String abbreviatedTaxInvoicePdfCommandTopic;
+
+    @Value("${app.kafka.topics.saga-command-receipt-pdf:saga.command.receipt-pdf}")
+    private String receiptPdfCommandTopic;
+
+    @Value("${app.kafka.topics.saga-command-cancellation-note-pdf:saga.command.cancellation-note-pdf}")
+    private String cancellationNotePdfCommandTopic;
+
+    @Value("${app.kafka.topics.saga-command-debit-credit-note-pdf:saga.command.debit-credit-note-pdf}")
+    private String debitCreditNotePdfCommandTopic;
 
     @Value("${app.kafka.topics.saga-command-pdf-signing:saga.command.pdf-signing}")
     private String pdfSigningCommandTopic;
@@ -72,6 +96,30 @@ public class SagaCommandPublisher {
     @Value("${app.saga.compensation.tax-invoice-pdf:saga.compensation.tax-invoice-pdf}")
     private String taxInvoicePdfCompensationTopic;
 
+    @Value("${app.saga.compensation.abbreviated-tax-invoice:saga.compensation.abbreviated-tax-invoice}")
+    private String abbreviatedTaxInvoiceCompensationTopic;
+
+    @Value("${app.saga.compensation.abbreviated-tax-invoice-pdf:saga.compensation.abbreviated-tax-invoice-pdf}")
+    private String abbreviatedTaxInvoicePdfCompensationTopic;
+
+    @Value("${app.saga.compensation.receipt:saga.compensation.receipt}")
+    private String receiptCompensationTopic;
+
+    @Value("${app.saga.compensation.receipt-pdf:saga.compensation.receipt-pdf}")
+    private String receiptPdfCompensationTopic;
+
+    @Value("${app.saga.compensation.cancellation-note:saga.compensation.cancellation-note}")
+    private String cancellationNoteCompensationTopic;
+
+    @Value("${app.saga.compensation.cancellation-note-pdf:saga.compensation.cancellation-note-pdf}")
+    private String cancellationNotePdfCompensationTopic;
+
+    @Value("${app.saga.compensation.debit-credit-note:saga.compensation.debit-credit-note}")
+    private String debitCreditNoteCompensationTopic;
+
+    @Value("${app.saga.compensation.debit-credit-note-pdf:saga.compensation.debit-credit-note-pdf}")
+    private String debitCreditNotePdfCompensationTopic;
+
     @Value("${app.saga.compensation.pdf-signing:saga.compensation.pdf-signing}")
     private String pdfSigningCompensationTopic;
 
@@ -90,17 +138,33 @@ public class SagaCommandPublisher {
     void initRouters() {
         commandRouter.put(SagaStep.PROCESS_INVOICE, this::publishProcessInvoiceCommand);
         commandRouter.put(SagaStep.PROCESS_TAX_INVOICE, this::publishProcessTaxInvoiceCommand);
+        commandRouter.put(SagaStep.PROCESS_ABBREVIATED_TAX_INVOICE, this::publishProcessAbbreviatedTaxInvoiceCommand);
+        commandRouter.put(SagaStep.PROCESS_RECEIPT, this::publishProcessReceiptCommand);
+        commandRouter.put(SagaStep.PROCESS_CANCELLATION_NOTE, this::publishProcessCancellationNoteCommand);
+        commandRouter.put(SagaStep.PROCESS_DEBIT_CREDIT_NOTE, this::publishProcessDebitCreditNoteCommand);
         commandRouter.put(SagaStep.SIGN_XML, this::publishSignXmlCommand);
         commandRouter.put(SagaStep.GENERATE_INVOICE_PDF, this::publishGenerateInvoicePdfCommand);
         commandRouter.put(SagaStep.GENERATE_TAX_INVOICE_PDF, this::publishGenerateTaxInvoicePdfCommand);
+        commandRouter.put(SagaStep.GENERATE_ABBREVIATED_TAX_INVOICE_PDF, this::publishGenerateAbbreviatedTaxInvoicePdfCommand);
+        commandRouter.put(SagaStep.GENERATE_RECEIPT_PDF, this::publishGenerateReceiptPdfCommand);
+        commandRouter.put(SagaStep.GENERATE_CANCELLATION_NOTE_PDF, this::publishGenerateCancellationNotePdfCommand);
+        commandRouter.put(SagaStep.GENERATE_DEBIT_CREDIT_NOTE_PDF, this::publishGenerateDebitCreditNotePdfCommand);
         commandRouter.put(SagaStep.SIGN_PDF, this::publishSignPdfCommand);
         commandRouter.put(SagaStep.SEND_EBMS, this::publishSendEbmsCommand);
 
         compensationRouter.put(SagaStep.PROCESS_INVOICE, invoiceCompensationTopic);
         compensationRouter.put(SagaStep.PROCESS_TAX_INVOICE, taxInvoiceCompensationTopic);
+        compensationRouter.put(SagaStep.PROCESS_ABBREVIATED_TAX_INVOICE, abbreviatedTaxInvoiceCompensationTopic);
+        compensationRouter.put(SagaStep.PROCESS_RECEIPT, receiptCompensationTopic);
+        compensationRouter.put(SagaStep.PROCESS_CANCELLATION_NOTE, cancellationNoteCompensationTopic);
+        compensationRouter.put(SagaStep.PROCESS_DEBIT_CREDIT_NOTE, debitCreditNoteCompensationTopic);
         compensationRouter.put(SagaStep.SIGN_XML, xmlSigningCompensationTopic);
         compensationRouter.put(SagaStep.GENERATE_INVOICE_PDF, invoicePdfCompensationTopic);
         compensationRouter.put(SagaStep.GENERATE_TAX_INVOICE_PDF, taxInvoicePdfCompensationTopic);
+        compensationRouter.put(SagaStep.GENERATE_ABBREVIATED_TAX_INVOICE_PDF, abbreviatedTaxInvoicePdfCompensationTopic);
+        compensationRouter.put(SagaStep.GENERATE_RECEIPT_PDF, receiptPdfCompensationTopic);
+        compensationRouter.put(SagaStep.GENERATE_CANCELLATION_NOTE_PDF, cancellationNotePdfCompensationTopic);
+        compensationRouter.put(SagaStep.GENERATE_DEBIT_CREDIT_NOTE_PDF, debitCreditNotePdfCompensationTopic);
         compensationRouter.put(SagaStep.SIGN_PDF, pdfSigningCompensationTopic);
         compensationRouter.put(SagaStep.SEND_EBMS, ebmsSendingCompensationTopic);
     }
@@ -143,6 +207,86 @@ public class SagaCommandPublisher {
 
         log.debug("Published ProcessTaxInvoiceCommand for saga {} to topic {}",
             saga.getId(), taxInvoiceCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessAbbreviatedTaxInvoiceCommand to the abbreviatedtaxinvoice-processing-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishProcessAbbreviatedTaxInvoiceCommand(SagaInstance saga, String correlationId) {
+        ProcessAbbreviatedTaxInvoiceCommand command = new ProcessAbbreviatedTaxInvoiceCommand(
+            saga.getId(),
+            SagaStep.PROCESS_ABBREVIATED_TAX_INVOICE,
+            correlationId,
+            saga.getDocumentId(),
+            getXmlContent(saga),
+            getDocumentNumber(saga)
+        );
+
+        publishCommand(command, abbreviatedTaxInvoiceCommandTopic, saga, correlationId, "ProcessAbbreviatedTaxInvoiceCommand");
+
+        log.debug("Published ProcessAbbreviatedTaxInvoiceCommand for saga {} to topic {}",
+            saga.getId(), abbreviatedTaxInvoiceCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessReceiptCommand to the receipt-processing-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishProcessReceiptCommand(SagaInstance saga, String correlationId) {
+        ProcessReceiptCommand command = new ProcessReceiptCommand(
+            saga.getId(),
+            SagaStep.PROCESS_RECEIPT,
+            correlationId,
+            saga.getDocumentId(),
+            getXmlContent(saga),
+            getDocumentNumber(saga)
+        );
+
+        publishCommand(command, receiptCommandTopic, saga, correlationId, "ProcessReceiptCommand");
+
+        log.debug("Published ProcessReceiptCommand for saga {} to topic {}",
+            saga.getId(), receiptCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessCancellationNoteCommand to the cancellationnote-processing-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishProcessCancellationNoteCommand(SagaInstance saga, String correlationId) {
+        ProcessCancellationNoteCommand command = new ProcessCancellationNoteCommand(
+            saga.getId(),
+            SagaStep.PROCESS_CANCELLATION_NOTE,
+            correlationId,
+            saga.getDocumentId(),
+            getXmlContent(saga),
+            getDocumentNumber(saga)
+        );
+
+        publishCommand(command, cancellationNoteCommandTopic, saga, correlationId, "ProcessCancellationNoteCommand");
+
+        log.debug("Published ProcessCancellationNoteCommand for saga {} to topic {}",
+            saga.getId(), cancellationNoteCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessDebitCreditNoteCommand to the debitcreditnote-processing-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishProcessDebitCreditNoteCommand(SagaInstance saga, String correlationId) {
+        ProcessDebitCreditNoteCommand command = new ProcessDebitCreditNoteCommand(
+            saga.getId(),
+            SagaStep.PROCESS_DEBIT_CREDIT_NOTE,
+            correlationId,
+            saga.getDocumentId(),
+            getXmlContent(saga),
+            getDocumentNumber(saga)
+        );
+
+        publishCommand(command, debitCreditNoteCommandTopic, saga, correlationId, "ProcessDebitCreditNoteCommand");
+
+        log.debug("Published ProcessDebitCreditNoteCommand for saga {} to topic {}",
+            saga.getId(), debitCreditNoteCommandTopic);
     }
 
     /**
@@ -237,6 +381,106 @@ public class SagaCommandPublisher {
 
         log.debug("Published ProcessTaxInvoicePdfCommand for saga {} to topic {}",
             saga.getId(), taxInvoicePdfCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessAbbreviatedTaxInvoicePdfCommand to the abbreviatedtaxinvoice-pdf-generation-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishGenerateAbbreviatedTaxInvoicePdfCommand(SagaInstance saga, String correlationId) {
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
+        String abbreviatedTaxInvoiceDataJson = getMetadataValue(saga, "abbreviatedTaxInvoiceDataJson");
+
+        ProcessAbbreviatedTaxInvoicePdfCommand command = new ProcessAbbreviatedTaxInvoicePdfCommand(
+            saga.getId(),
+            SagaStep.GENERATE_ABBREVIATED_TAX_INVOICE_PDF,
+            correlationId,
+            saga.getDocumentId(),
+            getMetadataValue(saga, "abbreviatedTaxInvoiceId"),
+            getDocumentNumber(saga),
+            signedXmlUrl,
+            abbreviatedTaxInvoiceDataJson
+        );
+
+        publishCommand(command, abbreviatedTaxInvoicePdfCommandTopic, saga, correlationId, "ProcessAbbreviatedTaxInvoicePdfCommand");
+
+        log.debug("Published ProcessAbbreviatedTaxInvoicePdfCommand for saga {} to topic {}",
+            saga.getId(), abbreviatedTaxInvoicePdfCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessReceiptPdfCommand to the receipt-pdf-generation-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishGenerateReceiptPdfCommand(SagaInstance saga, String correlationId) {
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
+        String receiptDataJson = getMetadataValue(saga, "receiptDataJson");
+
+        ProcessReceiptPdfCommand command = new ProcessReceiptPdfCommand(
+            saga.getId(),
+            SagaStep.GENERATE_RECEIPT_PDF,
+            correlationId,
+            saga.getDocumentId(),
+            getMetadataValue(saga, "receiptId"),
+            getDocumentNumber(saga),
+            signedXmlUrl,
+            receiptDataJson
+        );
+
+        publishCommand(command, receiptPdfCommandTopic, saga, correlationId, "ProcessReceiptPdfCommand");
+
+        log.debug("Published ProcessReceiptPdfCommand for saga {} to topic {}",
+            saga.getId(), receiptPdfCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessCancellationNotePdfCommand to the cancellationnote-pdf-generation-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishGenerateCancellationNotePdfCommand(SagaInstance saga, String correlationId) {
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
+        String cancellationNoteDataJson = getMetadataValue(saga, "cancellationNoteDataJson");
+
+        ProcessCancellationNotePdfCommand command = new ProcessCancellationNotePdfCommand(
+            saga.getId(),
+            SagaStep.GENERATE_CANCELLATION_NOTE_PDF,
+            correlationId,
+            saga.getDocumentId(),
+            getMetadataValue(saga, "cancellationNoteId"),
+            getDocumentNumber(saga),
+            signedXmlUrl,
+            cancellationNoteDataJson
+        );
+
+        publishCommand(command, cancellationNotePdfCommandTopic, saga, correlationId, "ProcessCancellationNotePdfCommand");
+
+        log.debug("Published ProcessCancellationNotePdfCommand for saga {} to topic {}",
+            saga.getId(), cancellationNotePdfCommandTopic);
+    }
+
+    /**
+     * Publishes a ProcessDebitCreditNotePdfCommand to the debitcreditnote-pdf-generation-service.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publishGenerateDebitCreditNotePdfCommand(SagaInstance saga, String correlationId) {
+        String signedXmlUrl = getMetadataValue(saga, "signedXmlUrl");
+        String debitCreditNoteDataJson = getMetadataValue(saga, "debitCreditNoteDataJson");
+
+        ProcessDebitCreditNotePdfCommand command = new ProcessDebitCreditNotePdfCommand(
+            saga.getId(),
+            SagaStep.GENERATE_DEBIT_CREDIT_NOTE_PDF,
+            correlationId,
+            saga.getDocumentId(),
+            getMetadataValue(saga, "debitCreditNoteId"),
+            getDocumentNumber(saga),
+            signedXmlUrl,
+            debitCreditNoteDataJson
+        );
+
+        publishCommand(command, debitCreditNotePdfCommandTopic, saga, correlationId, "ProcessDebitCreditNotePdfCommand");
+
+        log.debug("Published ProcessDebitCreditNotePdfCommand for saga {} to topic {}",
+            saga.getId(), debitCreditNotePdfCommandTopic);
     }
 
     /**
@@ -764,6 +1008,405 @@ public class SagaCommandPublisher {
             this.documentNumber = documentNumber;
             this.signedXmlUrl = signedXmlUrl;
             this.taxInvoiceDataJson = taxInvoiceDataJson;
+        }
+    }
+
+    /**
+     * Command for abbreviatedtaxinvoice-processing-service.
+     */
+    @Getter
+    public static class ProcessAbbreviatedTaxInvoiceCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("xmlContent")
+        private final String xmlContent;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        public ProcessAbbreviatedTaxInvoiceCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                                     String documentId, String xmlContent, String documentNumber) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+
+        @JsonCreator
+        public ProcessAbbreviatedTaxInvoiceCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("xmlContent") String xmlContent,
+                @JsonProperty("documentNumber") String documentNumber) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+    }
+
+    /**
+     * Command for receipt-processing-service.
+     */
+    @Getter
+    public static class ProcessReceiptCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("xmlContent")
+        private final String xmlContent;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        public ProcessReceiptCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                      String documentId, String xmlContent, String documentNumber) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+
+        @JsonCreator
+        public ProcessReceiptCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("xmlContent") String xmlContent,
+                @JsonProperty("documentNumber") String documentNumber) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+    }
+
+    /**
+     * Command for cancellationnote-processing-service.
+     */
+    @Getter
+    public static class ProcessCancellationNoteCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("xmlContent")
+        private final String xmlContent;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        public ProcessCancellationNoteCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                               String documentId, String xmlContent, String documentNumber) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+
+        @JsonCreator
+        public ProcessCancellationNoteCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("xmlContent") String xmlContent,
+                @JsonProperty("documentNumber") String documentNumber) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+    }
+
+    /**
+     * Command for debitcreditnote-processing-service.
+     */
+    @Getter
+    public static class ProcessDebitCreditNoteCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("xmlContent")
+        private final String xmlContent;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        public ProcessDebitCreditNoteCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                               String documentId, String xmlContent, String documentNumber) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+
+        @JsonCreator
+        public ProcessDebitCreditNoteCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("xmlContent") String xmlContent,
+                @JsonProperty("documentNumber") String documentNumber) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.xmlContent = xmlContent;
+            this.documentNumber = documentNumber;
+        }
+    }
+
+    /**
+     * Command for abbreviatedtaxinvoice-pdf-generation-service.
+     */
+    @Getter
+    public static class ProcessAbbreviatedTaxInvoicePdfCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("abbreviatedTaxInvoiceId")
+        private final String abbreviatedTaxInvoiceId;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
+
+        @JsonProperty("abbreviatedTaxInvoiceDataJson")
+        private final String abbreviatedTaxInvoiceDataJson;
+
+        public ProcessAbbreviatedTaxInvoicePdfCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                                      String documentId, String abbreviatedTaxInvoiceId,
+                                                      String documentNumber, String signedXmlUrl,
+                                                      String abbreviatedTaxInvoiceDataJson) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.abbreviatedTaxInvoiceId = abbreviatedTaxInvoiceId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.abbreviatedTaxInvoiceDataJson = abbreviatedTaxInvoiceDataJson;
+        }
+
+        @JsonCreator
+        public ProcessAbbreviatedTaxInvoicePdfCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("abbreviatedTaxInvoiceId") String abbreviatedTaxInvoiceId,
+                @JsonProperty("documentNumber") String documentNumber,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl,
+                @JsonProperty("abbreviatedTaxInvoiceDataJson") String abbreviatedTaxInvoiceDataJson) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.abbreviatedTaxInvoiceId = abbreviatedTaxInvoiceId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.abbreviatedTaxInvoiceDataJson = abbreviatedTaxInvoiceDataJson;
+        }
+    }
+
+    /**
+     * Command for receipt-pdf-generation-service.
+     */
+    @Getter
+    public static class ProcessReceiptPdfCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("receiptId")
+        private final String receiptId;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
+
+        @JsonProperty("receiptDataJson")
+        private final String receiptDataJson;
+
+        public ProcessReceiptPdfCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                         String documentId, String receiptId, String documentNumber,
+                                         String signedXmlUrl, String receiptDataJson) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.receiptId = receiptId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.receiptDataJson = receiptDataJson;
+        }
+
+        @JsonCreator
+        public ProcessReceiptPdfCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("receiptId") String receiptId,
+                @JsonProperty("documentNumber") String documentNumber,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl,
+                @JsonProperty("receiptDataJson") String receiptDataJson) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.receiptId = receiptId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.receiptDataJson = receiptDataJson;
+        }
+    }
+
+    /**
+     * Command for cancellationnote-pdf-generation-service.
+     */
+    @Getter
+    public static class ProcessCancellationNotePdfCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("cancellationNoteId")
+        private final String cancellationNoteId;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
+
+        @JsonProperty("cancellationNoteDataJson")
+        private final String cancellationNoteDataJson;
+
+        public ProcessCancellationNotePdfCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                                  String documentId, String cancellationNoteId,
+                                                  String documentNumber, String signedXmlUrl,
+                                                  String cancellationNoteDataJson) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.cancellationNoteId = cancellationNoteId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.cancellationNoteDataJson = cancellationNoteDataJson;
+        }
+
+        @JsonCreator
+        public ProcessCancellationNotePdfCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("cancellationNoteId") String cancellationNoteId,
+                @JsonProperty("documentNumber") String documentNumber,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl,
+                @JsonProperty("cancellationNoteDataJson") String cancellationNoteDataJson) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.cancellationNoteId = cancellationNoteId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.cancellationNoteDataJson = cancellationNoteDataJson;
+        }
+    }
+
+    /**
+     * Command for debitcreditnote-pdf-generation-service.
+     */
+    @Getter
+    public static class ProcessDebitCreditNotePdfCommand extends SagaCommand {
+        private static final long serialVersionUID = 1L;
+
+        @JsonProperty("documentId")
+        private final String documentId;
+
+        @JsonProperty("debitCreditNoteId")
+        private final String debitCreditNoteId;
+
+        @JsonProperty("documentNumber")
+        private final String documentNumber;
+
+        @JsonProperty("signedXmlUrl")
+        private final String signedXmlUrl;
+
+        @JsonProperty("debitCreditNoteDataJson")
+        private final String debitCreditNoteDataJson;
+
+        public ProcessDebitCreditNotePdfCommand(String sagaId, SagaStep sagaStep, String correlationId,
+                                                String documentId, String debitCreditNoteId,
+                                                String documentNumber, String signedXmlUrl,
+                                                String debitCreditNoteDataJson) {
+            super(sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.debitCreditNoteId = debitCreditNoteId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.debitCreditNoteDataJson = debitCreditNoteDataJson;
+        }
+
+        @JsonCreator
+        public ProcessDebitCreditNotePdfCommand(
+                @JsonProperty("eventId") UUID eventId,
+                @JsonProperty("occurredAt") Instant occurredAt,
+                @JsonProperty("eventType") String eventType,
+                @JsonProperty("version") int version,
+                @JsonProperty("sagaId") String sagaId,
+                @JsonProperty("sagaStep") SagaStep sagaStep,
+                @JsonProperty("correlationId") String correlationId,
+                @JsonProperty("documentId") String documentId,
+                @JsonProperty("debitCreditNoteId") String debitCreditNoteId,
+                @JsonProperty("documentNumber") String documentNumber,
+                @JsonProperty("signedXmlUrl") String signedXmlUrl,
+                @JsonProperty("debitCreditNoteDataJson") String debitCreditNoteDataJson) {
+            super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
+            this.documentId = documentId;
+            this.debitCreditNoteId = debitCreditNoteId;
+            this.documentNumber = documentNumber;
+            this.signedXmlUrl = signedXmlUrl;
+            this.debitCreditNoteDataJson = debitCreditNoteDataJson;
         }
     }
 

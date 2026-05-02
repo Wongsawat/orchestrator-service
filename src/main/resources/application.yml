@@ -57,10 +57,18 @@ app:
       # Command topics to processing services
       saga-command-invoice: saga.command.invoice
       saga-command-tax-invoice: saga.command.tax-invoice
+      saga-command-abbreviated-tax-invoice: saga.command.abbreviated-tax-invoice
+      saga-command-receipt: saga.command.receipt
+      saga-command-cancellation-note: saga.command.cancellation-note
+      saga-command-debit-credit-note: saga.command.debit-credit-note
       saga-command-xml-signing: saga.command.xml-signing
       saga-command-signedxml-storage: saga.command.signedxml-storage
       saga-command-invoice-pdf: saga.command.invoice-pdf
       saga-command-tax-invoice-pdf: saga.command.tax-invoice-pdf
+      saga-command-abbreviated-tax-invoice-pdf: saga.command.abbreviated-tax-invoice-pdf
+      saga-command-receipt-pdf: saga.command.receipt-pdf
+      saga-command-cancellation-note-pdf: saga.command.cancellation-note-pdf
+      saga-command-debit-credit-note-pdf: saga.command.debit-credit-note-pdf
       saga-command-pdf-signing: saga.command.pdf-signing
       saga-command-document-storage: saga.command.document-storage
       saga-command-ebms-sending: saga.command.ebms-sending
@@ -68,10 +76,18 @@ app:
       # Reply topics from processing services
       saga-reply-invoice: saga.reply.invoice
       saga-reply-tax-invoice: saga.reply.tax-invoice
+      saga-reply-abbreviated-tax-invoice: saga.reply.abbreviated-tax-invoice
+      saga-reply-receipt: saga.reply.receipt
+      saga-reply-cancellation-note: saga.reply.cancellation-note
+      saga-reply-debit-credit-note: saga.reply.debit-credit-note
       saga-reply-xml-signing: saga.reply.xml-signing
       saga-reply-signedxml-storage: saga.reply.signedxml-storage
       saga-reply-invoice-pdf: saga.reply.invoice-pdf
       saga-reply-tax-invoice-pdf: saga.reply.tax-invoice-pdf
+      saga-reply-abbreviated-tax-invoice-pdf: saga.reply.abbreviated-tax-invoice-pdf
+      saga-reply-receipt-pdf: saga.reply.receipt-pdf
+      saga-reply-cancellation-note-pdf: saga.reply.cancellation-note-pdf
+      saga-reply-debit-credit-note-pdf: saga.reply.debit-credit-note-pdf
       saga-reply-pdf-signing: saga.reply.pdf-signing
       saga-reply-document-storage: saga.reply.document-storage
       saga-reply-ebms-sending: saga.reply.ebms-sending
@@ -80,27 +96,51 @@ app:
     command:
       invoice: saga.command.invoice
       tax-invoice: saga.command.tax-invoice
+      abbreviated-tax-invoice: saga.command.abbreviated-tax-invoice
+      receipt: saga.command.receipt
+      cancellation-note: saga.command.cancellation-note
+      debit-credit-note: saga.command.debit-credit-note
       xml-signing: saga.command.xml-signing
       signedxml-storage: saga.command.signedxml-storage
       invoice-pdf: saga.command.invoice-pdf
       tax-invoice-pdf: saga.command.tax-invoice-pdf
+      abbreviated-tax-invoice-pdf: saga.command.abbreviated-tax-invoice-pdf
+      receipt-pdf: saga.command.receipt-pdf
+      cancellation-note-pdf: saga.command.cancellation-note-pdf
+      debit-credit-note-pdf: saga.command.debit-credit-note-pdf
       pdf-signing: saga.command.pdf-signing
       document-storage: saga.command.document-storage
       ebms-sending: saga.command.ebms-sending
     reply:
       invoice: saga.reply.invoice
       tax-invoice: saga.reply.tax-invoice
+      abbreviated-tax-invoice: saga.reply.abbreviated-tax-invoice
+      receipt: saga.reply.receipt
+      cancellation-note: saga.reply.cancellation-note
+      debit-credit-note: saga.reply.debit-credit-note
       document-storage: saga.reply.document-storage
       xml-signing: saga.reply.xml-signing
       signedxml-storage: saga.reply.signedxml-storage
       invoice-pdf: saga.reply.invoice-pdf
       tax-invoice-pdf: saga.reply.tax-invoice-pdf
+      abbreviated-tax-invoice-pdf: saga.reply.abbreviated-tax-invoice-pdf
+      receipt-pdf: saga.reply.receipt-pdf
+      cancellation-note-pdf: saga.reply.cancellation-note-pdf
+      debit-credit-note-pdf: saga.reply.debit-credit-note-pdf
       pdf-signing: saga.reply.pdf-signing
       ebms-sending: saga.reply.ebms-sending
       pdf-storage: saga.reply.pdf-storage
     compensation:
       invoice: saga.compensation.invoice
       tax-invoice: saga.compensation.tax-invoice
+      abbreviated-tax-invoice: saga.compensation.abbreviated-tax-invoice
+      abbreviated-tax-invoice-pdf: saga.compensation.abbreviated-tax-invoice-pdf
+      receipt: saga.compensation.receipt
+      receipt-pdf: saga.compensation.receipt-pdf
+      cancellation-note: saga.compensation.cancellation-note
+      cancellation-note-pdf: saga.compensation.cancellation-note-pdf
+      debit-credit-note: saga.compensation.debit-credit-note
+      debit-credit-note-pdf: saga.compensation.debit-credit-note-pdf
       xml-signing: saga.compensation.xml-signing
       signedxml-storage: saga.compensation.signedxml-storage
       invoice-pdf: saga.compensation.invoice-pdf

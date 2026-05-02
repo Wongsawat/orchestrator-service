@@ -60,9 +60,17 @@ public class SagaReplyConsumer {
             topics = {
                     "${app.saga.reply.invoice:saga.reply.invoice}",
                     "${app.saga.reply.tax-invoice:saga.reply.tax-invoice}",
+                    "${app.saga.reply.abbreviated-tax-invoice:saga.reply.abbreviated-tax-invoice}",
+                    "${app.saga.reply.receipt:saga.reply.receipt}",
+                    "${app.saga.reply.cancellation-note:saga.reply.cancellation-note}",
+                    "${app.saga.reply.debit-credit-note:saga.reply.debit-credit-note}",
                     "${app.saga.reply.xml-signing:saga.reply.xml-signing}",
                     "${app.saga.reply.invoice-pdf:saga.reply.invoice-pdf}",
                     "${app.saga.reply.tax-invoice-pdf:saga.reply.tax-invoice-pdf}",
+                    "${app.saga.reply.abbreviated-tax-invoice-pdf:saga.reply.abbreviated-tax-invoice-pdf}",
+                    "${app.saga.reply.receipt-pdf:saga.reply.receipt-pdf}",
+                    "${app.saga.reply.cancellation-note-pdf:saga.reply.cancellation-note-pdf}",
+                    "${app.saga.reply.debit-credit-note-pdf:saga.reply.debit-credit-note-pdf}",
                     "${app.saga.reply.pdf-signing:saga.reply.pdf-signing}",
                     "${app.saga.reply.ebms-sending:saga.reply.ebms-sending}"
             },
