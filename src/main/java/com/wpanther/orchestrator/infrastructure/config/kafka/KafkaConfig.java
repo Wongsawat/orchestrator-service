@@ -6,9 +6,7 @@ import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.ConcreteSag
 import com.wpanther.orchestrator.infrastructure.adapter.in.messaging.StartSagaCommand;
 import com.wpanther.saga.domain.model.SagaReply;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -17,7 +15,6 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -47,25 +44,6 @@ public class KafkaConfig {
 
     public KafkaConfig(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
-    }
-
-    // ========== Producer Configuration ==========
-
-    @Bean
-    public ProducerFactory<String, com.wpanther.saga.domain.model.SagaCommand> sagaCommandProducerFactory() {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        config.put(ProducerConfig.ACKS_CONFIG, "all");
-        config.put(ProducerConfig.RETRIES_CONFIG, 3);
-        config.put(JsonSerializer.TYPE_MAPPINGS, "SagaCommand:com.wpanther.saga.domain.model.SagaCommand");
-        return new DefaultKafkaProducerFactory<>(config);
-    }
-
-    @Bean
-    public KafkaTemplate<String, com.wpanther.saga.domain.model.SagaCommand> sagaCommandKafkaTemplate() {
-        return new KafkaTemplate<>(sagaCommandProducerFactory());
     }
 
     // ========== Consumer Configuration ==========

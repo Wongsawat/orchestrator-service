@@ -387,7 +387,6 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
      */
     private void sendCommandForStep(SagaInstance instance, String correlationId) {
         SagaStep step = instance.getCurrentStep();
-        boolean isInvoice = DocumentType.INVOICE.equals(instance.getDocumentType());
 
         // Create command record
         String commandPayload = createCommandPayload(instance, step);
@@ -408,9 +407,6 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
 
         // Publish command via outbox
         commandPublisher.publishCommandForStep(instance, step, correlationId);
-
-        // Direct Kafka producer deprecated - using outbox pattern instead
-        // commandProducer.sendCommand(instance.getId(), createCommand(instance, step, saved.getCorrelationId()), isInvoice);
     }
 
     /**
