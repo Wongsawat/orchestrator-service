@@ -1,5 +1,10 @@
 package com.wpanther.orchestrator.domain.model.enums;
 
+import com.wpanther.saga.domain.enums.SagaStep;
+
+import java.util.List;
+import java.util.Map;
+
 /**
  * Enum representing the types of documents that can be processed by the saga orchestrator.
  */
@@ -43,6 +48,58 @@ public enum DocumentType {
     private final String code;
     private final String description;
 
+    private static final Map<DocumentType, List<SagaStep>> FLOW = Map.of(
+        INVOICE, List.of(
+            SagaStep.PROCESS_INVOICE,
+            SagaStep.SIGN_XML,
+            SagaStep.GENERATE_INVOICE_PDF,
+            SagaStep.SIGN_PDF,
+            SagaStep.SEND_EBMS
+        ),
+        TAX_INVOICE, List.of(
+            SagaStep.PROCESS_TAX_INVOICE,
+            SagaStep.SIGN_XML,
+            SagaStep.GENERATE_TAX_INVOICE_PDF,
+            SagaStep.SIGN_PDF,
+            SagaStep.SEND_EBMS
+        ),
+        ABBREVIATED_TAX_INVOICE, List.of(
+            SagaStep.PROCESS_ABBREVIATED_TAX_INVOICE,
+            SagaStep.SIGN_XML,
+            SagaStep.GENERATE_ABBREVIATED_TAX_INVOICE_PDF,
+            SagaStep.SIGN_PDF,
+            SagaStep.SEND_EBMS
+        ),
+        RECEIPT, List.of(
+            SagaStep.PROCESS_RECEIPT,
+            SagaStep.SIGN_XML,
+            SagaStep.GENERATE_RECEIPT_PDF,
+            SagaStep.SIGN_PDF,
+            SagaStep.SEND_EBMS
+        ),
+        CANCELLATION_NOTE, List.of(
+            SagaStep.PROCESS_CANCELLATION_NOTE,
+            SagaStep.SIGN_XML,
+            SagaStep.GENERATE_CANCELLATION_NOTE_PDF,
+            SagaStep.SIGN_PDF,
+            SagaStep.SEND_EBMS
+        ),
+        DEBIT_NOTE, List.of(
+            SagaStep.PROCESS_DEBIT_CREDIT_NOTE,
+            SagaStep.SIGN_XML,
+            SagaStep.GENERATE_DEBIT_CREDIT_NOTE_PDF,
+            SagaStep.SIGN_PDF,
+            SagaStep.SEND_EBMS
+        ),
+        CREDIT_NOTE, List.of(
+            SagaStep.PROCESS_DEBIT_CREDIT_NOTE,
+            SagaStep.SIGN_XML,
+            SagaStep.GENERATE_DEBIT_CREDIT_NOTE_PDF,
+            SagaStep.SIGN_PDF,
+            SagaStep.SEND_EBMS
+        )
+    );
+
     DocumentType(String code, String description) {
         this.code = code;
         this.description = description;
@@ -54,6 +111,10 @@ public enum DocumentType {
 
     public String getDescription() {
         return description;
+    }
+
+    public static Map<DocumentType, List<SagaStep>> getFlow() {
+        return FLOW;
     }
 
     /**
@@ -83,7 +144,7 @@ public enum DocumentType {
      * @return true if the document type can be processed by sagas
      */
     public boolean isSupported() {
-        return this == INVOICE || this == TAX_INVOICE || this == ABBREVIATED_TAX_INVOICE;
+        return FLOW.containsKey(this);
     }
 
     /**
@@ -96,17 +157,13 @@ public enum DocumentType {
      * @return the first saga step for processing this document type
      * @throws UnsupportedOperationException if the document type is not yet supported
      */
-    public com.wpanther.saga.domain.enums.SagaStep getInitialStep() {
-        if (!isSupported()) {
+    public SagaStep getInitialStep() {
+        List<SagaStep> steps = FLOW.get(this);
+        if (steps == null || steps.isEmpty()) {
             throw new UnsupportedOperationException(
-                "Document type '" + this.name() + "' is not yet supported for saga processing. " +
-                "Supported types: INVOICE, TAX_INVOICE, ABBREVIATED_TAX_INVOICE"
+                "Document type '" + this.name() + "' is not yet supported for saga processing"
             );
         }
-        return switch (this) {
-            case INVOICE -> com.wpanther.saga.domain.enums.SagaStep.PROCESS_INVOICE;
-            case TAX_INVOICE, ABBREVIATED_TAX_INVOICE -> com.wpanther.saga.domain.enums.SagaStep.PROCESS_TAX_INVOICE;
-            default -> throw new AssertionError("Unsupported type should have been caught by isSupported()");
-        };
+        return steps.get(0);
     }
 }

@@ -31,23 +31,23 @@ class DocumentTypeTest {
         }
 
         @Test
-        void receipt_returnsFalse() {
-            assertThat(DocumentType.RECEIPT.isSupported()).isFalse();
+        void receipt_returnsTrue() {
+            assertThat(DocumentType.RECEIPT.isSupported()).isTrue();
         }
 
         @Test
-        void debitNote_returnsFalse() {
-            assertThat(DocumentType.DEBIT_NOTE.isSupported()).isFalse();
+        void debitNote_returnsTrue() {
+            assertThat(DocumentType.DEBIT_NOTE.isSupported()).isTrue();
         }
 
         @Test
-        void creditNote_returnsFalse() {
-            assertThat(DocumentType.CREDIT_NOTE.isSupported()).isFalse();
+        void creditNote_returnsTrue() {
+            assertThat(DocumentType.CREDIT_NOTE.isSupported()).isTrue();
         }
 
         @Test
-        void cancellationNote_returnsFalse() {
-            assertThat(DocumentType.CANCELLATION_NOTE.isSupported()).isFalse();
+        void cancellationNote_returnsTrue() {
+            assertThat(DocumentType.CANCELLATION_NOTE.isSupported()).isTrue();
         }
     }
 
@@ -68,41 +68,33 @@ class DocumentTypeTest {
         }
 
         @Test
-        void abbreviatedTaxInvoice_returnsProcessTaxInvoiceStep() {
+        void abbreviatedTaxInvoice_returnsProcessAbbreviatedTaxInvoiceStep() {
             assertThat(DocumentType.ABBREVIATED_TAX_INVOICE.getInitialStep())
-                    .isEqualTo(SagaStep.PROCESS_TAX_INVOICE);
+                    .isEqualTo(SagaStep.PROCESS_ABBREVIATED_TAX_INVOICE);
         }
 
         @Test
-        void receipt_throwsUnsupportedOperationException() {
-            assertThatThrownBy(() -> DocumentType.RECEIPT.getInitialStep())
-                    .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessageContaining("RECEIPT")
-                    .hasMessageContaining("not yet supported");
+        void receipt_returnsProcessReceiptStep() {
+            assertThat(DocumentType.RECEIPT.getInitialStep())
+                    .isEqualTo(SagaStep.PROCESS_RECEIPT);
         }
 
         @Test
-        void debitNote_throwsUnsupportedOperationException() {
-            assertThatThrownBy(() -> DocumentType.DEBIT_NOTE.getInitialStep())
-                    .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessageContaining("DEBIT_NOTE")
-                    .hasMessageContaining("not yet supported");
+        void debitNote_returnsProcessDebitCreditNoteStep() {
+            assertThat(DocumentType.DEBIT_NOTE.getInitialStep())
+                    .isEqualTo(SagaStep.PROCESS_DEBIT_CREDIT_NOTE);
         }
 
         @Test
-        void creditNote_throwsUnsupportedOperationException() {
-            assertThatThrownBy(() -> DocumentType.CREDIT_NOTE.getInitialStep())
-                    .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessageContaining("CREDIT_NOTE")
-                    .hasMessageContaining("not yet supported");
+        void creditNote_returnsProcessDebitCreditNoteStep() {
+            assertThat(DocumentType.CREDIT_NOTE.getInitialStep())
+                    .isEqualTo(SagaStep.PROCESS_DEBIT_CREDIT_NOTE);
         }
 
         @Test
-        void cancellationNote_throwsUnsupportedOperationException() {
-            assertThatThrownBy(() -> DocumentType.CANCELLATION_NOTE.getInitialStep())
-                    .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessageContaining("CANCELLATION_NOTE")
-                    .hasMessageContaining("not yet supported");
+        void cancellationNote_returnsProcessCancellationNoteStep() {
+            assertThat(DocumentType.CANCELLATION_NOTE.getInitialStep())
+                    .isEqualTo(SagaStep.PROCESS_CANCELLATION_NOTE);
         }
     }
 
