@@ -6,7 +6,7 @@ Saga orchestration service for the Thai e-Tax Invoice Processing Pipeline. Coord
 
 | Property | Value |
 |----------|-------|
-| **Port** | 8093 |
+| **Port** | 8100 |
 | **Database** | PostgreSQL `orchestrator_db` |
 | **Java** | 21 |
 | **Spring Boot** | 3.2.5 |
@@ -145,7 +145,7 @@ All endpoints require API key authentication via `X-API-Key` header.
 ### Start Saga
 
 ```bash
-curl -X POST http://localhost:8093/api/saga/start \
+curl -X POST http://localhost:8100/api/saga/start \
   -H "X-API-Key: your-api-key" \
   -H "Content-Type: application/json" \
   -d '{
@@ -160,15 +160,15 @@ curl -X POST http://localhost:8093/api/saga/start \
 
 ```bash
 # Get saga by ID
-curl http://localhost:8093/api/saga/{sagaId} \
+curl http://localhost:8100/api/saga/{sagaId} \
   -H "X-API-Key: your-api-key"
 
 # Get active sagas
-curl http://localhost:8093/api/saga/active \
+curl http://localhost:8100/api/saga/active \
   -H "X-API-Key: your-api-key"
 
 # Query by document
-curl "http://localhost:8093/api/saga/document?documentType=TAX_INVOICE&documentId=doc-123" \
+curl "http://localhost:8100/api/saga/document?documentType=TAX_INVOICE&documentId=doc-123" \
   -H "X-API-Key: your-api-key"
 ```
 
@@ -176,11 +176,11 @@ curl "http://localhost:8093/api/saga/document?documentType=TAX_INVOICE&documentI
 
 ```bash
 # Retry failed saga
-curl -X POST http://localhost:8093/api/saga/{sagaId}/retry \
+curl -X POST http://localhost:8100/api/saga/{sagaId}/retry \
   -H "X-API-Key: your-api-key"
 
 # Manually advance saga (for testing)
-curl -X POST http://localhost:8093/api/saga/{sagaId}/advance \
+curl -X POST http://localhost:8100/api/saga/{sagaId}/advance \
   -H "X-API-Key: your-api-key"
 ```
 
@@ -282,7 +282,7 @@ mvn clean test -Pintegration -Dspring.profiles.active=cdc-test
 ### Health Endpoint
 
 ```bash
-curl http://localhost:8093/actuator/health
+curl http://localhost:8100/actuator/health
 ```
 
 ## Development
