@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.DocumentMetadata;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
 import com.wpanther.orchestrator.domain.model.enums.DocumentType;
+import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
 import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.infrastructure.outbox.OutboxService;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,12 +30,13 @@ import static org.mockito.Mockito.*;
 class SagaCommandPublisherTest {
 
     @Mock private OutboxService outboxService;
+    @Mock private SagaInstanceRepository sagaRepository;
 
     private SagaCommandPublisher publisher;
 
     @BeforeEach
     void setUp() {
-        publisher = new SagaCommandPublisher(outboxService, new ObjectMapper());
+        publisher = new SagaCommandPublisher(outboxService, new ObjectMapper(), sagaRepository);
         // Inject topic values via reflection (normally done by @Value)
         ReflectionTestUtils.setField(publisher, "invoiceCommandTopic", "saga.command.invoice");
         ReflectionTestUtils.setField(publisher, "taxInvoiceCommandTopic", "saga.command.tax-invoice");

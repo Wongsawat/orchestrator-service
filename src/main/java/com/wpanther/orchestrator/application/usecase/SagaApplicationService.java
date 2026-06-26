@@ -157,7 +157,8 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
         SagaInstance instance = jdbcTemplate.queryForObject(
                 "SELECT id, document_type, document_id, current_step, status, "
                         + "created_at, updated_at, completed_at, error_message, "
-                        + "correlation_id, retry_count, max_retries, version, document_number "
+                        + "correlation_id, retry_count, max_retries, version, document_number, "
+                        + "metadata "
                         + "FROM saga_instances WHERE id = ?",
                 (rs, rowNum) -> SagaInstance.builder()
                         .id(rs.getString("id"))
@@ -179,6 +180,9 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                         .version(rs.getObject("version", Integer.class) != null
                                 ? rs.getObject("version", Integer.class) : 0)
                         .documentNumber(rs.getString("document_number"))
+                        // metadata is a plain TEXT column (no @Lob) — rs.getString is safe and
+                        // carries forward accumulated step results (signedXmlUrl, pdfUrl, ...)
+                        .documentMetadata(parseMetadataColumn(rs.getString("metadata")))
                         .build(),
                 sagaId
         );
@@ -503,9 +507,52 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
     }
 
     /**
+     * Parses the {@code metadata} TEXT column (JSON object) loaded via JdbcTemplate
+     * back into a {@link DocumentMetadata}. Returns {@code null} when the column is
+     * empty so callers can lazily initialise an empty metadata when needed.
+     */
+    private DocumentMetadata parseMetadataColumn(String metadataJson) {
+        if (metadataJson == null || metadataJson.isBlank()) {
+            return null;
+        }
+        try {
+            Map<String, Object> map = objectMapper.readValue(
+                    metadataJson,
+                    new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+            return DocumentMetadata.builder().metadata(map).build();
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to deserialize saga metadata column, ignoring: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Serializes the saga's accumulated metadata map to a JSON string for the
+     * {@code metadata} TEXT column. Returns {@code null} when there is nothing to persist
+     * so the column is not overwritten with an empty object.
+     */
+    private String serializeMetadataColumn(SagaInstance instance) {
+        DocumentMetadata metadata = instance.getDocumentMetadata();
+        if (metadata == null || metadata.getMetadata() == null || metadata.getMetadata().isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(metadata.getMetadata());
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to serialize saga {} metadata column, persisting null: {}",
+                    instance.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Updates a saga instance using JdbcTemplate to avoid JPA caching and
      * optimistic locking issues when saga was loaded via JdbcTemplate.
      * This bypasses the persistence context entirely.
+     *
+     * <p>Persists the {@code metadata} column so step results merged into
+     * {@link DocumentMetadata} (signedXmlUrl, pdfUrl, ...) survive the next reload —
+     * subsequent saga commands depend on these accumulated values.
      *
      * @param instance the saga instance to update (version is incremented atomically)
      */
@@ -514,6 +561,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 UPDATE saga_instances
                 SET current_step = ?, status = ?, updated_at = ?, completed_at = ?,
                     error_message = ?, correlation_id = ?, retry_count = ?,
+                    metadata = ?,
                     version = version + 1
                 WHERE id = ?
                 """,
@@ -525,6 +573,7 @@ public class SagaApplicationService implements StartSagaUseCase, HandleSagaReply
                 instance.getErrorMessage(),
                 instance.getCorrelationId(),
                 instance.getRetryCount(),
+                serializeMetadataColumn(instance),
                 instance.getId()
         );
         if (updated == 0) {

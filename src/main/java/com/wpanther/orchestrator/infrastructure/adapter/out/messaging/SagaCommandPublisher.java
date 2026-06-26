@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wpanther.orchestrator.domain.model.SagaInstance;
+import com.wpanther.orchestrator.domain.repository.SagaInstanceRepository;
 import com.wpanther.saga.domain.enums.SagaStep;
 import com.wpanther.saga.domain.model.SagaCommand;
 import com.wpanther.saga.infrastructure.outbox.OutboxService;
@@ -38,6 +39,7 @@ public class SagaCommandPublisher {
 
     private final OutboxService outboxService;
     private final ObjectMapper objectMapper;
+    private final SagaInstanceRepository sagaRepository;
 
     @Value("${app.kafka.topics.saga-command-invoice:saga.command.invoice}")
     private String invoiceCommandTopic;
@@ -302,7 +304,7 @@ public class SagaCommandPublisher {
             correlationId,
             saga.getDocumentId(),
             getDocumentNumber(saga),
-            saga.getDocumentType().getCode(),
+            saga.getDocumentType().name(),
             signedXmlUrl
         );
 
@@ -324,7 +326,7 @@ public class SagaCommandPublisher {
             saga.getDocumentId(),
             getXmlContent(saga),
             getDocumentNumber(saga),
-            saga.getDocumentType().getCode()
+            saga.getDocumentType().name()
         );
 
         publishCommand(command, xmlSigningCommandTopic, saga, correlationId, "ProcessXmlSigningCommand");
@@ -489,8 +491,9 @@ public class SagaCommandPublisher {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void publishSignPdfCommand(SagaInstance saga, String correlationId) {
-        // PDF URL set by GENERATE_TAX_INVOICE_PDF or GENERATE_INVOICE_PDF reply (MinIO URL)
+        // PDF URL + size set by GENERATE_TAX_INVOICE_PDF or GENERATE_INVOICE_PDF reply (MinIO URL)
         String pdfUrl = getMetadataValue(saga, "pdfUrl");
+        Long pdfSize = getMetadataLongValue(saga, "pdfSize");
 
         ProcessPdfSigningCommand command = new ProcessPdfSigningCommand(
             saga.getId(),
@@ -498,8 +501,9 @@ public class SagaCommandPublisher {
             correlationId,
             saga.getDocumentId(),
             getDocumentNumber(saga),
-            saga.getDocumentType().getCode(),
-            pdfUrl
+            saga.getDocumentType().name(),
+            pdfUrl,
+            pdfSize
         );
 
         publishCommand(command, pdfSigningCommandTopic, saga, correlationId, "ProcessPdfSigningCommand");
@@ -539,7 +543,7 @@ public class SagaCommandPublisher {
             correlationId,
             stepToCompensate.getCode(),
             saga.getDocumentId(),
-            saga.getDocumentType().getCode()
+            saga.getDocumentType().name()
         );
 
         Map<String, String> headers = new HashMap<>();
@@ -628,9 +632,18 @@ public class SagaCommandPublisher {
      * @return the XML content, or null if DocumentMetadata is null
      */
     private String getXmlContent(SagaInstance saga) {
-        return saga.getDocumentMetadata() != null
-                ? saga.getDocumentMetadata().getXmlContent()
-                : null;
+        if (saga.getDocumentMetadata() != null
+                && saga.getDocumentMetadata().getXmlContent() != null) {
+            return saga.getDocumentMetadata().getXmlContent();
+        }
+        // The reply-handling path loads sagas via findByIdWithoutClob (to avoid
+        // pulling CLOB columns for every step), so documentMetadata/xmlContent is
+        // null here. The SIGN_XML command requires the XML, so reload the full
+        // record (with CLOB) once to recover it.
+        return sagaRepository.findById(saga.getId())
+                .map(SagaInstance::getDocumentMetadata)
+                .map(com.wpanther.orchestrator.domain.model.DocumentMetadata::getXmlContent)
+                .orElse(null);
     }
 
     /**
@@ -1430,14 +1443,20 @@ public class SagaCommandPublisher {
         @JsonProperty("pdfUrl")
         private final String pdfUrl;
 
+        // pdfSize is required by etax-signing-service (SignedPdfDocument.create rejects a null
+        // originalPdfSize). It is propagated from the GENERATE_*_PDF reply via saga metadata.
+        @JsonProperty("pdfSize")
+        private final Long pdfSize;
+
         public ProcessPdfSigningCommand(String sagaId, SagaStep sagaStep, String correlationId,
                                         String documentId, String documentNumber, String documentType,
-                                        String pdfUrl) {
+                                        String pdfUrl, Long pdfSize) {
             super(sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.documentNumber = documentNumber;
             this.documentType = documentType;
             this.pdfUrl = pdfUrl;
+            this.pdfSize = pdfSize;
         }
 
         @JsonCreator
@@ -1452,12 +1471,14 @@ public class SagaCommandPublisher {
                 @JsonProperty("documentId") String documentId,
                 @JsonProperty("documentNumber") String documentNumber,
                 @JsonProperty("documentType") String documentType,
-                @JsonProperty("pdfUrl") String pdfUrl) {
+                @JsonProperty("pdfUrl") String pdfUrl,
+                @JsonProperty("pdfSize") Long pdfSize) {
             super(eventId, occurredAt, eventType, version, sagaId, sagaStep, correlationId);
             this.documentId = documentId;
             this.documentNumber = documentNumber;
             this.documentType = documentType;
             this.pdfUrl = pdfUrl;
+            this.pdfSize = pdfSize;
         }
     }
 }
